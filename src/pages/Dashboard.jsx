@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { Droplets, ArrowRight } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
+import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
+import { buildScheduleChartData } from '../utils/chartData';
+import { MinutesByDayChart, ProgramWeeklyChart } from '../components/DashboardCharts';
 import { formatTime, formatDuration } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 
@@ -16,18 +19,28 @@ const STAT_COLUMNS = [
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, todayZones: 0 });
+  const [chartData, setChartData] = useState({ byDay: [], byProgram: [] });
+  const [chartsLoading, setChartsLoading] = useState(true);
   const { items, loading } = useTodaySchedule();
 
   useEffect(() => {
     async function load() {
       const programs = await programsRepository.getAll();
       const zones = await zonesRepository.getAll();
+      const charts = await buildScheduleChartData({
+        programsRepository,
+        zonesRepository,
+        schedulesRepository,
+      });
+
       setStats({
         total: programs.length,
         active: programs.filter(p => p.status === 'active').length,
         zones: zones.length,
         todayZones: 0,
       });
+      setChartData(charts);
+      setChartsLoading(false);
     }
     load();
   }, []);
@@ -60,6 +73,36 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Scheduled Load</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            <div className="p-5">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                Minutes by Day
+              </h3>
+              <MinutesByDayChart data={chartData.byDay} />
+              <p className="mt-3 text-[11px] text-slate-400">
+                Total active cycle minutes scheduled on each weekday.
+              </p>
+            </div>
+            <div className="p-5">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                Weekly Time by Program
+              </h3>
+              <ProgramWeeklyChart data={chartData.byProgram} />
+              <p className="mt-3 text-[11px] text-slate-400">
+                Run duration × run days, summed per program.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
