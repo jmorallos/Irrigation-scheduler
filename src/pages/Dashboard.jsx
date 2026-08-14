@@ -7,7 +7,7 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
-import { MinutesByDayChart, ProgramWeeklyChart } from '../components/DashboardCharts';
+import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components/DashboardCharts';
 import { formatTime, formatDuration } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 
@@ -15,12 +15,11 @@ const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
   { key: 'active', label: 'Active' },
   { key: 'zones', label: 'Zones' },
-  { key: 'todayZones', label: 'Today' },
 ];
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, todayZones: 0 });
-  const [chartData, setChartData] = useState({ byDay: [], byProgram: [] });
+  const [stats, setStats] = useState({ total: 0, active: 0, zones: 0 });
+  const [chartData, setChartData] = useState({ byProgramToday: [] });
   const [chartsLoading, setChartsLoading] = useState(true);
   const { items, loading } = useTodaySchedule();
 
@@ -33,22 +32,12 @@ export default function Dashboard() {
         schedulesRepository,
       });
 
-      setStats({
-        ...overview,
-        todayZones: 0,
-      });
+      setStats(overview);
       setChartData(charts);
       setChartsLoading(false);
     }
     load();
   }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      const uniqueZones = new Set(items.map(i => i.zone.id));
-      setStats(s => ({ ...s, todayZones: uniqueZones.size }));
-    }
-  }, [items, loading]);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -63,11 +52,11 @@ export default function Dashboard() {
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+        <div className="grid grid-cols-3 divide-x divide-slate-100">
           {STAT_COLUMNS.map(({ key, label }) => (
             <div key={key} className="px-5 py-4 text-center sm:text-left">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-              <p className="mt-1 text-2xl font-bold font-mono text-navy-900">{stats[key]}</p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
             </div>
           ))}
         </div>
@@ -75,7 +64,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Scheduled Load</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Load"}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
@@ -83,20 +72,20 @@ export default function Dashboard() {
           <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
             <div className="p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                Minutes by Day
+                Run Time by Program
               </h3>
-              <MinutesByDayChart data={chartData.byDay} />
+              <ProgramTodayMinutesChart data={chartData.byProgramToday} />
               <p className="mt-3 text-[11px] text-slate-400">
-                Total active cycle minutes scheduled on each weekday.
+                Total cycle minutes for programs running today.
               </p>
             </div>
             <div className="p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                Weekly Time by Program
+                Starts by Program
               </h3>
-              <ProgramWeeklyChart data={chartData.byProgram} />
+              <ProgramTodayStartsChart data={chartData.byProgramToday} />
               <p className="mt-3 text-[11px] text-slate-400">
-                Run duration × run days, summed per program.
+                Number of cycle starts for programs running today.
               </p>
             </div>
           </div>

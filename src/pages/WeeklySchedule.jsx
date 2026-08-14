@@ -7,7 +7,7 @@ import EmptyState from '../components/EmptyState';
 import { Link } from 'react-router-dom';
 
 const ZONE_COL =
-  'sticky left-0 z-10 w-28 min-w-28 max-w-28 sm:w-40 sm:min-w-40 sm:max-w-40 px-3 sm:px-4';
+  'sticky left-0 z-10 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
 export default function WeeklySchedule() {
   const { groups, loading } = useWeeklySchedule();
@@ -33,15 +33,15 @@ export default function WeeklySchedule() {
       ) : (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto overscroll-x-contain">
-            <table className="w-full text-xs border-collapse table-fixed" style={{ minWidth: '560px' }}>
+            <table className="w-full text-sm border-collapse table-fixed" style={{ minWidth: '680px' }}>
               <colgroup>
-                <col className="w-28 sm:w-40" />
+                <col className="w-32 sm:w-44" />
                 {DAY_ORDER.map(day => (
-                  <col key={day} className="w-16 sm:w-20" />
+                  <col key={day} className="w-[4.75rem] sm:w-24" />
                 ))}
               </colgroup>
               <thead>
-                <tr className="bg-navy-900 text-white">
+                <tr className="bg-navy-900 text-white text-xs sm:text-sm">
                   <th className={`${ZONE_COL} text-left py-3.5 font-semibold uppercase tracking-wider bg-navy-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.2)]`}>
                     Zone
                   </th>
@@ -67,7 +67,7 @@ export default function WeeklySchedule() {
                       <td className={`${ZONE_COL} py-2.5 bg-surface-alt shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}>
                         <Link
                           to={`/programs/${group.program.id}`}
-                          className="block truncate text-xs font-semibold text-navy-900 hover:text-brand-600 transition-colors"
+                          className="block truncate text-sm font-semibold text-navy-900 hover:text-brand-600 transition-colors"
                           title={group.program.name}
                         >
                           {group.program.name}
@@ -87,7 +87,7 @@ export default function WeeklySchedule() {
                       return (
                         <tr key={row.zone.id} className={`border-t border-slate-100 ${rowBg}`}>
                           <td
-                            className={`${ZONE_COL} py-3 text-slate-600 font-medium ${rowBg} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}
+                            className={`${ZONE_COL} py-3.5 text-sm text-slate-600 font-medium ${rowBg} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}
                             title={row.zone.name}
                           >
                             <span className="block truncate">
@@ -102,27 +102,27 @@ export default function WeeklySchedule() {
                             return (
                               <td
                                 key={day}
-                                className={`px-2 py-3 text-center whitespace-nowrap ${
+                                className={`px-2 py-3.5 text-center whitespace-nowrap ${
                                   day === today ? todayCellBg : rowBg
                                 }`}
                               >
                                 {daySchedules.length > 0 ? (
-                                  <div className="flex flex-col gap-1">
+                                  <div className="flex flex-col gap-1.5">
                                     {daySchedules.map(sched => (
-                                      <div key={sched.id} className="leading-tight">
-                                        <span className={`font-mono font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
+                                      <div key={sched.id} className="leading-snug">
+                                        <span className={`font-mono text-sm font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
                                           {formatTime(sched.start_time)}
+                                          {daySchedules.length > 1 && (
+                                            <span className="ml-1 text-xs text-slate-400 font-sans font-medium">
+                                              C{sched.cycle ?? 1}
+                                            </span>
+                                          )}
                                         </span>
-                                        {daySchedules.length > 1 && (
-                                          <span className="block text-[9px] text-slate-400 font-sans">
-                                            C{sched.cycle ?? 1}
-                                          </span>
-                                        )}
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-200">—</span>
+                                  <span className="text-slate-200 text-sm">—</span>
                                 )}
                               </td>
                             );
