@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Eye, Power, List } from 'lucide-react';
 import { usePrograms } from '../hooks/usePrograms';
 import { useZones } from '../hooks/useZones';
@@ -18,6 +19,7 @@ function ZoneCount({ programId }) {
 }
 
 export default function Programs() {
+  const navigate = useNavigate();
   const { programs, loading, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -68,8 +70,8 @@ export default function Programs() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-navy-900 text-white">
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10">#</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Program</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10" aria-label="Controller program"></th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Program Name</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Zones</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14"></th>
@@ -79,9 +81,22 @@ export default function Programs() {
                 {programs.map((program, index) => (
                   <tr
                     key={program.id}
-                    className={`border-b border-slate-100 last:border-0 ${index % 2 === 1 ? 'bg-surface-alt/60' : 'bg-white'}`}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => navigate(`/programs/${program.id}`, { state: { program } })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/programs/${program.id}`, { state: { program } });
+                      }
+                    }}
+                    className={`border-b border-slate-100 last:border-0 cursor-pointer transition-colors duration-200 ease-in-out hover:bg-blue-50/60 active:bg-blue-100/50 ${
+                      index % 2 === 1 ? 'bg-surface-alt/60' : 'bg-white'
+                    }`}
                   >
-                    <td className="px-4 py-4 text-slate-400 font-mono text-xs">{index + 1}</td>
+                    <td className="px-4 py-4 text-navy-900 font-semibold font-mono text-sm">
+                      {program.controller_program ?? '—'}
+                    </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <ProgramLogo name={program.name} size="md" />
@@ -103,7 +118,7 @@ export default function Programs() {
                     <td className="px-4 py-4">
                       <Badge status={program.status} size="sm" />
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           { label: 'View', icon: Eye, to: `/programs/${program.id}` },

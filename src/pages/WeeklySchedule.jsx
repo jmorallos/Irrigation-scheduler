@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime } from '../utils/dateUtils';
+import { getZoneDisplayName } from '../utils/scheduleUtils';
 import { CalendarDays } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { Link } from 'react-router-dom';
@@ -75,36 +76,51 @@ export default function WeeklySchedule() {
                       {DAY_ORDER.map(day => (
                         <td
                           key={day}
-                          className={`bg-surface-alt ${day === today ? 'bg-blue-50/80' : ''}`}
+                          className={`bg-surface-alt ${day === today ? 'bg-blue-50' : ''}`}
                         />
                       ))}
                     </tr>
-                    {group.rows.map((row, ri) => (
-                      <tr key={row.zone.id} className={`border-t border-slate-100 group ${ri % 2 === 1 ? 'bg-surface-alt/40' : 'bg-white'}`}>
+                    {group.rows.map((row, ri) => {
+                      const rowBg = ri % 2 === 1 ? 'bg-surface-alt' : 'bg-white';
+                      const todayCellBg = ri % 2 === 1 ? 'bg-blue-100' : 'bg-blue-50';
+
+                      return (
+                      <tr key={row.zone.id} className={`border-t border-slate-100 ${rowBg}`}>
                         <td
-                          className={`${ZONE_COL} py-3 text-slate-600 font-medium bg-inherit group-hover:bg-surface-alt/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}
+                          className={`${ZONE_COL} py-3 text-slate-600 font-medium ${rowBg} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}
                           title={row.zone.name}
                         >
                           <span className="block truncate">
-                            {row.zone.name}
+                            {getZoneDisplayName(row.zone, group.program.name)}
                             {row.zone.status === 'inactive' && (
                               <span className="ml-1 text-slate-300">(off)</span>
                             )}
                           </span>
                         </td>
                         {DAY_ORDER.map(day => {
-                          const sched = row.days[day];
+                          const daySchedules = row.days[day] ?? [];
                           return (
                             <td
                               key={day}
-                              className={`px-2 py-3 text-center whitespace-nowrap group-hover:bg-surface-alt/30 ${
-                                day === today ? 'bg-blue-50/50' : ''
+                              className={`px-2 py-3 text-center whitespace-nowrap ${
+                                day === today ? todayCellBg : rowBg
                               }`}
                             >
-                              {sched ? (
-                                <span className={`font-mono font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
-                                  {formatTime(sched.start_time)}
-                                </span>
+                              {daySchedules.length > 0 ? (
+                                <div className="flex flex-col gap-1">
+                                  {daySchedules.map(sched => (
+                                    <div key={sched.id} className="leading-tight">
+                                      <span className={`font-mono font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
+                                        {formatTime(sched.start_time)}
+                                      </span>
+                                      {daySchedules.length > 1 && (
+                                        <span className="block text-[9px] text-slate-400 font-sans">
+                                          C{sched.cycle ?? 1}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               ) : (
                                 <span className="text-slate-200">—</span>
                               )}
@@ -112,7 +128,8 @@ export default function WeeklySchedule() {
                           );
                         })}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </Fragment>
                 ))}
               </tbody>

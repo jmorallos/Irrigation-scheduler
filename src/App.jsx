@@ -1,11 +1,7 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import AppShell from './components/AppShell';
-import Dashboard from './pages/Dashboard';
-import Programs from './pages/Programs';
-import ProgramDetail from './pages/ProgramDetail';
-import WeeklySchedule from './pages/WeeklySchedule';
-import Settings from './pages/Settings';
+import AppRoutes from './AppRoutes';
 import { seedIfEmpty } from './db/seedData';
 
 async function clearStaleServiceWorkers() {
@@ -46,15 +42,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppShell>
-        <Routes>
-          <Route path="/" element={<Navigate to="/programs" replace />} />
-          <Route path="/programs" element={<Programs />} />
-          <Route path="/programs/:programId" element={<ProgramDetail />} />
-          <Route path="/schedule" element={<WeeklySchedule />} />
-          <Route path="/summary" element={<Dashboard />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/programs" replace />} />
-        </Routes>
+        <AppRoutes />
       </AppShell>
     </BrowserRouter>
   );

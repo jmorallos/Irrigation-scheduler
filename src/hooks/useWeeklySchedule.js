@@ -3,6 +3,8 @@ import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { DAY_ORDER } from '../utils/dateUtils';
+import { withCycleNumbers } from '../utils/scheduleUtils';
+import { sortProgramsByController } from '../db/programSort';
 
 export function useWeeklySchedule() {
   const [groups, setGroups] = useState([]);
@@ -11,7 +13,7 @@ export function useWeeklySchedule() {
   useEffect(() => {
     async function load() {
       try {
-        const programs = await programsRepository.getAll();
+        const programs = sortProgramsByController(await programsRepository.getAll());
         const result = [];
 
         for (const program of programs) {
@@ -19,22 +21,20 @@ export function useWeeklySchedule() {
           const rows = [];
 
           for (const zone of zones) {
-            const schedules = await schedulesRepository.getByZoneId(zone.id);
-            const dayMap = {};
+            const schedules = withCycleNumbers(await schedulesRepository.getByZoneId(zone.id));
+            const dayMap = Object.fromEntries(DAY_ORDER.map(day => [day, []]));
 
-            for (const s of schedules.filter(s => s.status === 'active')) {
-              for (const day of s.days_of_week) {
-                if (!dayMap[day] || s.start_time < dayMap[day].start_time) {
-                  dayMap[day] = s;
-                }
+            for (const schedule of schedules.filter(s => s.status === 'active')) {
+              for (const day of schedule.days_of_week) {
+                dayMap[day].push(schedule);
               }
             }
 
-            const filledDays = Object.fromEntries(
-              DAY_ORDER.map(d => [d, dayMap[d] ?? null])
-            );
+            for (const day of DAY_ORDER) {
+              dayMap[day].sort((a, b) => a.start_time.localeCompare(b.start_time));
+            }
 
-            rows.push({ zone, program, days: filledDays });
+            rows.push({ zone, program, days: dayMap });
           }
 
           if (rows.length > 0) {

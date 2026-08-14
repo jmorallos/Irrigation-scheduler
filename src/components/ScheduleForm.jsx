@@ -116,7 +116,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
           Cancel
         </button>
         <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
-          {saving ? 'Saving…' : initial?.id ? 'Save Schedule' : 'Add Schedule'}
+          {saving ? 'Saving…' : initial?.id ? 'Save Cycle' : 'Add Cycle'}
         </button>
       </div>
     </form>

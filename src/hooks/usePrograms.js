@@ -3,6 +3,8 @@ import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 
+import { sortProgramsByController } from '../db/programSort';
+
 export function usePrograms() {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,8 +13,7 @@ export function usePrograms() {
   const load = useCallback(async () => {
     try {
       const data = await programsRepository.getAll();
-      data.sort((a, b) => a.created_at.localeCompare(b.created_at));
-      setPrograms(data);
+      setPrograms(sortProgramsByController(data));
     } catch (err) {
       setError(err.message);
     } finally {

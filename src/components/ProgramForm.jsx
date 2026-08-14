@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [] }) {
   const [name, setName] = useState(initial?.name ?? '');
+  const [controllerProgram, setControllerProgram] = useState(initial?.controller_program ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [errors, setErrors] = useState({});
@@ -22,7 +23,12 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
     if (!validate()) return;
     setSaving(true);
     try {
-      await onSubmit({ name: name.trim(), description: description.trim(), status });
+      await onSubmit({
+        name: name.trim(),
+        controller_program: controllerProgram.trim().toUpperCase() || null,
+        description: description.trim(),
+        status,
+      });
     } finally {
       setSaving(false);
     }
@@ -44,6 +50,19 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
             className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none transition-colors ${errors.name ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-brand-600'}`}
           />
           {errors.name && <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-controller">
+            Controller Program <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            id="prog-controller"
+            type="text"
+            value={controllerProgram}
+            onChange={e => setControllerProgram(e.target.value.toUpperCase().slice(0, 2))}
+            placeholder="e.g. A"
+            className="w-24 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-600 transition-colors font-mono uppercase"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-desc">

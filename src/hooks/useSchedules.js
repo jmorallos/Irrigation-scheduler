@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { schedulesRepository } from '../db/schedulesRepository';
+import { withCycleNumbers } from '../utils/scheduleUtils';
 
 export function useSchedules(zoneId) {
   const [schedules, setSchedules] = useState([]);
@@ -10,8 +11,7 @@ export function useSchedules(zoneId) {
     if (!zoneId) { setLoading(false); return; }
     try {
       const data = await schedulesRepository.getByZoneId(zoneId);
-      data.sort((a, b) => a.start_time.localeCompare(b.start_time));
-      setSchedules(data);
+      setSchedules(withCycleNumbers(data));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -23,18 +23,21 @@ export function useSchedules(zoneId) {
 
   const createSchedule = useCallback(async (data) => {
     await schedulesRepository.create({ zone_id: zoneId, ...data });
+    await schedulesRepository.renumberCyclesForZone(zoneId);
     await load();
   }, [zoneId, load]);
 
   const updateSchedule = useCallback(async (id, data) => {
     await schedulesRepository.update(id, data);
+    await schedulesRepository.renumberCyclesForZone(zoneId);
     await load();
-  }, [load]);
+  }, [zoneId, load]);
 
   const deleteSchedule = useCallback(async (id) => {
     await schedulesRepository.delete(id);
+    await schedulesRepository.renumberCyclesForZone(zoneId);
     await load();
-  }, [load]);
+  }, [zoneId, load]);
 
   const toggleStatus = useCallback(async (id, current) => {
     await schedulesRepository.update(id, { status: current === 'active' ? 'inactive' : 'active' });

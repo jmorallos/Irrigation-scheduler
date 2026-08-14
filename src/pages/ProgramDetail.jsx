@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
 import { useZones } from '../hooks/useZones';
@@ -15,12 +15,16 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays } from '../utils/dateUtils';
+import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 
 function ScheduleRow({ schedule, onEdit, onDelete, onToggle }) {
   return (
     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            {formatCycleLabel(schedule.cycle)}
+          </span>
           <span className="font-mono text-sm font-semibold text-slate-700">{formatTime(schedule.start_time)}</span>
           <span className="text-xs text-slate-500">·</span>
           <span className="font-mono text-xs text-slate-500">{formatDuration(schedule.duration_minutes)}</span>
@@ -39,7 +43,7 @@ function ScheduleRow({ schedule, onEdit, onDelete, onToggle }) {
   );
 }
 
-function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
+function ZoneSection({ zone, programName, onEdit, onDelete, onToggle }) {
   const { schedules, createSchedule, updateSchedule, deleteSchedule, toggleStatus: toggleSched } = useSchedules(zone.id);
   const [addSched, setAddSched] = useState(false);
   const [editSched, setEditSched] = useState(null);
@@ -54,14 +58,20 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-navy-900">{zone.name}</span>
+            <span className="text-sm font-semibold text-navy-900">{getZoneDisplayName(zone, programName)}</span>
             {zone.status === 'inactive' && <Badge status="inactive" size="sm" />}
           </div>
-          <span className="text-xs text-slate-400">{schedules.length} schedule{schedules.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-slate-400">
+            {schedules.length === 0
+              ? 'No cycles'
+              : schedules.length === 1
+                ? '1 cycle'
+                : `${schedules.length} cycles`}
+          </span>
         </div>
         <ActionMenu
           items={[
-            { label: 'Add schedule', icon: Plus, onClick: () => setAddSched(true) },
+            { label: 'Add cycle', icon: Plus, onClick: () => setAddSched(true) },
             { label: 'Edit zone', icon: Pencil, onClick: onEdit },
             { label: zone.status === 'active' ? 'Deactivate' : 'Activate', icon: Power, onClick: onToggle },
             { label: 'Delete zone', icon: Trash2, onClick: onDelete, danger: true },
@@ -73,7 +83,7 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
         <div className="border-t border-slate-100">
           {schedules.length === 0 ? (
             <div className="py-6 text-center">
-              <p className="text-xs text-slate-400">No schedules. <button onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">Add one</button></p>
+              <p className="text-xs text-slate-400">No cycles. <button onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">Add one</button></p>
             </div>
           ) : (
             <div className="p-2 space-y-0.5">
@@ -92,7 +102,7 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
       )}
 
       {addSched && (
-        <Modal title="Add Schedule" onClose={() => setAddSched(false)}>
+        <Modal title="Add Cycle" onClose={() => setAddSched(false)}>
           <ScheduleForm
             onSubmit={async data => { await createSchedule(data); setAddSched(false); }}
             onCancel={() => setAddSched(false)}
@@ -100,7 +110,7 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
         </Modal>
       )}
       {editSched && (
-        <Modal title="Edit Schedule" onClose={() => setEditSched(null)}>
+        <Modal title="Edit Cycle" onClose={() => setEditSched(null)}>
           <ScheduleForm
             initial={editSched}
             onSubmit={async data => { await updateSchedule(editSched.id, data); setEditSched(null); }}
@@ -110,8 +120,8 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
       )}
       {deleteSched && (
         <ConfirmDialog
-          title="Delete schedule?"
-          message="This will permanently remove this schedule."
+          title="Delete cycle?"
+          message="This will permanently remove this watering cycle."
           confirmLabel="Delete"
           onConfirm={async () => { await deleteSchedule(deleteSched.id); setDeleteSched(null); }}
           onCancel={() => setDeleteSched(null)}
@@ -124,8 +134,10 @@ function ZoneSection({ zone, onEdit, onDelete, onToggle }) {
 export default function ProgramDetail() {
   const { programId } = useParams();
   const navigate = useNavigate();
-  const [program, setProgram] = useState(null);
-  const [loadingProg, setLoadingProg] = useState(true);
+  const location = useLocation();
+  const prefetchedProgram = location.state?.program?.id === programId ? location.state.program : null;
+  const [program, setProgram] = useState(prefetchedProgram);
+  const [loadingProg, setLoadingProg] = useState(!prefetchedProgram);
   const [editProg, setEditProg] = useState(false);
   const [addZone, setAddZone] = useState(false);
   const [editZone, setEditZone] = useState(null);
@@ -136,11 +148,14 @@ export default function ProgramDetail() {
 
   useEffect(() => {
     if (!programId) return;
+    let cancelled = false;
     programsRepository.getById(programId).then(p => {
+      if (cancelled) return;
       if (!p) navigate('/programs');
       else setProgram(p);
       setLoadingProg(false);
     });
+    return () => { cancelled = true; };
   }, [programId, navigate]);
 
   const handleUpdateProgram = async (data) => {
@@ -150,7 +165,22 @@ export default function ProgramDetail() {
     setEditProg(false);
   };
 
-  if (loadingProg) return <div className="py-16 text-center text-sm text-slate-400">Loading…</div>;
+  if (loadingProg) {
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="h-4 w-24 bg-slate-200 rounded" />
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-slate-200 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <div className="h-6 w-48 bg-slate-200 rounded" />
+              <div className="h-4 w-64 bg-slate-100 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!program) return null;
 
   return (
@@ -188,8 +218,11 @@ export default function ProgramDetail() {
           <div className="space-y-2">
             {todayForProgram.map(item => (
               <div key={item.schedule.id} className="flex items-center gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 w-14">
+                  {formatCycleLabel(item.schedule.cycle)}
+                </span>
                 <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(item.schedule.start_time)}</span>
-                <span className="text-sm text-slate-600">{item.zone.name}</span>
+                <span className="text-sm text-slate-600">{getZoneDisplayName(item.zone, program.name)}</span>
                 <span className="text-xs font-mono text-slate-500 ml-auto">{formatDuration(item.schedule.duration_minutes)}</span>
               </div>
             ))}
@@ -221,6 +254,7 @@ export default function ProgramDetail() {
             <ZoneSection
               key={zone.id}
               zone={zone}
+              programName={program.name}
               onEdit={() => setEditZone(zone)}
               onDelete={() => setDeleteZone(zone)}
               onToggle={() => toggleZone(zone.id, zone.status)}

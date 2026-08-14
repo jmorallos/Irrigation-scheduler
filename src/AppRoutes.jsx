@@ -1,0 +1,24 @@
+import { useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import Programs from './pages/Programs';
+import ProgramDetail from './pages/ProgramDetail';
+import WeeklySchedule from './pages/WeeklySchedule';
+import Settings from './pages/Settings';
+
+export default function AppRoutes() {
+  const location = useLocation();
+
+  return (
+    <div key={location.pathname} className="page-transition">
+      <Routes location={location}>
+        <Route path="/" element={<Navigate to="/programs" replace />} />
+        <Route path="/programs" element={<Programs />} />
+        <Route path="/programs/:programId" element={<ProgramDetail />} />
+        <Route path="/schedule" element={<WeeklySchedule />} />
+        <Route path="/summary" element={<Dashboard />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/programs" replace />} />
+      </Routes>
+    </div>
+  );
+}

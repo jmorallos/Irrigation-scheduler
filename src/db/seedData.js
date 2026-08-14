@@ -1,6 +1,7 @@
-import { programsRepository } from './programsRepository';
-import { zonesRepository } from './zonesRepository';
-import { schedulesRepository } from './schedulesRepository';
+import { programsRepository } from "./programsRepository";
+import { zonesRepository } from "./zonesRepository";
+import { schedulesRepository } from "./schedulesRepository";
+import { SEED_RECORDS } from "./seedRecords";
 
 export async function seedIfEmpty() {
   const programs = await programsRepository.getAll();
@@ -8,77 +9,44 @@ export async function seedIfEmpty() {
 
   const now = new Date().toISOString();
 
-  const program = {
-    id: crypto.randomUUID(),
-    name: 'Front Garden',
-    description: 'Main front yard irrigation program',
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-  };
-  await programsRepository.putRaw(program);
+  for (const programSeed of SEED_RECORDS) {
+    const program = {
+      id: crypto.randomUUID(),
+      controller_program: programSeed.controller_program ?? null,
+      name: programSeed.name,
+      description: programSeed.description,
+      status: "active",
+      created_at: now,
+      updated_at: now,
+    };
+    await programsRepository.putRaw(program);
 
-  const zone1 = {
-    id: crypto.randomUUID(),
-    program_id: program.id,
-    name: 'Lawn',
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-  };
-  const zone2 = {
-    id: crypto.randomUUID(),
-    program_id: program.id,
-    name: 'Flower Beds',
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-  };
-  const zone3 = {
-    id: crypto.randomUUID(),
-    program_id: program.id,
-    name: 'Side Garden',
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-  };
-  await zonesRepository.putRaw(zone1);
-  await zonesRepository.putRaw(zone2);
-  await zonesRepository.putRaw(zone3);
+    const sortedZones = [...programSeed.zones].sort((a, b) => a.valve - b.valve);
 
-  const schedules = [
-    {
-      id: crypto.randomUUID(),
-      zone_id: zone1.id,
-      start_time: '06:00',
-      duration_minutes: 15,
-      days_of_week: ['mon', 'wed', 'fri'],
-      status: 'active',
-      created_at: now,
-      updated_at: now,
-    },
-    {
-      id: crypto.randomUUID(),
-      zone_id: zone2.id,
-      start_time: '06:20',
-      duration_minutes: 10,
-      days_of_week: ['mon', 'wed', 'fri'],
-      status: 'active',
-      created_at: now,
-      updated_at: now,
-    },
-    {
-      id: crypto.randomUUID(),
-      zone_id: zone3.id,
-      start_time: '06:35',
-      duration_minutes: 20,
-      days_of_week: ['tue', 'thu', 'sat'],
-      status: 'active',
-      created_at: now,
-      updated_at: now,
-    },
-  ];
-  for (const s of schedules) {
-    await schedulesRepository.putRaw(s);
+    for (const zoneSeed of sortedZones) {
+      const zone = {
+        id: crypto.randomUUID(),
+        program_id: program.id,
+        name: `Zone ${zoneSeed.valve} · ${zoneSeed.name}`,
+        status: "active",
+        created_at: now,
+        updated_at: now,
+      };
+      await zonesRepository.putRaw(zone);
+
+      for (const scheduleSeed of zoneSeed.schedules) {
+        await schedulesRepository.putRaw({
+          id: crypto.randomUUID(),
+          zone_id: zone.id,
+          start_time: scheduleSeed.start_time,
+          duration_minutes: scheduleSeed.duration_minutes,
+          days_of_week: scheduleSeed.days_of_week,
+          status: scheduleSeed.status,
+          cycle: scheduleSeed.cycle ?? 1,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    }
   }
 }

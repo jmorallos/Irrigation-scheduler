@@ -78,4 +78,16 @@ export const schedulesRepository = {
       request.onerror = () => reject(request.error);
     });
   },
+
+  async renumberCyclesForZone(zoneId) {
+    const schedules = await this.getByZoneId(zoneId);
+    const sorted = schedules.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+    for (let index = 0; index < sorted.length; index++) {
+      const cycle = index + 1;
+      if (sorted[index].cycle !== cycle) {
+        await this.update(sorted[index].id, { cycle });
+      }
+    }
+  },
 };
