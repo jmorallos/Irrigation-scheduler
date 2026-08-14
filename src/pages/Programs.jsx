@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Eye, Power, List } from 'lucide-react';
 import { usePrograms } from '../hooks/usePrograms';
 import { useZones } from '../hooks/useZones';
@@ -11,10 +10,11 @@ import ProgramForm from '../components/ProgramForm';
 import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
+import ActionMenu from '../components/ActionMenu';
 
 function ZoneCount({ programId }) {
   const { zones } = useZones(programId);
-  return <span>{zones.length} {zones.length === 1 ? 'zone' : 'zones'}</span>;
+  return <span>{zones.length}</span>;
 }
 
 export default function Programs() {
@@ -39,14 +39,13 @@ export default function Programs() {
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
-      <div className="flex items-start sm:items-center justify-between gap-3 mb-6 sm:mb-8">
+      <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Programs</h1>
-          <p className="mt-1 text-sm text-slate-500">{programs.length} program{programs.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700 transition-colors"
+          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span className="sm:hidden">Add</span>
@@ -55,78 +54,77 @@ export default function Programs() {
       </div>
 
       {programs.length === 0 ? (
-        <EmptyState
-          icon={List}
-          title="No programs yet"
-          description="Create your first irrigation program to get started."
-          action={{ label: 'Add Program', onClick: () => setShowCreate(true) }}
-        />
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          <EmptyState
+            icon={List}
+            title="No programs yet"
+            description="Create your first irrigation program to get started."
+            action={{ label: 'Add Program', onClick: () => setShowCreate(true) }}
+          />
+        </div>
       ) : (
-        <div className="space-y-3">
-          {programs.map(program => (
-            <div key={program.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 overflow-hidden">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="hidden sm:block flex-shrink-0">
-                    <ProgramLogo name={program.name} size="lg" />
-                  </div>
-                  <div className="sm:hidden flex-shrink-0">
-                    <ProgramLogo name={program.name} size="md" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-slate-900 break-words">{program.name}</h3>
-                      <Badge status={program.status} size="sm" />
-                    </div>
-                    {program.description && (
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 sm:truncate">{program.description}</p>
-                    )}
-                    <p className="text-xs text-slate-400 mt-1">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-navy-900 text-white">
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10">#</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Program</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Zones</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {programs.map((program, index) => (
+                  <tr
+                    key={program.id}
+                    className={`border-b border-slate-100 last:border-0 ${index % 2 === 1 ? 'bg-surface-alt/60' : 'bg-white'}`}
+                  >
+                    <td className="px-4 py-4 text-slate-400 font-mono text-xs">{index + 1}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ProgramLogo name={program.name} size="md" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-navy-900 truncate">{program.name}</p>
+                          {program.description ? (
+                            <p className="text-xs text-slate-400 truncate mt-0.5">{program.description}</p>
+                          ) : (
+                            <p className="text-xs text-slate-400 mt-0.5 sm:hidden">
+                              <ZoneCount programId={program.id} /> zone(s)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-slate-600 hidden sm:table-cell">
                       <ZoneCount programId={program.id} />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between sm:justify-end gap-1 border-t border-gray-50 pt-3 sm:border-0 sm:pt-0 flex-shrink-0">
-                  <Link
-                    to={`/programs/${program.id}`}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 p-2.5 sm:p-2 rounded-lg text-slate-500 hover:text-green-600 hover:bg-green-50 transition-colors"
-                    title="View"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="text-xs font-medium sm:hidden">View</span>
-                  </Link>
-                  <button
-                    onClick={() => setEditing(program)}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 p-2.5 sm:p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    <span className="text-xs font-medium sm:hidden">Edit</span>
-                  </button>
-                  <button
-                    onClick={() => toggleStatus(program.id, program.status)}
-                    className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 p-2.5 sm:p-2 rounded-lg transition-colors ${
-                      program.status === 'active'
-                        ? 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
-                        : 'text-slate-500 hover:text-green-600 hover:bg-green-50'
-                    }`}
-                    title={program.status === 'active' ? 'Deactivate' : 'Activate'}
-                  >
-                    <Power className="w-4 h-4" />
-                    <span className="text-xs font-medium sm:hidden">{program.status === 'active' ? 'Off' : 'On'}</span>
-                  </button>
-                  <button
-                    onClick={() => openDelete(program)}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 p-2.5 sm:p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-xs font-medium sm:hidden">Delete</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                    </td>
+                    <td className="px-4 py-4">
+                      <Badge status={program.status} size="sm" />
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <ActionMenu
+                        items={[
+                          { label: 'View', icon: Eye, to: `/programs/${program.id}` },
+                          { label: 'Edit', icon: Pencil, onClick: () => setEditing(program) },
+                          {
+                            label: program.status === 'active' ? 'Deactivate' : 'Activate',
+                            icon: Power,
+                            onClick: () => toggleStatus(program.id, program.status),
+                          },
+                          { label: 'Delete', icon: Trash2, onClick: () => openDelete(program), danger: true },
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
+            {programs.length} program{programs.length !== 1 ? 's' : ''}
+          </div>
         </div>
       )}
 

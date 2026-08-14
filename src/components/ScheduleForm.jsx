@@ -48,7 +48,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               type="time"
               value={startTime}
               onChange={e => setStartTime(e.target.value)}
-              className={`w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-gray-200 focus:border-green-500'}`}
+              className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}
           </div>
@@ -63,7 +63,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               max="480"
               value={duration}
               onChange={e => setDuration(e.target.value)}
-              className={`w-full px-3.5 py-2.5 text-sm border rounded-xl outline-none font-mono transition-colors ${errors.duration ? 'border-red-400' : 'border-gray-200 focus:border-green-500'}`}
+              className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.duration ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.duration && <p className="mt-1 text-xs text-red-500">{errors.duration}</p>}
           </div>
@@ -80,8 +80,8 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
                 onClick={() => toggleDay(day)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                   days.includes(day)
-                    ? 'bg-green-600 border-green-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-green-400'
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
                 }`}
                 aria-pressed={days.includes(day)}
               >
@@ -99,10 +99,10 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
                 key={s}
                 type="button"
                 onClick={() => setStatus(s)}
-                className={`px-4 py-2 text-sm font-medium rounded-xl border transition-colors capitalize ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors capitalize ${
                   status === s
-                    ? s === 'active' ? 'bg-green-600 border-green-600 text-white' : 'bg-gray-700 border-gray-700 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                    ? s === 'active' ? 'bg-brand-600 border-brand-600 text-white' : 'bg-slate-600 border-slate-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
                 {s}
@@ -112,10 +112,10 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
         </div>
       </div>
       <div className="flex gap-3 mt-6 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-60 transition-colors">
+        <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
           {saving ? 'Saving…' : initial?.id ? 'Save Schedule' : 'Add Schedule'}
         </button>
       </div>

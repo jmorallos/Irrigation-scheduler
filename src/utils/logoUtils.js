@@ -1,12 +1,12 @@
 const LOGO_COLORS = [
-  { bg: '#dcfce7', text: '#166534' },
   { bg: '#dbeafe', text: '#1e40af' },
-  { bg: '#fef9c3', text: '#854d0e' },
-  { bg: '#fce7f3', text: '#9d174d' },
+  { bg: '#e0e7ff', text: '#3730a3' },
+  { bg: '#cffafe', text: '#0e7490' },
+  { bg: '#e8f0fe', text: '#1a3a7a' },
+  { bg: '#dbeafe', text: '#1d4ed8' },
   { bg: '#ede9fe', text: '#5b21b6' },
-  { bg: '#ffedd5', text: '#9a3412' },
-  { bg: '#cffafe', text: '#155e75' },
-  { bg: '#f0fdf4', text: '#14532d' },
+  { bg: '#f0f9ff', text: '#0369a1' },
+  { bg: '#ecfeff', text: '#155e75' },
 ];
 
 export function generateInitials(name) {
