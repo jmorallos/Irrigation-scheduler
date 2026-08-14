@@ -53,16 +53,16 @@ function ProgramMetricChart({ data, metric, emptyMessage }) {
                 {displayValue}
               </span>
             </div>
-            <button
-              type="button"
-              className="block w-full h-2 bg-slate-100 rounded-full overflow-hidden cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+            <div
+              className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"
+              role="img"
               aria-label={`${item.name}: ${displayValue} today`}
             >
               <div
-                className="h-full bg-brand-600 rounded-full min-w-0.5 transition-colors duration-150 group-hover:bg-brand-700 group-focus-within:bg-brand-700"
+                className="h-full bg-brand-600 rounded-full min-w-0.5 transition-colors duration-150 group-hover:bg-brand-700"
                 style={{ width: `${(value / max) * 100}%` }}
               />
-            </button>
+            </div>
           </div>
         );
       })}

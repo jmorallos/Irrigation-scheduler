@@ -23,14 +23,8 @@ export default function App() {
       .then(() => cleanupDuplicatePrograms())
       .catch(console.error);
 
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') document.documentElement.classList.add('dark');
-    else if (saved === 'system') {
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('theme');
     // Old Figma/Workbox workers cache broken assets. Clear them first.
     clearStaleServiceWorkers()
       .then(() => {

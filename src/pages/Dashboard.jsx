@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Droplets, ArrowRight } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
@@ -8,6 +8,7 @@ import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
 import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components/DashboardCharts';
+import PageError from '../components/PageError';
 import { formatTime, formatDuration } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 
@@ -21,23 +22,38 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, zones: 0 });
   const [chartData, setChartData] = useState({ byProgramToday: [] });
   const [chartsLoading, setChartsLoading] = useState(true);
-  const { items, loading } = useTodaySchedule();
+  const [pageError, setPageError] = useState(null);
+  const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule();
 
-  useEffect(() => {
-    async function load() {
+  const loadDashboard = useCallback(async () => {
+    setChartsLoading(true);
+    setPageError(null);
+    try {
       const overview = await countOverviewStats(programsRepository);
       const charts = await buildScheduleChartData({
         programsRepository,
         zonesRepository,
         schedulesRepository,
       });
-
       setStats(overview);
       setChartData(charts);
+    } catch (err) {
+      setPageError(err.message);
+    } finally {
       setChartsLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const retryAll = () => {
+    loadDashboard();
+    reloadToday();
+  };
+
+  const displayError = pageError || todayError;
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -48,6 +64,14 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-slate-500">{today}</p>
       </div>
 
+      {displayError && (
+        <div className="mb-6">
+          <PageError message={`Could not load summary: ${displayError}`} onRetry={retryAll} />
+        </div>
+      )}
+
+      {!displayError && (
+      <>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
@@ -130,6 +154,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

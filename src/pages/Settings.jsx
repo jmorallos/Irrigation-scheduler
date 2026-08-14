@@ -1,36 +1,30 @@
 import { useState, useRef } from 'react';
-import { Download, Upload, Trash2, Monitor, Sun, Moon } from 'lucide-react';
+import { Download, Upload, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { resetDBInstance } from '../db/database';
-import { blobToBase64, base64ToBlob } from '../utils/imageUtils';
+import { cleanupDuplicatePrograms } from '../db/cleanupDuplicates';
+import { blobToBase64 } from '../utils/imageUtils';
+import {
+  parseBackupFile,
+  validateBackup,
+  snapshotAllData,
+  restoreSnapshot,
+  applyBackup,
+} from '../utils/backupUtils';
 
 const BACKUP_VERSION = 2;
 
-function applyTheme(theme) {
-  const root = document.documentElement;
-  if (theme === 'dark') root.classList.add('dark');
-  else root.classList.remove('dark');
-  if (theme === 'system') {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    if (mq.matches) root.classList.add('dark');
-    else root.classList.remove('dark');
-  }
-  localStorage.setItem('theme', theme);
-}
-
 export default function Settings() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') ?? 'system');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
-  const [importSuccess, setImportSuccess] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const fileRef = useRef(null);
-
-  const handleTheme = (t) => { setTheme(t); applyTheme(t); };
 
   const exportData = async () => {
     const programs = await programsRepository.getAll();
@@ -67,41 +61,45 @@ export default function Settings() {
     setTimeout(() => setExportSuccess(false), 3000);
   };
 
-  const importData = async (file) => {
+  const handleFileSelect = async (file) => {
     setImportError(null);
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data.version || !Array.isArray(data.programs) || !Array.isArray(data.zones) || !Array.isArray(data.schedules)) {
-        throw new Error('Invalid backup file format.');
-      }
-      await mediaRepository.clear();
-      await programsRepository.clear();
-      await zonesRepository.clear();
-      await schedulesRepository.clear();
-      if (Array.isArray(data.media)) {
-        for (const record of data.media) {
-          if (!record.id || !record.data_base64 || !record.mime_type) continue;
-          await mediaRepository.putRaw({
-            id: record.id,
-            owner_type: record.owner_type,
-            owner_id: record.owner_id,
-            mime_type: record.mime_type,
-            size_bytes: record.size_bytes,
-            updated_at: record.updated_at,
-            blob: base64ToBlob(record.data_base64, record.mime_type),
-          });
-        }
-      }
-      for (const p of data.programs) await programsRepository.putRaw(p);
-      for (const z of data.zones) await zonesRepository.putRaw(z);
-      for (const s of data.schedules) await schedulesRepository.putRaw(s);
-      setImportSuccess(true);
-      setTimeout(() => setImportSuccess(false), 3000);
+      const data = validateBackup(parseBackupFile(text));
+      setPendingImport({ data, fileName: file.name });
     } catch (err) {
       setImportError(err.message);
     }
     if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const confirmImport = async () => {
+    if (!pendingImport || importing) return;
+    setImporting(true);
+    setImportError(null);
+    const snapshot = await snapshotAllData();
+
+    try {
+      await applyBackup(pendingImport.data);
+      await cleanupDuplicatePrograms();
+      resetDBInstance();
+      setPendingImport(null);
+      window.location.reload();
+    } catch (err) {
+      try {
+        await restoreSnapshot(snapshot);
+        resetDBInstance();
+      } catch {
+        setImportError(`${err.message}. Could not restore previous data — try refreshing the page.`);
+        setPendingImport(null);
+        setImporting(false);
+        return;
+      }
+      setImportError(err.message);
+      setPendingImport(null);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const clearAll = async () => {
@@ -111,13 +109,8 @@ export default function Settings() {
     await programsRepository.clear();
     resetDBInstance();
     setConfirmClear(false);
+    window.location.reload();
   };
-
-  const THEMES = [
-    { value: 'system', label: 'System', icon: Monitor },
-    { value: 'light', label: 'Light', icon: Sun },
-    { value: 'dark', label: 'Dark', icon: Moon },
-  ];
 
   return (
     <div>
@@ -125,82 +118,63 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-navy-900">Settings</h1>
       </div>
 
-      <div className="space-y-4">
-        <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Application</h2>
-          <div>
-            <span className="block text-sm font-medium text-navy-900 mb-2.5">Theme</span>
-            <div className="flex gap-2">
-              {THEMES.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => handleTheme(t.value)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                    theme === t.value
-                      ? 'bg-navy-900 border-navy-900 text-white'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <t.icon className="w-4 h-4" />
-                  {t.label}
-                </button>
-              ))}
+      <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Data</h2>
+        <div className="space-y-3">
+          {exportSuccess && (
+            <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+              Data exported successfully.
             </div>
-          </div>
-        </section>
+          )}
+          {importError && (
+            <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              Import failed: {importError}
+            </div>
+          )}
+          <button
+            onClick={exportData}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
+          >
+            <Download className="w-4 h-4 text-slate-500" />
+            Export Data
+            <span className="ml-auto text-xs text-slate-400">Save as JSON</span>
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
+          >
+            <Upload className="w-4 h-4 text-slate-500" />
+            Import Data
+            <span className="ml-auto text-xs text-slate-400">Restore from JSON</span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
+          />
+          <button
+            onClick={() => setConfirmClear(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors text-left"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear All Data
+            <span className="ml-auto text-xs text-red-400">Cannot be undone</span>
+          </button>
+        </div>
+      </section>
 
-        <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Data</h2>
-          <div className="space-y-3">
-            {importSuccess && (
-              <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-                Data imported successfully.
-              </div>
-            )}
-            {exportSuccess && (
-              <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-                Data exported successfully.
-              </div>
-            )}
-            {importError && (
-              <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                Import failed: {importError}
-              </div>
-            )}
-            <button
-              onClick={exportData}
-              className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
-            >
-              <Download className="w-4 h-4 text-slate-500" />
-              Export Data
-              <span className="ml-auto text-xs text-slate-400">Save as JSON</span>
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
-            >
-              <Upload className="w-4 h-4 text-slate-500" />
-              Import Data
-              <span className="ml-auto text-xs text-slate-400">Restore from JSON</span>
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) importData(f); }}
-            />
-            <button
-              onClick={() => setConfirmClear(true)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors text-left"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear All Data
-              <span className="ml-auto text-xs text-red-400">Cannot be undone</span>
-            </button>
-          </div>
-        </section>
-      </div>
+      {pendingImport && (
+        <ConfirmDialog
+          title="Import backup?"
+          message={`This will replace all current programs, zones, schedules, and photos with the data from "${pendingImport.fileName}".`}
+          detail={`Backup contains ${pendingImport.data.programs.length} program(s), ${pendingImport.data.zones.length} zone(s), and ${pendingImport.data.schedules.length} schedule(s).`}
+          confirmLabel={importing ? 'Importing…' : 'Import'}
+          onConfirm={confirmImport}
+          onCancel={() => !importing && setPendingImport(null)}
+        />
+      )}
 
       {confirmClear && (
         <ConfirmDialog

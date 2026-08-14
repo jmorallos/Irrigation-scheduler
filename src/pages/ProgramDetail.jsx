@@ -17,6 +17,7 @@ import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
+import { usePrograms } from '../hooks/usePrograms';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   const displayName = getZoneDisplayName(zone, programName);
@@ -247,6 +248,7 @@ export default function ProgramDetail() {
   const [editZone, setEditZone] = useState(null);
   const [deleteZone, setDeleteZone] = useState(null);
   const { zones, createZone, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
+  const { programs: allPrograms } = usePrograms();
   const { items: todayItems } = useTodaySchedule();
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
@@ -415,6 +417,7 @@ export default function ProgramDetail() {
         <Modal title="Edit Program" onClose={() => setEditProg(false)}>
           <ProgramForm
             initial={program}
+            existingNames={allPrograms.filter(p => p.id !== program.id).map(p => p.name)}
             onSubmit={handleUpdateProgram}
             onCancel={() => setEditProg(false)}
           />
@@ -442,7 +445,7 @@ export default function ProgramDetail() {
 
       {deleteZone && (
         <ConfirmDialog
-          title={`Delete "${deleteZone.name}"?`}
+          title={`Delete "${getZoneDisplayName(deleteZone, program.name)}"?`}
           message="This will also delete all schedules for this zone."
           confirmLabel="Delete Zone"
           onConfirm={async () => { await removeZone(deleteZone.id); setDeleteZone(null); }}

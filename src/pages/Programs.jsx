@@ -11,6 +11,7 @@ import ProgramForm from '../components/ProgramForm';
 import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
+import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 
 function ZoneCount({ programId }) {
@@ -20,7 +21,7 @@ function ZoneCount({ programId }) {
 
 export default function Programs() {
   const navigate = useNavigate();
-  const { programs, loading, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
+  const { programs, loading, error, reload, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -38,6 +39,7 @@ export default function Programs() {
   };
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading programs…</div>;
+  if (error) return <PageError message={`Could not load programs: ${error}`} onRetry={reload} />;
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
