@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Droplets, Layers, CheckCircle2, Clock, ArrowRight } from 'lucide-react';
+import { Droplets, ArrowRight } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { formatTime, formatDuration } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
+
+const STAT_COLUMNS = [
+  { key: 'total', label: 'Programs' },
+  { key: 'active', label: 'Active' },
+  { key: 'zones', label: 'Zones' },
+  { key: 'todayZones', label: 'Today' },
+];
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, todayZones: 0 });
@@ -34,13 +41,6 @@ export default function Dashboard() {
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const STAT_CARDS = [
-    { label: 'Total Programs', value: stats.total, icon: Layers, color: 'bg-blue-50 text-brand-600' },
-    { label: 'Active Programs', value: stats.active, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Total Zones', value: stats.zones, icon: Droplets, color: 'bg-cyan-50 text-cyan-600' },
-    { label: "Today's Zones", value: stats.todayZones, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-  ];
-
   return (
     <div>
       <div className="mb-6">
@@ -48,21 +48,23 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-slate-500">{today}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {STAT_CARDS.map(card => (
-          <div key={card.label} className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
-            <div className={`w-9 h-9 rounded-lg ${card.color} flex items-center justify-center mb-3`}>
-              <card.icon className="w-4.5 h-4.5" />
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+          {STAT_COLUMNS.map(({ key, label }) => (
+            <div key={key} className="px-5 py-4 text-center sm:text-left">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900">{stats[key]}</p>
             </div>
-            <div className="text-2xl font-bold text-navy-900 font-mono">{card.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{card.label}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 bg-navy-900">
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">{"Today's Irrigation"}</h2>
+        <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Irrigation"}</h2>
           <Link to="/schedule" className="text-xs text-blue-200 hover:text-white font-medium flex items-center gap-1 transition-colors">
             Weekly view <ArrowRight className="w-3 h-3" />
           </Link>
