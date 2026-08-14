@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
-import { mediaRepository } from '../db/mediaRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { sortProgramsByController } from '../db/programSort';
+import { deleteProgramCascade } from '../db/deleteProgramCascade';
 
 export function usePrograms() {
   const [programs, setPrograms] = useState([]);
@@ -48,20 +48,7 @@ export function usePrograms() {
   }, [load]);
 
   const deleteProgram = useCallback(async (id) => {
-    const program = await programsRepository.getById(id);
-    const zones = await zonesRepository.getByProgramId(id);
-    for (const zone of zones) {
-      if (zone.profile_image_id) {
-        await mediaRepository.deleteById(zone.profile_image_id);
-      }
-      const schedules = await schedulesRepository.getByZoneId(zone.id);
-      for (const s of schedules) await schedulesRepository.delete(s.id);
-      await zonesRepository.delete(zone.id);
-    }
-    if (program?.profile_image_id) {
-      await mediaRepository.deleteById(program.profile_image_id);
-    }
-    await programsRepository.delete(id);
+    await deleteProgramCascade(id);
     await load();
   }, [load]);
 

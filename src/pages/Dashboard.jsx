@@ -6,6 +6,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
+import { countOverviewStats } from '../utils/overviewStats';
 import { MinutesByDayChart, ProgramWeeklyChart } from '../components/DashboardCharts';
 import { formatTime, formatDuration } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
@@ -25,8 +26,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
-      const programs = await programsRepository.getAll();
-      const zones = await zonesRepository.getAll();
+      const overview = await countOverviewStats(programsRepository);
       const charts = await buildScheduleChartData({
         programsRepository,
         zonesRepository,
@@ -34,9 +34,7 @@ export default function Dashboard() {
       });
 
       setStats({
-        total: programs.length,
-        active: programs.filter(p => p.status === 'active').length,
-        zones: zones.length,
+        ...overview,
         todayZones: 0,
       });
       setChartData(charts);
