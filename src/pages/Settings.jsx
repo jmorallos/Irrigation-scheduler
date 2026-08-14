@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
-import { Download, Upload, Trash2 } from 'lucide-react';
+import { Download, Upload, Trash2, Sprout } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
-import { resetDBInstance } from '../db/database';
+import { resetDBInstance, deleteDatabase } from '../db/database';
 import { cleanupDuplicatePrograms } from '../db/cleanupDuplicates';
+import { loadSampleData } from '../db/seedData';
 import { blobToBase64 } from '../utils/imageUtils';
 import {
   parseBackupFile,
@@ -24,6 +25,8 @@ export default function Settings() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [sampleError, setSampleError] = useState(null);
+  const [sampleLoading, setSampleLoading] = useState(false);
   const fileRef = useRef(null);
 
   const exportData = async () => {
@@ -103,13 +106,27 @@ export default function Settings() {
   };
 
   const clearAll = async () => {
-    await mediaRepository.clear();
-    await schedulesRepository.clear();
-    await zonesRepository.clear();
-    await programsRepository.clear();
-    resetDBInstance();
-    setConfirmClear(false);
-    window.location.reload();
+    try {
+      await deleteDatabase();
+      setConfirmClear(false);
+      window.location.reload();
+    } catch (err) {
+      setImportError(err.message);
+      setConfirmClear(false);
+    }
+  };
+
+  const handleLoadSample = async () => {
+    setSampleError(null);
+    setSampleLoading(true);
+    try {
+      await loadSampleData();
+      window.location.reload();
+    } catch (err) {
+      setSampleError(err.message);
+    } finally {
+      setSampleLoading(false);
+    }
   };
 
   return (
@@ -119,8 +136,16 @@ export default function Settings() {
       </div>
 
       <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Data</h2>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Data</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          All schedules are stored locally in this browser. Deploying an update does not reset your data.
+        </p>
         <div className="space-y-3">
+          {sampleError && (
+            <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {sampleError}
+            </div>
+          )}
           {exportSuccess && (
             <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
               Data exported successfully.
@@ -155,6 +180,15 @@ export default function Settings() {
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
           />
           <button
+            onClick={handleLoadSample}
+            disabled={sampleLoading}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left disabled:opacity-60"
+          >
+            <Sprout className="w-4 h-4 text-slate-500" />
+            Load Sample Data
+            <span className="ml-auto text-xs text-slate-400">Empty app only</span>
+          </button>
+          <button
             onClick={() => setConfirmClear(true)}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors text-left"
           >
@@ -179,7 +213,7 @@ export default function Settings() {
       {confirmClear && (
         <ConfirmDialog
           title="Clear all data?"
-          message="This will permanently delete all programs, zones, schedules, and profile photos. This action cannot be undone."
+          message="This will permanently delete all programs, zones, schedules, and profile photos stored in this browser. The app will stay empty after reload."
           confirmLabel="Clear All Data"
           onConfirm={clearAll}
           onCancel={() => setConfirmClear(false)}

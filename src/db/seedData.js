@@ -3,9 +3,11 @@ import { zonesRepository } from "./zonesRepository";
 import { schedulesRepository } from "./schedulesRepository";
 import { SEED_RECORDS } from "./seedRecords";
 
-export async function seedIfEmpty() {
+export async function loadSampleData() {
   const programs = await programsRepository.getAll();
-  if (programs.length > 0) return;
+  if (programs.length > 0) {
+    throw new Error("Sample data can only be loaded when the app has no programs.");
+  }
 
   const now = new Date().toISOString();
 

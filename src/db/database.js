@@ -47,3 +47,13 @@ export function resetDBInstance() {
     dbInstance = null;
   }
 }
+
+export function deleteDatabase() {
+  resetDBInstance();
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("Could not clear data — close other tabs using this app and try again."));
+  });
+}

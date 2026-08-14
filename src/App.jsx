@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import AppRoutes from './AppRoutes';
-import { seedIfEmpty } from './db/seedData';
 import { cleanupDuplicatePrograms } from './db/cleanupDuplicates';
 
 async function clearStaleServiceWorkers() {
@@ -19,9 +18,7 @@ async function clearStaleServiceWorkers() {
 
 export default function App() {
   useEffect(() => {
-    seedIfEmpty()
-      .then(() => cleanupDuplicatePrograms())
-      .catch(console.error);
+    cleanupDuplicatePrograms().catch(console.error);
 
     document.documentElement.classList.remove('dark');
     localStorage.removeItem('theme');
