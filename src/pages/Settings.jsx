@@ -136,10 +136,7 @@ export default function Settings() {
       </div>
 
       <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Data</h2>
-        <p className="text-xs text-slate-500 mb-4">
-          All schedules are stored locally in this browser. Deploying an update does not reset your data.
-        </p>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Data</h2>
         <div className="space-y-3">
           {sampleError && (
             <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
