@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import ProfileImagePicker from './ProfileImagePicker';
 
 export default function ZoneForm({ initial, onSubmit, onCancel }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
+  const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -11,7 +13,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel }) {
     if (!name.trim()) { setErrors({ name: 'Zone name is required.' }); return; }
     setSaving(true);
     try {
-      await onSubmit({ name: name.trim(), status });
+      await onSubmit({ name: name.trim(), status, profileImageChange });
     } finally {
       setSaving(false);
     }
@@ -20,6 +22,13 @@ export default function ZoneForm({ initial, onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <div className="space-y-4">
+        <ProfileImagePicker
+          key={initial?.id ?? 'new'}
+          name={name || 'Zone'}
+          profileImageId={initial?.profile_image_id}
+          onChange={setProfileImageChange}
+          label="Zone photo"
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-name">
             Zone Name <span className="text-red-500">*</span>

@@ -1,5 +1,5 @@
 const DB_NAME = 'irrigation-scheduler';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance = null;
 
@@ -25,6 +25,10 @@ export function openDB() {
       }
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains('media')) {
+        const media = db.createObjectStore('media', { keyPath: 'id' });
+        media.createIndex('owner_id', 'owner_id', { unique: false });
       }
     };
 

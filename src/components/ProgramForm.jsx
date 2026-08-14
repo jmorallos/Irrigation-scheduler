@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import ProfileImagePicker from './ProfileImagePicker';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [] }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [controllerProgram, setControllerProgram] = useState(initial?.controller_program ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
+  const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -28,6 +30,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         controller_program: controllerProgram.trim().toUpperCase() || null,
         description: description.trim(),
         status,
+        profileImageChange,
       });
     } finally {
       setSaving(false);
@@ -37,6 +40,13 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
   return (
     <form onSubmit={handleSubmit} noValidate>
       <div className="space-y-4">
+        <ProfileImagePicker
+          key={initial?.id ?? 'new'}
+          name={name || 'Program'}
+          profileImageId={initial?.profile_image_id}
+          onChange={setProfileImageChange}
+          label="Program photo"
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-name">
             Program Name <span className="text-red-500">*</span>

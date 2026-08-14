@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
-
+import { mediaRepository } from '../db/mediaRepository';
+import { applyProfileImageChange } from '../utils/profileImageService';
 import { sortProgramsByController } from '../db/programSort';
 
 export function usePrograms() {
@@ -24,21 +25,41 @@ export function usePrograms() {
   useEffect(() => { load(); }, [load]);
 
   const createProgram = useCallback(async (data) => {
-    await programsRepository.create(data);
+    const { profileImageChange, ...programData } = data;
+    const program = await programsRepository.create({ ...programData, profile_image_id: null });
+    const imageId = await applyProfileImageChange('program', program.id, profileImageChange, null);
+    if (imageId !== program.profile_image_id) {
+      await programsRepository.update(program.id, { profile_image_id: imageId });
+    }
     await load();
   }, [load]);
 
   const updateProgram = useCallback(async (id, data) => {
-    await programsRepository.update(id, data);
+    const { profileImageChange, ...programData } = data;
+    const existing = await programsRepository.getById(id);
+    const imageId = await applyProfileImageChange(
+      'program',
+      id,
+      profileImageChange,
+      existing?.profile_image_id ?? null,
+    );
+    await programsRepository.update(id, { ...programData, profile_image_id: imageId });
     await load();
   }, [load]);
 
   const deleteProgram = useCallback(async (id) => {
+    const program = await programsRepository.getById(id);
     const zones = await zonesRepository.getByProgramId(id);
     for (const zone of zones) {
+      if (zone.profile_image_id) {
+        await mediaRepository.deleteById(zone.profile_image_id);
+      }
       const schedules = await schedulesRepository.getByZoneId(zone.id);
       for (const s of schedules) await schedulesRepository.delete(s.id);
       await zonesRepository.delete(zone.id);
+    }
+    if (program?.profile_image_id) {
+      await mediaRepository.deleteById(program.profile_image_id);
     }
     await programsRepository.delete(id);
     await load();

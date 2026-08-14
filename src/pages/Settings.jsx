@@ -4,7 +4,11 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
+import { mediaRepository } from '../db/mediaRepository';
 import { resetDBInstance } from '../db/database';
+import { blobToBase64, base64ToBlob } from '../utils/imageUtils';
+
+const BACKUP_VERSION = 2;
 
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -32,7 +36,26 @@ export default function Settings() {
     const programs = await programsRepository.getAll();
     const zones = await zonesRepository.getAll();
     const schedules = await schedulesRepository.getAll();
-    const data = { version: 1, exported_at: new Date().toISOString(), programs, zones, schedules };
+    const mediaRecords = await mediaRepository.getAll();
+    const media = await Promise.all(
+      mediaRecords.map(async record => ({
+        id: record.id,
+        owner_type: record.owner_type,
+        owner_id: record.owner_id,
+        mime_type: record.mime_type,
+        size_bytes: record.size_bytes,
+        updated_at: record.updated_at,
+        data_base64: await blobToBase64(record.blob),
+      })),
+    );
+    const data = {
+      version: BACKUP_VERSION,
+      exported_at: new Date().toISOString(),
+      programs,
+      zones,
+      schedules,
+      media,
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -52,9 +75,24 @@ export default function Settings() {
       if (!data.version || !Array.isArray(data.programs) || !Array.isArray(data.zones) || !Array.isArray(data.schedules)) {
         throw new Error('Invalid backup file format.');
       }
+      await mediaRepository.clear();
       await programsRepository.clear();
       await zonesRepository.clear();
       await schedulesRepository.clear();
+      if (Array.isArray(data.media)) {
+        for (const record of data.media) {
+          if (!record.id || !record.data_base64 || !record.mime_type) continue;
+          await mediaRepository.putRaw({
+            id: record.id,
+            owner_type: record.owner_type,
+            owner_id: record.owner_id,
+            mime_type: record.mime_type,
+            size_bytes: record.size_bytes,
+            updated_at: record.updated_at,
+            blob: base64ToBlob(record.data_base64, record.mime_type),
+          });
+        }
+      }
       for (const p of data.programs) await programsRepository.putRaw(p);
       for (const z of data.zones) await zonesRepository.putRaw(z);
       for (const s of data.schedules) await schedulesRepository.putRaw(s);
@@ -67,6 +105,7 @@ export default function Settings() {
   };
 
   const clearAll = async () => {
+    await mediaRepository.clear();
     await schedulesRepository.clear();
     await zonesRepository.clear();
     await programsRepository.clear();
@@ -166,7 +205,7 @@ export default function Settings() {
       {confirmClear && (
         <ConfirmDialog
           title="Clear all data?"
-          message="This will permanently delete all programs, zones, and schedules. This action cannot be undone."
+          message="This will permanently delete all programs, zones, schedules, and profile photos. This action cannot be undone."
           confirmLabel="Clear All Data"
           onConfirm={clearAll}
           onCancel={() => setConfirmClear(false)}

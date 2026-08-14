@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
+import { mediaRepository } from '../db/mediaRepository';
+import { applyProfileImageChange } from '../utils/profileImageService';
 
 export function useZones(programId) {
   const [zones, setZones] = useState([]);
@@ -22,17 +24,34 @@ export function useZones(programId) {
 
   useEffect(() => { load(); }, [load]);
 
-  const createZone = useCallback(async (name, status = 'active') => {
-    await zonesRepository.create({ program_id: programId, name, status });
+  const createZone = useCallback(async (data) => {
+    const { profileImageChange, ...zoneData } = data;
+    const zone = await zonesRepository.create({ program_id: programId, ...zoneData, profile_image_id: null });
+    const imageId = await applyProfileImageChange('zone', zone.id, profileImageChange, null);
+    if (imageId !== zone.profile_image_id) {
+      await zonesRepository.update(zone.id, { profile_image_id: imageId });
+    }
     await load();
   }, [programId, load]);
 
   const updateZone = useCallback(async (id, data) => {
-    await zonesRepository.update(id, data);
+    const { profileImageChange, ...zoneData } = data;
+    const existing = await zonesRepository.getById(id);
+    const imageId = await applyProfileImageChange(
+      'zone',
+      id,
+      profileImageChange,
+      existing?.profile_image_id ?? null,
+    );
+    await zonesRepository.update(id, { ...zoneData, profile_image_id: imageId });
     await load();
   }, [load]);
 
   const deleteZone = useCallback(async (id) => {
+    const zone = await zonesRepository.getById(id);
+    if (zone?.profile_image_id) {
+      await mediaRepository.deleteById(zone.profile_image_id);
+    }
     const schedules = await schedulesRepository.getByZoneId(id);
     for (const s of schedules) await schedulesRepository.delete(s.id);
     await zonesRepository.delete(id);

@@ -99,7 +99,14 @@ export default function Programs() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <ProgramLogo name={program.name} size="md" />
+                        <div className="w-10 h-10 flex-shrink-0">
+                          <ProgramLogo
+                            name={program.name}
+                            profileImageId={program.profile_image_id}
+                            size="fill"
+                            square
+                          />
+                        </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-navy-900 truncate">{program.name}</p>
                           {program.description ? (
