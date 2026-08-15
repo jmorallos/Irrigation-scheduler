@@ -235,8 +235,7 @@ export default function NestedScroll({ className, children }) {
 
       const chained = deltaY > 0 ? atBottom(node) : atTop(node);
       if (!chained) return;
-
-      event.preventDefault();
+      if (event.cancelable) event.preventDefault();
       scrollPage(deltaY);
     };
 
