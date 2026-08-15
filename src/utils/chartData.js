@@ -1,5 +1,6 @@
 import { getTodayKey } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
+import { getProgramTheme } from './programColors';
 
 /**
  * Build chart datasets for programs scheduled today only.
@@ -36,11 +37,14 @@ export async function buildScheduleChartData({
     }
 
     if (minutes > 0 || starts > 0) {
+      const theme = getProgramTheme(program);
       byProgramToday.push({
         id: program.id,
         name: program.name,
         minutes,
         starts,
+        color: theme.badgeHex,
+        track: theme.rowAltHex,
       });
     }
   }

@@ -54,13 +54,17 @@ function ProgramMetricChart({ data, metric, emptyMessage }) {
               </span>
             </div>
             <div
-              className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"
+              className="w-full h-2 rounded-full overflow-hidden"
+              style={{ backgroundColor: item.track || '#e2e8f0' }}
               role="img"
               aria-label={`${item.name}: ${displayValue} today`}
             >
               <div
-                className="h-full bg-brand-600 rounded-full min-w-0.5 transition-colors duration-150 group-hover:bg-brand-700"
-                style={{ width: `${(value / max) * 100}%` }}
+                className="h-full rounded-full min-w-0.5"
+                style={{
+                  width: `${(value / max) * 100}%`,
+                  backgroundColor: item.color || '#2563eb',
+                }}
               />
             </div>
           </div>
