@@ -12,11 +12,45 @@ export function getTodayKey() {
   return keys[new Date().getDay()];
 }
 
+export function timeToMinutes(time) {
+  if (!time) return 0;
+  const [h, m] = time.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export function minutesToTime(totalMinutes) {
+  const wrapped = ((totalMinutes % 1440) + 1440) % 1440;
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export function getEndTime(startTime, durationMinutes) {
+  return minutesToTime(timeToMinutes(startTime) + Number(durationMinutes || 0));
+}
+
+export function endsNextDay(startTime, durationMinutes) {
+  return timeToMinutes(startTime) + Number(durationMinutes || 0) > 1440;
+}
+
 export function formatTime(time) {
   const [h, m] = time.split(':').map(Number);
   const period = h >= 12 ? 'PM' : 'AM';
   const hour = h % 12 || 12;
   return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
+export function formatTimeRange(startTime, durationMinutes) {
+  const endTime = getEndTime(startTime, durationMinutes);
+  const start = formatTime(startTime);
+  const end = formatTime(endTime);
+  const suffix = endsNextDay(startTime, durationMinutes) ? ' next day' : '';
+  const startPeriod = start.slice(-2);
+  const endPeriod = end.slice(-2);
+  if (startPeriod === endPeriod && !suffix) {
+    return `${start.slice(0, -3)} – ${end}`;
+  }
+  return `${start} – ${end}${suffix}`;
 }
 
 export function formatDuration(minutes) {

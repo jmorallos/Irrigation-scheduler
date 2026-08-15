@@ -14,7 +14,7 @@ import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
-import { formatTime, formatDuration, formatDays } from '../utils/dateUtils';
+import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
@@ -39,6 +39,16 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
   const [addSched, setAddSched] = useState(false);
   const [editSched, setEditSched] = useState(null);
   const [deleteSched, setDeleteSched] = useState(null);
+  const [conflictError, setConflictError] = useState(null);
+
+  const handleToggleSched = async (schedule) => {
+    setConflictError(null);
+    try {
+      await toggleSched(schedule.id, schedule.status);
+    } catch (err) {
+      setConflictError(err.message);
+    }
+  };
 
   const zoneMenuItems = [
     { label: 'Add cycle', icon: Plus, onClick: () => setAddSched(true) },
@@ -52,7 +62,7 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
     {
       label: schedule.status === 'active' ? 'Deactivate' : 'Activate',
       icon: Power,
-      onClick: () => toggleSched(schedule.id, schedule.status),
+      onClick: () => handleToggleSched(schedule),
     },
     { label: 'Delete', icon: Trash2, onClick: () => setDeleteSched(schedule), danger: true },
   ];
@@ -88,11 +98,11 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
     </>
   );
 
-  return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched };
+  return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError };
 }
 
 function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone }) {
-  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched } = useZoneCycles(zone, {
+  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
@@ -125,6 +135,12 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
         <ActionMenu items={zoneMenuItems} label="Zone actions" />
       </div>
 
+      {conflictError && (
+        <div className="mx-4 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+          {conflictError}
+        </div>
+      )}
+
       {schedules.length === 0 ? (
         <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-400">
           No cycles.{' '}
@@ -144,7 +160,9 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     {formatCycleLabel(schedule.cycle)}
                   </span>
-                  <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
+                  <span className="font-mono text-sm font-semibold text-navy-900">
+                    {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
+                  </span>
                   <span className="font-mono text-xs text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">{formatDays(schedule.days_of_week)}</p>
@@ -161,7 +179,7 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
 }
 
 function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZone, isFirstZone }) {
-  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched } = useZoneCycles(zone, {
+  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
@@ -186,7 +204,7 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
                   <ActionMenu items={zoneMenuItems} label="Zone actions" />
                 </div>
               </td>
-              <td colSpan={4} className="px-4 py-3 text-xs text-slate-400">
+              <td colSpan={5} className="px-4 py-3 text-xs text-slate-400">
                 No cycles.{' '}
                 <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                   Add one
@@ -219,6 +237,9 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
               <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
             </td>
             <td className="px-4 py-3 whitespace-nowrap">
+              <span className="font-mono text-sm text-slate-700">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
+            </td>
+            <td className="px-4 py-3 whitespace-nowrap">
               <span className="font-mono text-xs text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
             </td>
             <td className="px-4 py-3">
@@ -230,6 +251,14 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
           </tr>
         );
       })}
+
+      {conflictError && (
+        <tr>
+          <td colSpan={7} className="px-4 py-2 bg-red-50 text-xs text-red-700">
+            {conflictError}
+          </td>
+        </tr>
+      )}
 
       {modals}
     </>
@@ -342,7 +371,9 @@ export default function ProgramDetail() {
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 w-14">
                   {formatCycleLabel(item.schedule.cycle)}
                 </span>
-                <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(item.schedule.start_time)}</span>
+                <span className="font-mono text-sm font-semibold text-navy-900">
+                  {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
+                </span>
                 <span className="text-sm text-slate-600">{getZoneDisplayName(item.zone, program.name)}</span>
                 <span className="text-xs font-mono text-slate-500 ml-auto">{formatDuration(item.schedule.duration_minutes)}</span>
               </div>
@@ -390,6 +421,7 @@ export default function ProgramDetail() {
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Zone</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Cycle</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Start</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">End</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Duration</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Days</th>
                   <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-12" />

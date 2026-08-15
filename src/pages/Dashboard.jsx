@@ -9,7 +9,7 @@ import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
 import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
-import { formatTime, formatDuration } from '../utils/dateUtils';
+import { formatDuration, formatTimeRange } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 
 const STAT_COLUMNS = [
@@ -139,8 +139,10 @@ export default function Dashboard() {
                 <div className="flex-shrink-0 w-14 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                   {formatCycleLabel(item.schedule.cycle)}
                 </div>
-                <div className="flex-shrink-0 w-20">
-                  <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(item.schedule.start_time)}</span>
+                <div className="flex-shrink-0 min-w-[8.5rem]">
+                  <span className="font-mono text-sm font-semibold text-navy-900">
+                    {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>

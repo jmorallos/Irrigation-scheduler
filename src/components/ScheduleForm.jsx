@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DAY_ORDER, DAY_LABELS } from '../utils/dateUtils';
+import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
 
 export default function ScheduleForm({ initial, onSubmit, onCancel }) {
   const [startTime, setStartTime] = useState(initial?.start_time ?? '06:00');
@@ -8,6 +8,12 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  const durationMins = parseInt(duration, 10);
+  const endTime = Number.isFinite(durationMins) && durationMins > 0
+    ? getEndTime(startTime, durationMins)
+    : '';
+  const wrapsNextDay = Number.isFinite(durationMins) && durationMins > 0 && endsNextDay(startTime, durationMins);
 
   const toggleDay = (day) => {
     setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -30,6 +36,8 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
     setSaving(true);
     try {
       await onSubmit({ start_time: startTime, duration_minutes: parseInt(duration, 10), days_of_week: days, status });
+    } catch (err) {
+      setErrors({ conflict: err.message });
     } finally {
       setSaving(false);
     }
@@ -38,7 +46,12 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        {errors.conflict && (
+          <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {errors.conflict}
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-time">
               Start Time <span className="text-red-500">*</span>
@@ -47,12 +60,24 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               id="sched-time"
               type="time"
               value={startTime}
-              onChange={e => setStartTime(e.target.value)}
+              onChange={e => { setStartTime(e.target.value); setErrors(prev => ({ ...prev, conflict: undefined })); }}
               className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-end">
+              End Time
+            </label>
+            <input
+              id="sched-end"
+              type="text"
+              readOnly
+              value={endTime ? `${formatTime(endTime)}${wrapsNextDay ? ' next day' : ''}` : '—'}
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none font-mono bg-slate-50 text-slate-600"
+            />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-dur">
               Duration (min) <span className="text-red-500">*</span>
             </label>
@@ -62,7 +87,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               min="1"
               max="480"
               value={duration}
-              onChange={e => setDuration(e.target.value)}
+              onChange={e => { setDuration(e.target.value); setErrors(prev => ({ ...prev, conflict: undefined })); }}
               className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.duration ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.duration && <p className="mt-1 text-xs text-red-500">{errors.duration}</p>}
@@ -77,7 +102,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               <button
                 key={day}
                 type="button"
-                onClick={() => toggleDay(day)}
+                onClick={() => { toggleDay(day); setErrors(prev => ({ ...prev, conflict: undefined })); }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                   days.includes(day)
                     ? 'bg-brand-600 border-brand-600 text-white'
@@ -98,7 +123,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               <button
                 key={s}
                 type="button"
-                onClick={() => setStatus(s)}
+                onClick={() => { setStatus(s); setErrors(prev => ({ ...prev, conflict: undefined })); }}
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors capitalize ${
                   status === s
                     ? s === 'active' ? 'bg-brand-600 border-brand-600 text-white' : 'bg-slate-600 border-slate-600 text-white'

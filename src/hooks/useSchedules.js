@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { withCycleNumbers } from '../utils/scheduleUtils';
+import { assertNoScheduleConflict } from '../utils/scheduleConflict';
 
 export function useSchedules(zoneId) {
   const [schedules, setSchedules] = useState([]);
@@ -22,12 +23,16 @@ export function useSchedules(zoneId) {
   useEffect(() => { load(); }, [load]);
 
   const createSchedule = useCallback(async (data) => {
-    await schedulesRepository.create({ zone_id: zoneId, ...data });
+    const payload = { zone_id: zoneId, ...data };
+    await assertNoScheduleConflict(payload);
+    await schedulesRepository.create(payload);
     await schedulesRepository.renumberCyclesForZone(zoneId);
     await load();
   }, [zoneId, load]);
 
   const updateSchedule = useCallback(async (id, data) => {
+    const existing = await schedulesRepository.getById(id);
+    await assertNoScheduleConflict({ ...existing, ...data }, { excludeId: id });
     await schedulesRepository.update(id, data);
     await schedulesRepository.renumberCyclesForZone(zoneId);
     await load();
@@ -40,7 +45,12 @@ export function useSchedules(zoneId) {
   }, [zoneId, load]);
 
   const toggleStatus = useCallback(async (id, current) => {
-    await schedulesRepository.update(id, { status: current === 'active' ? 'inactive' : 'active' });
+    const next = current === 'active' ? 'inactive' : 'active';
+    if (next === 'active') {
+      const existing = await schedulesRepository.getById(id);
+      await assertNoScheduleConflict({ ...existing, status: 'active' }, { excludeId: id });
+    }
+    await schedulesRepository.update(id, { status: next });
     await load();
   }, [load]);
 

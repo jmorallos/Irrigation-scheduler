@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
-import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime } from '../utils/dateUtils';
+import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, getEndTime } from '../utils/dateUtils';
 import { getZoneDisplayName } from '../utils/scheduleUtils';
 import { CalendarDays } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
@@ -117,6 +117,9 @@ export default function WeeklySchedule() {
                                               C{sched.cycle ?? 1}
                                             </span>
                                           )}
+                                        </span>
+                                        <span className="block font-mono text-[11px] text-slate-500">
+                                          {formatTime(getEndTime(sched.start_time, sched.duration_minutes))}
                                         </span>
                                       </div>
                                     ))}
