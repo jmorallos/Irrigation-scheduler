@@ -18,6 +18,8 @@ import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } f
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
+import { getProgramTheme } from '../utils/programColors';
+import ProgramBadge from '../components/ProgramBadge';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   const displayName = getZoneDisplayName(zone, programName);
@@ -27,7 +29,7 @@ function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
         <ProgramLogo name={displayName} profileImageId={zone.profile_image_id} size="fill" square />
       </div>
       <div className="min-w-0 flex flex-col justify-center">
-        <p className="text-sm font-semibold text-navy-900 leading-snug">{displayName}</p>
+        <p className="text-base font-semibold text-navy-900 leading-snug">{displayName}</p>
         {zone.status === 'inactive' && <Badge status="inactive" size="sm" />}
       </div>
     </div>
@@ -101,15 +103,16 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
   return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError };
 }
 
-function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone }) {
+function ZoneCard({ zone, programName, programCode, onEditZone, onDeleteZone, onToggleZone }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
   });
+  const theme = getProgramTheme(programCode);
 
   return (
-    <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden ${zone.status === 'inactive' ? 'opacity-75' : ''}`}>
+    <div className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden ${zone.status === 'inactive' ? 'opacity-75' : ''}`}>
       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-12 h-12 flex-shrink-0">
@@ -121,8 +124,8 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
             />
           </div>
           <div className="min-w-0 flex flex-col justify-center">
-            <p className="text-sm font-semibold text-navy-900 leading-snug">{getZoneDisplayName(zone, programName)}</p>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-base font-semibold text-navy-900 leading-snug">{getZoneDisplayName(zone, programName)}</p>
+            <p className="text-sm text-slate-500 mt-0.5">
               {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
             </p>
             {zone.status === 'inactive' && (
@@ -142,30 +145,30 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
       )}
 
       {schedules.length === 0 ? (
-        <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-400">
+        <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-slate-600`}>
           No cycles.{' '}
           <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
             Add one
           </button>
         </div>
       ) : (
-        <div className="border-t border-slate-100 divide-y divide-slate-100">
+        <div className={`border-t ${theme.border} divide-y ${theme.border}`}>
           {schedules.map(schedule => (
             <div
               key={schedule.id}
-              className={`flex items-start justify-between gap-3 px-4 py-3 ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
+              className={`flex items-start justify-between gap-3 px-4 py-3.5 ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                     {formatCycleLabel(schedule.cycle)}
                   </span>
-                  <span className="font-mono text-sm font-semibold text-navy-900">
+                  <span className="font-mono text-lg font-semibold text-navy-900">
                     {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
                   </span>
-                  <span className="font-mono text-xs text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+                  <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">{formatDays(schedule.days_of_week)}</p>
+                <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
               </div>
               <ActionMenu items={scheduleMenuItems(schedule)} />
             </div>
@@ -178,12 +181,14 @@ function ZoneCard({ zone, programName, onEditZone, onDeleteZone, onToggleZone })
   );
 }
 
-function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZone, isFirstZone }) {
+function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZone, onToggleZone, isFirstZone, zoneIndex }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
   });
+  const theme = getProgramTheme(programCode);
+  const rowBg = zoneIndex % 2 === 1 ? theme.rowAlt : theme.row;
 
   const rows = schedules.length === 0
     ? [{ id: `${zone.id}-empty`, empty: true }]
@@ -193,18 +198,18 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
     <>
       {rows.map((schedule, index) => {
         const isFirstRow = index === 0;
-        const rowBorder = isFirstRow && !isFirstZone ? 'border-t-2 border-slate-200' : 'border-t border-slate-100';
+        const rowBorder = isFirstRow && !isFirstZone ? `border-t-2 ${theme.border}` : `border-t ${theme.border}`;
 
         if (schedule.empty) {
           return (
-            <tr key={schedule.id} className={`${rowBorder} bg-white`}>
+            <tr key={schedule.id} className={`${rowBorder} ${rowBg}`}>
               <td className="px-4 py-3 align-middle">
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
                   <ActionMenu items={zoneMenuItems} label="Zone actions" />
                 </div>
               </td>
-              <td colSpan={5} className="px-4 py-3 text-xs text-slate-400">
+              <td colSpan={5} className="px-4 py-3 text-sm text-slate-500">
                 No cycles.{' '}
                 <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                   Add one
@@ -218,7 +223,7 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
         return (
           <tr
             key={schedule.id}
-            className={`${rowBorder} bg-white ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
+            className={`${rowBorder} ${rowBg} ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
           >
             <td className="px-4 py-3 align-middle">
               {index === 0 ? (
@@ -229,21 +234,21 @@ function ZoneTableRows({ zone, programName, onEditZone, onDeleteZone, onToggleZo
               ) : null}
             </td>
             <td className="px-4 py-3 whitespace-nowrap">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 {formatCycleLabel(schedule.cycle)}
               </span>
             </td>
             <td className="px-4 py-3 whitespace-nowrap">
-              <span className="font-mono text-sm font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
+              <span className="font-mono text-base font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
             </td>
             <td className="px-4 py-3 whitespace-nowrap">
-              <span className="font-mono text-sm text-slate-700">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
+              <span className="font-mono text-base text-slate-700">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
             </td>
             <td className="px-4 py-3 whitespace-nowrap">
-              <span className="font-mono text-xs text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+              <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
             </td>
             <td className="px-4 py-3">
-              <span className="text-xs text-slate-500">{formatDays(schedule.days_of_week)}</span>
+              <span className="text-sm text-slate-600">{formatDays(schedule.days_of_week)}</span>
             </td>
             <td className="px-4 py-3 text-right whitespace-nowrap">
               <ActionMenu items={scheduleMenuItems(schedule)} />
@@ -328,13 +333,15 @@ export default function ProgramDetail() {
   }
   if (!program) return null;
 
+  const theme = getProgramTheme(program.controller_program);
+
   return (
     <div>
       <Link to="/programs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-navy-900 mb-6">
         <ArrowLeft className="w-4 h-4" /> Programs
       </Link>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden mb-6`}>
         <div className="flex min-h-[6.5rem]">
           <div className="w-[6.5rem] sm:w-28 flex-shrink-0">
             <ProgramLogo
@@ -346,6 +353,7 @@ export default function ProgramDetail() {
           </div>
           <div className="flex-1 min-w-0 px-4 py-4 sm:px-6 flex flex-col justify-center">
             <div className="flex items-center gap-2 flex-wrap">
+              {program.controller_program && <ProgramBadge code={program.controller_program} size="md" />}
               <h1 className="text-xl font-bold text-navy-900">{program.name}</h1>
               <Badge status={program.status} />
             </div>
@@ -363,19 +371,19 @@ export default function ProgramDetail() {
       </div>
 
       {todayForProgram.length > 0 && (
-        <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 mb-6">
-          <h2 className="text-xs font-semibold text-navy-900 uppercase tracking-wider mb-3">{"Today's Schedule"}</h2>
+        <div className={`${theme.row} border ${theme.border} rounded-lg p-5 mb-6`}>
+          <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wider mb-3">{"Today's Schedule"}</h2>
           <div className="space-y-2">
             {todayForProgram.map(item => (
               <div key={item.schedule.id} className="flex items-center gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 w-14">
+                <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 w-16">
                   {formatCycleLabel(item.schedule.cycle)}
                 </span>
-                <span className="font-mono text-sm font-semibold text-navy-900">
+                <span className="font-mono text-base font-semibold text-navy-900">
                   {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
                 </span>
-                <span className="text-sm text-slate-600">{getZoneDisplayName(item.zone, program.name)}</span>
-                <span className="text-xs font-mono text-slate-500 ml-auto">{formatDuration(item.schedule.duration_minutes)}</span>
+                <span className="text-base text-slate-700">{getZoneDisplayName(item.zone, program.name)}</span>
+                <span className="text-sm font-mono text-slate-600 ml-auto">{formatDuration(item.schedule.duration_minutes)}</span>
               </div>
             ))}
           </div>
@@ -407,6 +415,7 @@ export default function ProgramDetail() {
                 key={zone.id}
                 zone={zone}
                 programName={program.name}
+                programCode={program.controller_program}
                 onEditZone={() => setEditZone(zone)}
                 onDeleteZone={() => setDeleteZone(zone)}
                 onToggleZone={() => toggleZone(zone.id, zone.status)}
@@ -433,7 +442,9 @@ export default function ProgramDetail() {
                     key={zone.id}
                     zone={zone}
                     programName={program.name}
+                    programCode={program.controller_program}
                     isFirstZone={zoneIndex === 0}
+                    zoneIndex={zoneIndex}
                     onEditZone={() => setEditZone(zone)}
                     onDeleteZone={() => setDeleteZone(zone)}
                     onToggleZone={() => toggleZone(zone.id, zone.status)}

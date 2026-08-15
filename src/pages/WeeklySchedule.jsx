@@ -2,12 +2,14 @@ import { Fragment } from 'react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, getEndTime } from '../utils/dateUtils';
 import { getZoneDisplayName } from '../utils/scheduleUtils';
+import { getProgramTheme } from '../utils/programColors';
+import ProgramBadge from '../components/ProgramBadge';
 import { CalendarDays } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import { Link } from 'react-router-dom';
 
 const ZONE_COL =
-  'sticky left-0 z-10 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
+  'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
 export default function WeeklySchedule() {
   const { groups, loading } = useWeeklySchedule();
@@ -42,7 +44,7 @@ export default function WeeklySchedule() {
               </colgroup>
               <thead>
                 <tr className="bg-navy-900 text-white text-xs sm:text-sm">
-                  <th className={`${ZONE_COL} text-left py-3.5 font-semibold uppercase tracking-wider bg-navy-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.2)]`}>
+                  <th className={`${ZONE_COL} text-left py-3.5 font-semibold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
                     Zone
                   </th>
                   {DAY_ORDER.map(day => (
@@ -61,33 +63,44 @@ export default function WeeklySchedule() {
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group, gi) => (
+                {groups.map((group, gi) => {
+                  const theme = getProgramTheme(group.program.controller_program);
+
+                  return (
                   <Fragment key={group.program.id}>
                     <tr className={gi > 0 ? 'border-t-2 border-slate-200' : ''}>
-                      <td className={`${ZONE_COL} py-2.5 bg-surface-alt shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}>
+                      <td
+                        className={`${ZONE_COL} py-2.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
+                        style={{ backgroundColor: theme.headerHex }}
+                      >
                         <Link
                           to={`/programs/${group.program.id}`}
-                          className="block truncate text-sm font-semibold text-navy-900 hover:text-brand-600 transition-colors"
+                          className="flex items-center gap-2 min-w-0 text-sm font-semibold text-navy-900 hover:opacity-80 transition-opacity"
                           title={group.program.name}
                         >
-                          {group.program.name}
+                          {group.program.controller_program && (
+                            <ProgramBadge code={group.program.controller_program} size="sm" />
+                          )}
+                          <span className="truncate">{group.program.name}</span>
                         </Link>
                       </td>
                       {DAY_ORDER.map(day => (
                         <td
                           key={day}
-                          className={`bg-surface-alt ${day === today ? 'bg-blue-50' : ''}`}
+                          className={day === today ? theme.today : theme.header}
                         />
                       ))}
                     </tr>
                     {group.rows.map((row, ri) => {
-                      const rowBg = ri % 2 === 1 ? 'bg-surface-alt' : 'bg-white';
-                      const todayCellBg = ri % 2 === 1 ? 'bg-blue-100' : 'bg-blue-50';
+                      const rowBg = ri % 2 === 1 ? theme.rowAlt : theme.row;
+                      const rowHex = ri % 2 === 1 ? theme.rowAltHex : theme.rowHex;
+                      const todayCellBg = ri % 2 === 1 ? theme.todayAlt : theme.today;
 
                       return (
-                        <tr key={row.zone.id} className={`border-t border-slate-100 ${rowBg}`}>
+                        <tr key={row.zone.id} className={`border-t ${theme.border} ${rowBg}`}>
                           <td
-                            className={`${ZONE_COL} py-3.5 text-sm text-slate-600 font-medium ${rowBg} shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]`}
+                            className={`${ZONE_COL} py-3.5 text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
+                            style={{ backgroundColor: rowHex }}
                             title={row.zone.name}
                           >
                             <span className="block truncate">
@@ -134,7 +147,8 @@ export default function WeeklySchedule() {
                       );
                     })}
                   </Fragment>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

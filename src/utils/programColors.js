@@ -1,0 +1,143 @@
+const LETTER_THEMES = {
+  A: {
+    row: 'bg-emerald-50',
+    rowAlt: 'bg-emerald-100',
+    header: 'bg-emerald-100',
+    today: 'bg-emerald-100',
+    todayAlt: 'bg-emerald-200',
+    border: 'border-emerald-200',
+    badge: 'bg-emerald-600',
+    badgeText: 'text-white',
+    hover: 'hover:bg-emerald-100',
+    rowHex: '#ecfdf5',
+    rowAltHex: '#d1fae5',
+    headerHex: '#d1fae5',
+  },
+  B: {
+    row: 'bg-amber-50',
+    rowAlt: 'bg-amber-100',
+    header: 'bg-amber-100',
+    today: 'bg-amber-100',
+    todayAlt: 'bg-amber-200',
+    border: 'border-amber-200',
+    badge: 'bg-amber-500',
+    badgeText: 'text-white',
+    hover: 'hover:bg-amber-100',
+    rowHex: '#fffbeb',
+    rowAltHex: '#fef3c7',
+    headerHex: '#fef3c7',
+  },
+  C: {
+    row: 'bg-sky-50',
+    rowAlt: 'bg-sky-100',
+    header: 'bg-sky-100',
+    today: 'bg-sky-100',
+    todayAlt: 'bg-sky-200',
+    border: 'border-sky-200',
+    badge: 'bg-sky-600',
+    badgeText: 'text-white',
+    hover: 'hover:bg-sky-100',
+    rowHex: '#f0f9ff',
+    rowAltHex: '#e0f2fe',
+    headerHex: '#e0f2fe',
+  },
+  D: {
+    row: 'bg-orange-50',
+    rowAlt: 'bg-orange-100',
+    header: 'bg-orange-100',
+    today: 'bg-orange-100',
+    todayAlt: 'bg-orange-200',
+    border: 'border-orange-200',
+    badge: 'bg-orange-500',
+    badgeText: 'text-white',
+    hover: 'hover:bg-orange-100',
+    rowHex: '#fff7ed',
+    rowAltHex: '#ffedd5',
+    headerHex: '#ffedd5',
+  },
+};
+
+const EXTRA_THEMES = [
+  {
+    row: 'bg-violet-50',
+    rowAlt: 'bg-violet-100',
+    header: 'bg-violet-100',
+    today: 'bg-violet-100',
+    todayAlt: 'bg-violet-200',
+    border: 'border-violet-200',
+    badge: 'bg-violet-600',
+    badgeText: 'text-white',
+    hover: 'hover:bg-violet-100',
+    rowHex: '#f5f3ff',
+    rowAltHex: '#ede9fe',
+    headerHex: '#ede9fe',
+  },
+  {
+    row: 'bg-teal-50',
+    rowAlt: 'bg-teal-100',
+    header: 'bg-teal-100',
+    today: 'bg-teal-100',
+    todayAlt: 'bg-teal-200',
+    border: 'border-teal-200',
+    badge: 'bg-teal-600',
+    badgeText: 'text-white',
+    hover: 'hover:bg-teal-100',
+    rowHex: '#f0fdfa',
+    rowAltHex: '#ccfbf1',
+    headerHex: '#ccfbf1',
+  },
+  {
+    row: 'bg-rose-50',
+    rowAlt: 'bg-rose-100',
+    header: 'bg-rose-100',
+    today: 'bg-rose-100',
+    todayAlt: 'bg-rose-200',
+    border: 'border-rose-200',
+    badge: 'bg-rose-500',
+    badgeText: 'text-white',
+    hover: 'hover:bg-rose-100',
+    rowHex: '#fff1f2',
+    rowAltHex: '#ffe4e6',
+    headerHex: '#ffe4e6',
+  },
+  {
+    row: 'bg-lime-50',
+    rowAlt: 'bg-lime-100',
+    header: 'bg-lime-100',
+    today: 'bg-lime-100',
+    todayAlt: 'bg-lime-200',
+    border: 'border-lime-200',
+    badge: 'bg-lime-600',
+    badgeText: 'text-white',
+    hover: 'hover:bg-lime-100',
+    rowHex: '#f7fee7',
+    rowAltHex: '#ecfccb',
+    headerHex: '#ecfccb',
+  },
+];
+
+const FALLBACK = {
+  row: 'bg-slate-50',
+  rowAlt: 'bg-slate-100',
+  header: 'bg-slate-100',
+  today: 'bg-slate-100',
+  todayAlt: 'bg-slate-200',
+  border: 'border-slate-200',
+  badge: 'bg-slate-500',
+  badgeText: 'text-white',
+  hover: 'hover:bg-slate-100',
+  rowHex: '#f8fafc',
+  rowAltHex: '#f1f5f9',
+  headerHex: '#f1f5f9',
+};
+
+export function getProgramTheme(controllerProgram) {
+  const letter = (controllerProgram ?? '').toString().trim().toUpperCase();
+  if (!letter) return { ...FALLBACK, letter: '' };
+
+  const key = letter[0];
+  if (LETTER_THEMES[key]) return { ...LETTER_THEMES[key], letter: key };
+
+  const extra = EXTRA_THEMES[(key.charCodeAt(0) - 65 + EXTRA_THEMES.length) % EXTRA_THEMES.length];
+  return { ...extra, letter: key };
+}

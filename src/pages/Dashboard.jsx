@@ -11,6 +11,8 @@ import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components
 import PageError from '../components/PageError';
 import { formatDuration, formatTimeRange } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
+import { getProgramTheme } from '../utils/programColors';
+import ProgramBadge from '../components/ProgramBadge';
 
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
@@ -133,10 +135,12 @@ export default function Dashboard() {
           </div>
         ) : (
           <div>
-            {items.map(item => (
-              <div key={item.schedule.id} className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 last:border-0 even:bg-surface-alt/60">
-                <div className="w-2 h-2 rounded-full bg-brand-600 flex-shrink-0" />
-                <div className="flex-shrink-0 w-14 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            {items.map(item => {
+              const theme = getProgramTheme(item.program.controller_program);
+              return (
+              <div key={item.schedule.id} className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}>
+                <ProgramBadge code={item.program.controller_program} size="sm" />
+                <div className="flex-shrink-0 w-16 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   {formatCycleLabel(item.schedule.cycle)}
                 </div>
                 <div className="flex-shrink-0 min-w-[8.5rem]">
@@ -146,13 +150,14 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
-                  <p className="text-xs text-slate-400">{getZoneDisplayName(item.zone, item.program.name)}</p>
+                  <p className="text-xs text-slate-500">{getZoneDisplayName(item.zone, item.program.name)}</p>
                 </div>
-                <div className="text-xs font-mono text-slate-500 flex-shrink-0">
+                <div className="text-xs font-mono text-slate-600 flex-shrink-0">
                   {formatDuration(item.schedule.duration_minutes)}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

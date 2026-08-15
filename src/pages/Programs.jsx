@@ -9,6 +9,8 @@ import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProgramForm from '../components/ProgramForm';
 import ProgramLogo from '../components/ProgramLogo';
+import ProgramBadge from '../components/ProgramBadge';
+import { getProgramTheme } from '../utils/programColors';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
@@ -80,7 +82,9 @@ export default function Programs() {
                 </tr>
               </thead>
               <tbody>
-                {programs.map((program, index) => (
+                {programs.map((program) => {
+                  const theme = getProgramTheme(program.controller_program);
+                  return (
                   <tr
                     key={program.id}
                     role="link"
@@ -92,12 +96,10 @@ export default function Programs() {
                         navigate(`/programs/${program.id}`, { state: { program } });
                       }
                     }}
-                    className={`border-b border-slate-100 last:border-0 cursor-pointer transition-colors duration-200 ease-in-out hover:bg-blue-50/60 active:bg-blue-100/50 ${
-                      index % 2 === 1 ? 'bg-surface-alt/60' : 'bg-white'
-                    }`}
+                    className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
                   >
-                    <td className="px-4 py-4 text-navy-900 font-semibold font-mono text-sm">
-                      {program.controller_program ?? '—'}
+                    <td className="px-4 py-4">
+                      <ProgramBadge code={program.controller_program} size="md" />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3 min-w-0">
@@ -142,7 +144,8 @@ export default function Programs() {
                       />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
