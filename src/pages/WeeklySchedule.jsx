@@ -65,10 +65,11 @@ export default function WeeklySchedule() {
                       <td className="px-3 py-3 whitespace-nowrap">
                         <Link
                           to={`/programs/${row.program.id}`}
-                          className="inline-flex items-center gap-2 font-semibold text-navy-900 hover:opacity-80"
+                          className="inline-flex items-center hover:opacity-80"
+                          title={row.program.name || row.program.controller_program}
+                          aria-label={row.program.name || row.program.controller_program || 'Program'}
                         >
                           <ProgramBadge code={row.program.controller_program} color={row.program.color} size="sm" />
-                          <span>{row.program.controller_program || row.program.name}</span>
                         </Link>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">

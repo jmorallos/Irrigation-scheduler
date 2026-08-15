@@ -1,7 +1,7 @@
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { programsRepository } from '../db/programsRepository';
-import { DAY_ORDER, timeToMinutes, getEndTime, formatTime } from './dateUtils';
+import { DAY_ORDER, timeToMinutes, minutesToTime, getEndTime, formatTime } from './dateUtils';
 import { formatCycleLabel, getZoneDisplayName, withCycleNumbers } from './scheduleUtils';
 
 const MINUTES_PER_DAY = 1440;
@@ -51,12 +51,42 @@ export function findScheduleConflict(candidate, existingSchedules) {
   return null;
 }
 
-export function conflictMessage(conflict, programName) {
+export function findNextAvailableStart(candidate, existingSchedules) {
+  const duration = Number(candidate.duration_minutes);
+  const days = candidate.days_of_week ?? [];
+  if (!Number.isFinite(duration) || duration <= 0 || days.length === 0) return null;
+
+  let minutes = timeToMinutes(candidate.start_time);
+  const origin = minutes;
+
+  for (let step = 0; step < 200; step += 1) {
+    const probe = {
+      ...candidate,
+      start_time: minutesToTime(minutes),
+    };
+    const conflict = findScheduleConflict(probe, existingSchedules);
+    if (!conflict) return step === 0 ? null : probe.start_time;
+
+    const conflictEnd = timeToMinutes(conflict.start_time) + Number(conflict.duration_minutes);
+    let next = conflictEnd;
+    if (next <= minutes) next += MINUTES_PER_DAY;
+    minutes = next;
+    if (minutes - origin >= MINUTES_PER_DAY) return null;
+  }
+
+  return null;
+}
+
+export function conflictMessage(conflict, programName, nextAvailable) {
   const end = getEndTime(conflict.start_time, conflict.duration_minutes);
   const zoneLabel = conflict.zone
     ? getZoneDisplayName(conflict.zone, programName)
     : 'another zone';
-  return `This schedule overlaps ${formatCycleLabel(conflict.cycle)} on ${zoneLabel} (${formatTime(conflict.start_time)} – ${formatTime(end)}).`;
+  let message = `This schedule overlaps ${formatCycleLabel(conflict.cycle)} on ${zoneLabel} (${formatTime(conflict.start_time)} – ${formatTime(end)}).`;
+  if (nextAvailable) {
+    message += ` Next available: ${formatTime(nextAvailable)}.`;
+  }
+  return message;
 }
 
 export async function getSchedulesForProgram(programId) {
@@ -82,5 +112,6 @@ export async function assertNoScheduleConflict(schedule, { excludeId, programNam
   if (!conflict) return;
 
   const name = programName ?? (await programsRepository.getById(zone.program_id))?.name;
-  throw new Error(conflictMessage(conflict, name));
+  const nextAvailable = findNextAvailableStart({ ...schedule, id: excludeId ?? schedule.id }, existing);
+  throw new Error(conflictMessage(conflict, name, nextAvailable));
 }

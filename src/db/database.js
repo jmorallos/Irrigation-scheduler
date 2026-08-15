@@ -2,11 +2,15 @@ const DB_NAME = 'irrigation-scheduler';
 const DB_VERSION = 2;
 
 let dbInstance = null;
+let openPromise = null;
+let openGeneration = 0;
 
 export function openDB() {
   if (dbInstance) return Promise.resolve(dbInstance);
+  if (openPromise) return openPromise;
 
-  return new Promise((resolve, reject) => {
+  const generation = openGeneration;
+  openPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
@@ -33,15 +37,34 @@ export function openDB() {
     };
 
     request.onsuccess = (event) => {
-      dbInstance = event.target.result;
-      resolve(dbInstance);
+      const db = event.target.result;
+      if (generation !== openGeneration) {
+        db.close();
+        return;
+      }
+
+      db.onversionchange = () => {
+        db.close();
+        if (dbInstance === db) dbInstance = null;
+      };
+
+      dbInstance = db;
+      openPromise = null;
+      resolve(db);
     };
 
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      openPromise = null;
+      reject(request.error);
+    };
   });
+
+  return openPromise;
 }
 
 export function resetDBInstance() {
+  openGeneration += 1;
+  openPromise = null;
   if (dbInstance) {
     dbInstance.close();
     dbInstance = null;
@@ -50,10 +73,24 @@ export function resetDBInstance() {
 
 export function deleteDatabase() {
   resetDBInstance();
+
   return new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(DB_NAME);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error("Could not clear data — close other tabs using this app and try again."));
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Could not clear data — close other tabs using this app and try again.'));
+    }, 4000);
+
+    request.onsuccess = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    request.onerror = () => {
+      clearTimeout(timeout);
+      reject(request.error);
+    };
+    request.onblocked = () => {
+      resetDBInstance();
+    };
   });
 }
