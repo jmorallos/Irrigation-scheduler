@@ -7,14 +7,12 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
-import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components/DashboardCharts';
+import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
 import { formatDuration, formatTimeRange } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
-import { formatSoak } from '../utils/scheduleStats';
 import ProgramBadge from '../components/ProgramBadge';
-import NestedScroll from '../components/NestedScroll';
 
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
@@ -25,7 +23,12 @@ const STAT_COLUMNS = [
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, starts: 0, minutes: 0 });
-  const [chartData, setChartData] = useState({ byProgramToday: [], zoneTotals: [] });
+  const [chartData, setChartData] = useState({
+    minutesByDay: [],
+    byProgramToday: [],
+    byProgramWeek: [],
+    zoneTotals: [],
+  });
   const [chartsLoading, setChartsLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
   const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule();
@@ -93,6 +96,36 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Weekly Load</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            <div className="p-5">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                Minutes by Day
+              </h3>
+              <MinutesByDayChart data={chartData.minutesByDay} />
+              <p className="mt-3 text-[11px] text-slate-400">
+                Scheduled cycle minutes on each weekday. Today is highlighted.
+              </p>
+            </div>
+            <div className="p-5">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                Minutes by Program
+              </h3>
+              <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
+              <p className="mt-3 text-[11px] text-slate-400">
+                Duration × watering days for the week.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Load"}</h2>
         </div>
         {chartsLoading ? (
@@ -122,44 +155,16 @@ export default function Dashboard() {
       </div>
 
       {!chartsLoading && chartData.zoneTotals.length > 0 && (
-      <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Runtime per Zone</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Zone</h2>
         </div>
-        <NestedScroll className="overflow-auto max-h-[60dvh]">
-          <table className="w-full text-sm border-separate border-spacing-0">
-            <thead>
-              <tr className="text-slate-500">
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Zone #</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Zone Name</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Program</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Days</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Min / day</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Hrs / day</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Runs</th>
-                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Soak (hrs)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chartData.zoneTotals.map(zone => (
-                <tr
-                  key={zone.id}
-                  className="border-t border-slate-100"
-                  style={{ backgroundColor: zone.rowHex, borderColor: zone.borderHex }}
-                >
-                  <td className="px-4 py-3 font-mono font-semibold text-navy-900">{zone.zoneNumber ?? '—'}</td>
-                  <td className="px-4 py-3 text-navy-900">{zone.name}</td>
-                  <td className="px-4 py-3 font-semibold text-navy-900">{zone.program}</td>
-                  <td className="px-4 py-3 font-mono text-navy-900">{zone.days}</td>
-                  <td className="px-4 py-3 font-mono text-navy-900">{zone.minutes}</td>
-                  <td className="px-4 py-3 font-mono text-navy-900">{zone.hours}</td>
-                  <td className="px-4 py-3 font-mono text-navy-900">{zone.runs}</td>
-                  <td className="px-4 py-3 font-mono text-navy-900">{formatSoak(zone.soakHours)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </NestedScroll>
+        <div className="p-5">
+          <ZoneMinutesChart data={chartData.zoneTotals} />
+          <p className="mt-3 text-[11px] text-slate-400">
+            Daily cycle minutes per zone.
+          </p>
+        </div>
       </div>
       )}
 

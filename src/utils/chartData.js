@@ -1,13 +1,14 @@
-import { getTodayKey, formatDaysCompact } from './dateUtils';
+import { DAY_ORDER, DAY_LABELS, getTodayKey, formatDaysCompact } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
 import { decorateZoneSchedules } from './scheduleStats';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
 
 /**
- * Build chart datasets for programs scheduled today only.
- * Minutes = sum of cycle durations running today.
- * Starts = count of cycles starting today (one per active cycle).
+ * Minutes by day = sum of active cycle durations on that weekday.
+ * Weekly program minutes = duration × run days.
+ * Today minutes/starts = cycles that run today.
+ * Zone minutes = that zone's daily cycle total (not multiplied by days).
  */
 export async function buildScheduleChartData({
   programsRepository,
@@ -16,14 +17,22 @@ export async function buildScheduleChartData({
 }) {
   const todayKey = getTodayKey();
   const programs = sortProgramsByController(await programsRepository.getAll());
+  const minutesByDay = DAY_ORDER.map(day => ({
+    key: day,
+    label: DAY_LABELS[day],
+    minutes: 0,
+  }));
+  const dayIndex = Object.fromEntries(minutesByDay.map((item, index) => [item.key, index]));
   const byProgramToday = [];
+  const byProgramWeek = [];
   const zoneTotals = [];
 
   for (const program of programs) {
     if (program.status !== 'active') continue;
 
-    let minutes = 0;
-    let starts = 0;
+    let todayMinutes = 0;
+    let todayStarts = 0;
+    let weekMinutes = 0;
     const zones = await zonesRepository.getByProgramId(program.id);
 
     for (const zone of zones) {
@@ -32,10 +41,19 @@ export async function buildScheduleChartData({
 
       for (const schedule of schedules) {
         if (schedule.status !== 'active') continue;
-        if (!schedule.days_of_week.includes(todayKey)) continue;
+        const duration = Number(schedule.duration_minutes) || 0;
+        const days = schedule.days_of_week ?? [];
+        weekMinutes += duration * days.length;
 
-        minutes += schedule.duration_minutes;
-        starts += 1;
+        for (const day of days) {
+          const index = dayIndex[day];
+          if (index != null) minutesByDay[index].minutes += duration;
+        }
+
+        if (days.includes(todayKey)) {
+          todayMinutes += duration;
+          todayStarts += 1;
+        }
       }
 
       const decorated = decorateZoneSchedules(schedules);
@@ -43,10 +61,12 @@ export async function buildScheduleChartData({
         const first = decorated[0];
         const soak = decorated.map(item => item.soakHours).findLast(value => value != null) ?? null;
         const theme = getZoneTheme(zone, program);
+        const zoneNumber = getZoneNumber(zone);
+        const name = getZoneShortName(zone);
         zoneTotals.push({
           id: zone.id,
-          zoneNumber: getZoneNumber(zone),
-          name: getZoneShortName(zone),
+          zoneNumber,
+          name: zoneNumber != null ? `${zoneNumber} · ${name}` : name,
           program: program.controller_program || program.name,
           days: formatDaysCompact(first.days_of_week),
           minutes: first.dailyRuntime,
@@ -54,27 +74,43 @@ export async function buildScheduleChartData({
           runs: first.runsPerDay,
           soakHours: soak,
           color: theme.badgeHex,
+          track: theme.rowAltHex,
           rowHex: theme.rowHex,
           borderHex: theme.borderHex,
         });
       }
     }
 
-    if (minutes > 0 || starts > 0) {
-      const theme = getProgramTheme(program);
+    const theme = getProgramTheme(program);
+    const colors = {
+      color: theme.badgeHex,
+      track: theme.rowAltHex,
+    };
+
+    if (weekMinutes > 0) {
+      byProgramWeek.push({
+        id: program.id,
+        name: program.name,
+        minutes: weekMinutes,
+        ...colors,
+      });
+    }
+
+    if (todayMinutes > 0 || todayStarts > 0) {
       byProgramToday.push({
         id: program.id,
         name: program.name,
-        minutes,
-        starts,
-        color: theme.badgeHex,
-        track: theme.rowAltHex,
+        minutes: todayMinutes,
+        starts: todayStarts,
+        ...colors,
       });
     }
   }
 
   return {
+    minutesByDay,
     byProgramToday: byProgramToday.sort((a, b) => b.minutes - a.minutes),
+    byProgramWeek: byProgramWeek.sort((a, b) => b.minutes - a.minutes),
     zoneTotals: zoneTotals.sort((a, b) => (a.zoneNumber ?? 999) - (b.zoneNumber ?? 999)),
   };
 }
@@ -83,7 +119,6 @@ export function maxValue(items, key = 'minutes') {
   return Math.max(...items.map(item => item[key]), 1);
 }
 
-// Back-compat alias used by chart components for minutes scaling
 export function maxMinutes(items) {
   return maxValue(items, 'minutes');
 }

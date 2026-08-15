@@ -1,4 +1,4 @@
-import { formatDuration } from '../utils/dateUtils';
+import { getTodayKey } from '../utils/dateUtils';
 import { maxValue } from '../utils/chartData';
 
 function ChartEmpty({ message }) {
@@ -21,7 +21,18 @@ function ChartTooltip({ label, value, className = '' }) {
   );
 }
 
-function ProgramMetricChart({ data, metric, emptyMessage }) {
+function formatMinutes(value) {
+  return `${value} ${value === 1 ? 'mn' : 'mns'}`;
+}
+
+function minuteLabel(value, period) {
+  const unit = formatMinutes(value);
+  if (period === 'week') return `${unit} / week`;
+  if (period === 'day') return `${unit} / day`;
+  return `${unit} today`;
+}
+
+function ProgramMetricChart({ data, metric, emptyMessage, period = 'today' }) {
   if (data.length === 0) {
     return <ChartEmpty message={emptyMessage} />;
   }
@@ -33,9 +44,9 @@ function ProgramMetricChart({ data, metric, emptyMessage }) {
     <div className="space-y-3.5">
       {data.map(item => {
         const value = item[metric];
-        const displayValue = isMinutes ? formatDuration(value) : `${value} start${value !== 1 ? 's' : ''}`;
+        const displayValue = isMinutes ? formatMinutes(value) : `${value} start${value !== 1 ? 's' : ''}`;
         const tooltipValue = isMinutes
-          ? `${formatDuration(value)} today`
+          ? minuteLabel(value, period)
           : `${value} start${value !== 1 ? 's' : ''} today`;
 
         return (
@@ -57,7 +68,7 @@ function ProgramMetricChart({ data, metric, emptyMessage }) {
               className="w-full h-2 rounded-full overflow-hidden"
               style={{ backgroundColor: item.track || '#e2e8f0' }}
               role="img"
-              aria-label={`${item.name}: ${displayValue} today`}
+              aria-label={`${item.name}: ${tooltipValue}`}
             >
               <div
                 className="h-full rounded-full min-w-0.5"
@@ -67,6 +78,51 @@ function ProgramMetricChart({ data, metric, emptyMessage }) {
                 }}
               />
             </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function MinutesByDayChart({ data }) {
+  const total = data.reduce((sum, item) => sum + item.minutes, 0);
+  if (total === 0) {
+    return <ChartEmpty message="No active cycles this week." />;
+  }
+
+  const max = maxValue(data, 'minutes');
+  const todayKey = getTodayKey();
+
+  return (
+    <div className="flex items-end gap-2">
+      {data.map(item => {
+        const isToday = item.key === todayKey;
+        const height = Math.max(item.minutes > 0 ? 6 : 0, (item.minutes / max) * 100);
+        return (
+          <div key={item.key} className="group relative flex-1 min-w-0 flex flex-col items-center gap-1.5">
+            <ChartTooltip
+              label={item.label}
+              value={formatMinutes(item.minutes)}
+              className="bottom-full left-1/2 -translate-x-1/2 mb-1"
+            />
+            <span className="text-[11px] font-mono text-slate-500 tabular-nums leading-none">
+              {item.minutes ? formatMinutes(item.minutes) : ''}
+            </span>
+            <div className="w-full h-24 rounded-sm bg-slate-100 overflow-hidden flex items-end">
+              <div
+                className="w-full rounded-sm"
+                style={{
+                  height: `${height}%`,
+                  backgroundColor: isToday ? '#2563eb' : '#0a2540',
+                }}
+                role="img"
+                aria-label={`${item.label}: ${formatMinutes(item.minutes)}`}
+              />
+            </div>
+            <span className={`text-[11px] font-semibold uppercase tracking-wide ${isToday ? 'text-navy-900' : 'text-slate-400'}`}>
+              {item.label}
+            </span>
           </div>
         );
       })}
@@ -90,6 +146,28 @@ export function ProgramTodayStartsChart({ data }) {
       data={data}
       metric="starts"
       emptyMessage="No programs scheduled today."
+    />
+  );
+}
+
+export function ProgramWeekMinutesChart({ data }) {
+  return (
+    <ProgramMetricChart
+      data={data}
+      metric="minutes"
+      period="week"
+      emptyMessage="No active programs this week."
+    />
+  );
+}
+
+export function ZoneMinutesChart({ data }) {
+  return (
+    <ProgramMetricChart
+      data={data}
+      metric="minutes"
+      period="day"
+      emptyMessage="No active zones."
     />
   );
 }
