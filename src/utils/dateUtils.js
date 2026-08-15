@@ -33,6 +33,12 @@ export function endsNextDay(startTime, durationMinutes) {
   return timeToMinutes(startTime) + Number(durationMinutes || 0) > 1440;
 }
 
+export function formatTime24(time) {
+  if (!time) return '—';
+  const [h, m] = time.split(':').map(Number);
+  return `${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+}
+
 export function formatTime(time) {
   const [h, m] = time.split(':').map(Number);
   const period = h >= 12 ? 'PM' : 'AM';
@@ -58,6 +64,15 @@ export function formatDuration(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+export function formatDaysCompact(days) {
+  const short = { mon: 'M', tue: 'T', wed: 'W', thu: 'Th', fri: 'F', sat: 'Sa', sun: 'Su' };
+  return days
+    .slice()
+    .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+    .map(d => short[d] ?? d)
+    .join('-');
 }
 
 export function formatDays(days) {

@@ -55,3 +55,19 @@ body {
     animation: none;
   }
 }
+
+.table-snap {
+  scroll-margin-top: 4.25rem;
+}
+
+@media (min-width: 768px) {
+  .table-snap {
+    scroll-margin-top: 1rem;
+  }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+  .table-snap {
+    scroll-margin-top: 0.75rem;
+  }
+}

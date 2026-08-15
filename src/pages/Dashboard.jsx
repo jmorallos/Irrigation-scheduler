@@ -12,7 +12,9 @@ import PageError from '../components/PageError';
 import { formatDuration, formatTimeRange } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
+import { formatSoak } from '../utils/scheduleStats';
 import ProgramBadge from '../components/ProgramBadge';
+import NestedScroll from '../components/NestedScroll';
 
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
@@ -22,7 +24,7 @@ const STAT_COLUMNS = [
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, zones: 0 });
-  const [chartData, setChartData] = useState({ byProgramToday: [] });
+  const [chartData, setChartData] = useState({ byProgramToday: [], zoneTotals: [] });
   const [chartsLoading, setChartsLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
   const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule();
@@ -118,11 +120,53 @@ export default function Dashboard() {
         )}
       </div>
 
+      {!chartsLoading && chartData.zoneTotals.length > 0 && (
+      <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Runtime per Zone</h2>
+        </div>
+        <NestedScroll className="overflow-auto max-h-[60dvh]">
+          <table className="w-full text-sm border-separate border-spacing-0">
+            <thead>
+              <tr className="text-slate-500">
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Zone #</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Zone Name</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Program</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Days</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Min / day</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Hrs / day</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Runs</th>
+                <th className="sticky top-0 z-20 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider bg-surface-alt">Soak (hrs)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chartData.zoneTotals.map(zone => (
+                <tr
+                  key={zone.id}
+                  className="border-t border-slate-100"
+                  style={{ backgroundColor: zone.rowHex, borderColor: zone.borderHex }}
+                >
+                  <td className="px-4 py-3 font-mono font-semibold text-navy-900">{zone.zoneNumber ?? '—'}</td>
+                  <td className="px-4 py-3 text-navy-900">{zone.name}</td>
+                  <td className="px-4 py-3 font-semibold text-navy-900">{zone.program}</td>
+                  <td className="px-4 py-3 font-mono text-navy-900">{zone.days}</td>
+                  <td className="px-4 py-3 font-mono text-navy-900">{zone.minutes}</td>
+                  <td className="px-4 py-3 font-mono text-navy-900">{zone.hours}</td>
+                  <td className="px-4 py-3 font-mono text-navy-900">{zone.runs}</td>
+                  <td className="px-4 py-3 font-mono text-navy-900">{formatSoak(zone.soakHours)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </NestedScroll>
+      </div>
+      )}
+
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Irrigation"}</h2>
           <Link to="/schedule" className="text-xs text-blue-200 hover:text-white font-medium flex items-center gap-1 transition-colors">
-            Weekly view <ArrowRight className="w-3 h-3" />
+            Schedule <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         {loading ? (

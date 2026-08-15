@@ -1,30 +1,34 @@
 import { Fragment } from 'react';
+import { Link } from 'react-router-dom';
+import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
-import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, getEndTime } from '../utils/dateUtils';
-import { getZoneDisplayName } from '../utils/scheduleUtils';
+import { useMainSchedule } from '../hooks/useMainSchedule';
+import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, formatTime24, formatDaysCompact, getEndTime } from '../utils/dateUtils';
+import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
+import { formatSoak } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
-import { CalendarDays } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
-import { Link } from 'react-router-dom';
+import NestedScroll from '../components/NestedScroll';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
 export default function WeeklySchedule() {
-  const { groups, loading } = useWeeklySchedule();
+  const { groups, loading: weekLoading } = useWeeklySchedule();
+  const { rows, loading: tableLoading } = useMainSchedule();
   const today = getTodayKey();
+  const loading = weekLoading || tableLoading;
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading schedule…</div>;
 
   return (
     <div className="min-w-0 w-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy-900">Weekly Schedule</h1>
-        <p className="mt-1 text-sm text-slate-500">Overview of all active zone schedules</p>
+        <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
       </div>
 
-      {groups.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
           <EmptyState
             icon={CalendarDays}
@@ -33,9 +37,80 @@ export default function WeeklySchedule() {
           />
         </div>
       ) : (
+        <>
+          <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <NestedScroll className="overflow-auto max-h-[70dvh]">
+              <table className="w-full text-sm border-separate border-spacing-0">
+                <thead>
+                  <tr className="text-white">
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Program</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Days</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Zone #</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Zone Name</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Start</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Duration</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">End</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Soak (hrs)</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Notes</th>
+                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Daily runtime</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => (
+                    <tr
+                      key={row.id}
+                      className={`border-t ${row.theme.border}`}
+                      style={{ backgroundColor: row.theme.rowHex, borderColor: row.theme.borderHex }}
+                    >
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <Link
+                          to={`/programs/${row.program.id}`}
+                          className="inline-flex items-center gap-2 font-semibold text-navy-900 hover:opacity-80"
+                        >
+                          <ProgramBadge code={row.program.controller_program} color={row.program.color} size="sm" />
+                          <span>{row.program.controller_program || row.program.name}</span>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                        {formatDaysCompact(row.schedule.days_of_week)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900">
+                        {row.zoneNumber ?? '—'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-navy-900">
+                        {getZoneShortName(row.zone)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900">
+                        {formatTime24(row.schedule.start_time)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                        {row.schedule.duration_minutes}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                        {formatTime24(getEndTime(row.schedule.start_time, row.schedule.duration_minutes))}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                        {formatSoak(row.soakHours)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-slate-600">
+                        {row.schedule.notes || '—'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                        {row.dailyRuntime}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </NestedScroll>
+          </div>
+
+          {groups.length > 0 && (
+        <section data-table-snap>
+          <h2 className="text-lg font-bold text-navy-900 mb-3">By week</h2>
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto overscroll-x-contain">
-            <table className="w-full text-sm border-collapse table-fixed" style={{ minWidth: '680px' }}>
+          <NestedScroll className="overflow-auto max-h-[70dvh] max-md:landscape:max-h-[calc(100dvh-3.25rem)]">
+            <table className="w-full text-sm border-separate border-spacing-0 table-fixed" style={{ minWidth: '680px' }}>
               <colgroup>
                 <col className="w-32 sm:w-44" />
                 {DAY_ORDER.map(day => (
@@ -43,15 +118,15 @@ export default function WeeklySchedule() {
                 ))}
               </colgroup>
               <thead>
-                <tr className="bg-navy-900 text-white text-xs sm:text-sm">
-                  <th className={`${ZONE_COL} text-left py-3.5 font-semibold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
+                <tr className="text-white text-xs sm:text-sm">
+                  <th className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-semibold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
                     Zone
                   </th>
                   {DAY_ORDER.map(day => (
                     <th
                       key={day}
-                      className={`px-2 py-3.5 text-center font-semibold uppercase tracking-wider ${
-                        day === today ? 'bg-navy-800' : ''
+                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-semibold uppercase tracking-wider ${
+                        day === today ? 'bg-navy-800' : 'bg-navy-900'
                       }`}
                     >
                       <span className="inline-flex flex-col items-center">
@@ -150,8 +225,11 @@ export default function WeeklySchedule() {
                 })}
               </tbody>
             </table>
-          </div>
+          </NestedScroll>
         </div>
+        </section>
+          )}
+        </>
       )}
     </div>
   );

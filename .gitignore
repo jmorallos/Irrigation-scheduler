@@ -11,3 +11,5 @@ yarn-error.log*
 /build
 .env.local
 .env
+
+featurelist-roadmap.txt

@@ -1,12 +1,12 @@
 /**
- * Seed data derived from Irrigation_Schedule_02.xlsx
+ * Seed data matching the client irrigation schedule.
  * Programs ordered by controller program letter (A, B, C, D).
  */
 export const SEED_RECORDS = [
   {
     controller_program: "A",
     name: "Fnt-Crt-Star",
-    description: "Front, Court, and Star Jasmine",
+    description: "Front, Courtyard, and Jasmine",
     zones: [
       {
         valve: 1,
@@ -18,18 +18,18 @@ export const SEED_RECORDS = [
       },
       {
         valve: 5,
-        name: "Court",
+        name: "Courtyard",
         schedules: [
-          { start_time: "05:00", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "08:00", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "05:00", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1 },
+          { start_time: "08:00", duration_minutes: 20, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2 },
         ],
       },
       {
         valve: 6,
-        name: "Star Jasmine",
+        name: "Jasmine",
         schedules: [
           { start_time: "05:15", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "08:15", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "08:20", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
         ],
       },
     ],
@@ -57,8 +57,8 @@ export const SEED_RECORDS = [
         valve: 3,
         name: "Bay Laurel",
         schedules: [
-          { start_time: "04:00", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "10:30", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "04:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
+          { start_time: "10:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
         ],
       },
     ],
@@ -72,9 +72,8 @@ export const SEED_RECORDS = [
         valve: 4,
         name: "Crossvine",
         schedules: [
-          { start_time: "08:30", duration_minutes: 10, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "08:50", duration_minutes: 10, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
-          { start_time: "09:10", duration_minutes: 10, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 3, notes: "3rd cycle – soak" },
+          { start_time: "08:30", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
+          { start_time: "13:00", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
         ],
       },
     ],

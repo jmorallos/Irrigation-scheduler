@@ -15,6 +15,7 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
+import NestedScroll from '../components/NestedScroll';
 
 function ZoneCount({ programId }) {
   const { zones } = useZones(programId);
@@ -69,16 +70,16 @@ export default function Programs() {
           />
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+        <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+          <NestedScroll className="overflow-auto max-h-[70dvh]">
+            <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
-                <tr className="bg-navy-900 text-white">
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10" aria-label="Controller program"></th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Program Name</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Zones</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14"></th>
+                <tr className="text-white">
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10 bg-navy-900" aria-label="Controller program"></th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Program Name</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell bg-navy-900">Zones</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Status</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
               <tbody>
@@ -149,7 +150,7 @@ export default function Programs() {
                 })}
               </tbody>
             </table>
-          </div>
+          </NestedScroll>
           <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
             {programs.length} program{programs.length !== 1 ? 's' : ''}
           </div>

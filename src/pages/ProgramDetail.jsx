@@ -14,6 +14,7 @@ import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
+import NestedScroll from '../components/NestedScroll';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
@@ -445,18 +446,19 @@ export default function ProgramDetail() {
             ))}
           </div>
 
-          <div className="hidden md:block bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <table className="w-full text-sm border-collapse">
+          <div data-table-snap className="hidden md:block bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <NestedScroll className="overflow-auto max-h-[70dvh]">
+            <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
-                <tr className="bg-navy-900 text-white">
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Zone</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Cycle</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Start</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">End</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Duration</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Days</th>
-                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Notes</th>
-                  <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-12" />
+                <tr className="text-white">
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Zone</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Cycle</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Start</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">End</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Duration</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Days</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Notes</th>
+                  <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-12 bg-navy-900" />
                 </tr>
               </thead>
               <tbody>
@@ -474,6 +476,7 @@ export default function ProgramDetail() {
                 ))}
               </tbody>
             </table>
+            </NestedScroll>
           </div>
         </>
       )}

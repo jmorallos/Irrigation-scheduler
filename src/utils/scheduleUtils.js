@@ -27,6 +27,10 @@ export function getZoneNumber(zone) {
   return parseZoneName(zone?.name).number;
 }
 
+export function getZoneShortName(zone) {
+  return parseZoneName(zone?.name).label || zone?.name || '';
+}
+
 export function getZoneDisplayName(zone, programName) {
   const match = zone.name.match(/^Zone (\d+) · (.+)$/);
   if (match && match[2].toLowerCase() === programName?.toLowerCase()) {
