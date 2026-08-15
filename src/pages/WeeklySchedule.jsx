@@ -42,22 +42,27 @@ export default function WeeklySchedule() {
 
   return (
     <div className="min-w-0 w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
-      </div>
-
       {rows.length === 0 ? (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-          <EmptyState
-            icon={CalendarDays}
-            title="No schedules yet"
-            description="Create programs and zones with schedules to see them here."
-          />
-        </div>
+        <>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+            <EmptyState
+              icon={CalendarDays}
+              title="No schedules yet"
+              description="Create programs and zones with schedules to see them here."
+            />
+          </div>
+        </>
       ) : (
         <>
-          <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
-            <NestedScroll className="overflow-auto max-h-[70dvh]">
+          <div data-table-snap>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
+            </div>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
+              <NestedScroll className="overflow-auto max-h-[70dvh]">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-white">
@@ -122,6 +127,7 @@ export default function WeeklySchedule() {
                 </tbody>
               </table>
             </NestedScroll>
+            </div>
           </div>
 
           {groups.length > 0 && (

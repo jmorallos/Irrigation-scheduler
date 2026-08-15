@@ -67,38 +67,54 @@ export default function Programs() {
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
-      <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="sm:hidden">Add</span>
-          <span className="hidden sm:inline">Add Program</span>
-        </button>
-      </div>
-
-      {savedNotice && (
-        <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-          {`Saved "${savedNotice}" with its zones and cycles.`}
-        </div>
-      )}
-
       {programs.length === 0 ? (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-          <EmptyState
-            icon={List}
-            title="No programs yet"
-            description="Create your first irrigation program to get started."
-            action={{ label: 'Add Program', onClick: () => setShowCreate(true) }}
-          />
-        </div>
+        <>
+          <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
+            </div>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Add Program</span>
+            </button>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+            <EmptyState
+              icon={List}
+              title="No programs yet"
+              description="Create your first irrigation program to get started."
+              action={{ label: 'Add Program', onClick: () => setShowCreate(true) }}
+            />
+          </div>
+        </>
       ) : (
-        <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <NestedScroll className="overflow-auto max-h-[70dvh]">
+        <div data-table-snap>
+          <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
+            </div>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Add Program</span>
+            </button>
+          </div>
+
+          {savedNotice && (
+            <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+              {`Saved "${savedNotice}" with its zones and cycles.`}
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <NestedScroll className="overflow-auto max-h-[70dvh]">
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
@@ -181,6 +197,7 @@ export default function Programs() {
           </NestedScroll>
           <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
             {programs.length} program{programs.length !== 1 ? 's' : ''}
+          </div>
           </div>
         </div>
       )}
