@@ -4,6 +4,7 @@ import { isDesktopLayout, isPhoneLandscape } from '../utils/phoneLandscape';
 const EDGE = 1;
 const SNAP_RANGE = 140;
 const SNAP_IDLE_MS = 140;
+const PAGE_BREAKOUT = 64;
 
 const snapTargets = new Set();
 let snapUsers = 0;
@@ -11,6 +12,10 @@ let lastScrollY = 0;
 let scrollDir = 0;
 let idleTimer = 0;
 let snapping = false;
+let tableTouches = 0;
+let touchLockUntil = 0;
+let touchLockTimer = 0;
+let pageYAtTouchStart = 0;
 
 function canScrollY(node) {
   return node.scrollHeight - node.clientHeight > EDGE;
@@ -22,6 +27,10 @@ function atBottom(node) {
 
 function atTop(node) {
   return node.scrollTop <= EDGE;
+}
+
+function atOverscrollEdge(node, deltaY) {
+  return deltaY > 0 ? atBottom(node) : atTop(node);
 }
 
 function pageScroller() {
@@ -44,6 +53,34 @@ function headerOffset() {
 
 function isWideScreen() {
   return isDesktopLayout();
+}
+
+function tableTouchActive() {
+  return tableTouches > 0 || Date.now() < touchLockUntil;
+}
+
+function beginTableTouch() {
+  if (tableTouches === 0) pageYAtTouchStart = window.scrollY;
+  tableTouches += 1;
+  window.clearTimeout(idleTimer);
+  window.clearTimeout(touchLockTimer);
+}
+
+function endTableTouch() {
+  tableTouches = Math.max(0, tableTouches - 1);
+  if (tableTouches > 0) return;
+  window.clearTimeout(idleTimer);
+  window.clearTimeout(touchLockTimer);
+  const pageMoved = Math.abs(window.scrollY - pageYAtTouchStart) >= 2;
+  if (!pageMoved) {
+    touchLockUntil = 0;
+    return;
+  }
+  touchLockUntil = Date.now() + SNAP_IDLE_MS;
+  touchLockTimer = window.setTimeout(() => {
+    touchLockUntil = 0;
+    snapIdle();
+  }, SNAP_IDLE_MS);
 }
 
 function clearSnapPad() {
@@ -123,7 +160,7 @@ function visibleHeight(el, viewTop, viewBottom) {
 }
 
 function snapIdle() {
-  if (snapping || prefersReducedMotion() || isWideScreen()) return;
+  if (snapping || prefersReducedMotion() || isWideScreen() || tableTouchActive()) return;
 
   const y = window.scrollY;
   if (y !== lastScrollY) scrollDir = y > lastScrollY ? 1 : -1;
@@ -142,6 +179,7 @@ function snapIdle() {
   if (ranked.length === 0) return;
 
   if (ranked.length >= 2) {
+    if (scrollDir === 0) return;
     let pick = ranked[0];
     if (Math.abs(ranked[0].visible - ranked[1].visible) < 32 && scrollDir !== 0) {
       const directed = scrollDir > 0
@@ -166,6 +204,8 @@ function onPageScroll() {
   if (snapping) return;
   const y = window.scrollY;
   if (y !== lastScrollY) scrollDir = y > lastScrollY ? 1 : -1;
+  lastScrollY = y;
+  if (tableTouchActive()) return;
   window.clearTimeout(idleTimer);
   idleTimer = window.setTimeout(snapIdle, SNAP_IDLE_MS);
 }
@@ -192,6 +232,9 @@ function registerSnapTarget(el) {
       window.removeEventListener('scroll', onPageScroll);
       window.removeEventListener('resize', updateSnapEndPad);
       window.clearTimeout(idleTimer);
+      window.clearTimeout(touchLockTimer);
+      tableTouches = 0;
+      touchLockUntil = 0;
       padObserver?.disconnect();
       padObserver = null;
     } else {
@@ -210,21 +253,60 @@ export default function NestedScroll({ className, children }) {
     const snapRoot = node.closest('[data-table-snap]') ?? node.parentElement ?? node;
     const unregisterSnap = registerSnapTarget(snapRoot);
 
+    let overflow = 0;
+    let chained = false;
+    let wheelReset = 0;
+
+    const resetBreakout = () => {
+      overflow = 0;
+      chained = false;
+    };
+
+    const takePageIfCommitted = (deltaY, event) => {
+      if (!atOverscrollEdge(node, deltaY)) {
+        resetBreakout();
+        return false;
+      }
+
+      if (!chained) {
+        overflow += Math.abs(deltaY);
+        if (overflow < PAGE_BREAKOUT) {
+          if (event.cancelable) event.preventDefault();
+          return true;
+        }
+        chained = true;
+      }
+
+      if (event.cancelable) event.preventDefault();
+      scrollPage(deltaY);
+      return true;
+    };
+
     const onWheel = (event) => {
       if (event.ctrlKey) return;
       if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       if (!canScrollY(node)) return;
 
-      const chained = event.deltaY > 0 ? atBottom(node) : atTop(node);
-      if (!chained) return;
-
-      event.preventDefault();
-      scrollPage(event.deltaY);
+      window.clearTimeout(wheelReset);
+      wheelReset = window.setTimeout(resetBreakout, 160);
+      takePageIfCommitted(event.deltaY, event);
     };
 
     let touchY = 0;
+    let holdingTouch = false;
     const onTouchStart = (event) => {
       touchY = event.touches[0].clientY;
+      resetBreakout();
+      if (holdingTouch) return;
+      holdingTouch = true;
+      beginTableTouch();
+    };
+    const onTouchEnd = (event) => {
+      if (event.touches.length > 0) return;
+      resetBreakout();
+      if (!holdingTouch) return;
+      holdingTouch = false;
+      endTableTouch();
     };
     const onTouchMove = (event) => {
       if (!canScrollY(node)) return;
@@ -232,21 +314,26 @@ export default function NestedScroll({ className, children }) {
       const deltaY = touchY - y;
       touchY = y;
       if (deltaY === 0) return;
-
-      const chained = deltaY > 0 ? atBottom(node) : atTop(node);
-      if (!chained) return;
-      if (event.cancelable) event.preventDefault();
-      scrollPage(deltaY);
+      takePageIfCommitted(deltaY, event);
     };
 
     node.addEventListener('wheel', onWheel, { passive: false });
     node.addEventListener('touchstart', onTouchStart, { passive: true });
     node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd, { passive: true });
+    node.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
+      window.clearTimeout(wheelReset);
+      if (holdingTouch) {
+        holdingTouch = false;
+        endTableTouch();
+      }
       unregisterSnap();
       node.removeEventListener('wheel', onWheel);
       node.removeEventListener('touchstart', onTouchStart);
       node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchEnd);
     };
   }, []);
 
