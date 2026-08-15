@@ -28,6 +28,17 @@ const MAIN_ALIGN = {
   runtime: 'left',
 };
 
+const WEEK_ALIGN = {
+  zone: 'left',
+  mon: 'center',
+  tue: 'center',
+  wed: 'center',
+  thu: 'center',
+  fri: 'center',
+  sat: 'center',
+  sun: 'center',
+};
+
 const TH_MAIN =
   'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
 
@@ -35,6 +46,7 @@ export default function WeeklySchedule() {
   const { groups, loading: weekLoading } = useWeeklySchedule();
   const { rows, loading: tableLoading } = useMainSchedule();
   const { cycle, cellClass } = useColumnAlign('schedule-main-align', MAIN_ALIGN);
+  const { cycle: cycleWeek, cellClass: weekClass, flexClass: weekFlex } = useColumnAlign('schedule-week-align', WEEK_ALIGN);
   const today = getTodayKey();
   const loading = weekLoading || tableLoading;
 
@@ -144,13 +156,18 @@ export default function WeeklySchedule() {
               </colgroup>
               <thead>
                 <tr className="text-white text-sm sm:text-base">
-                  <th className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
+                  <th
+                    onClick={() => cycleWeek('zone')}
+                    className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)] select-none [-webkit-tap-highlight-color:transparent]`}
+                    style={{ backgroundColor: '#0a2540' }}
+                  >
                     Zone
                   </th>
                   {DAY_ORDER.map(day => (
                     <th
                       key={day}
-                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-bold uppercase tracking-wider ${
+                      onClick={() => cycleWeek(day)}
+                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-bold uppercase tracking-wider select-none [-webkit-tap-highlight-color:transparent] ${
                         day === today ? 'bg-navy-800' : 'bg-navy-900'
                       }`}
                     >
@@ -170,12 +187,12 @@ export default function WeeklySchedule() {
                   <Fragment key={group.program.id}>
                     <tr className={gi > 0 ? 'border-t-2 border-slate-200' : ''}>
                       <td
-                        className={`${ZONE_COL} py-2.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
+                        className={`${ZONE_COL} py-2.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)] ${weekClass('zone')}`}
                         style={{ backgroundColor: theme.headerHex }}
                       >
                         <Link
                           to={`/programs/${group.program.id}`}
-                          className="flex items-center gap-2 min-w-0 text-sm font-semibold text-navy-900 hover:opacity-80 transition-opacity"
+                          className={`flex items-center gap-2 min-w-0 text-sm font-semibold text-navy-900 hover:opacity-80 transition-opacity ${weekFlex('zone')}`}
                           title={group.program.name}
                         >
                           {group.program.controller_program && (
@@ -202,7 +219,7 @@ export default function WeeklySchedule() {
                       return (
                         <tr key={row.zone.id} className={`border-t ${zoneTheme.border} ${rowBg}`} style={{ borderColor: zoneTheme.borderHex }}>
                           <td
-                            className={`${ZONE_COL} py-3.5 text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
+                            className={`${ZONE_COL} py-3.5 text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)] ${weekClass('zone')}`}
                             style={{ backgroundColor: rowHex }}
                             title={row.zone.name}
                           >
@@ -218,7 +235,7 @@ export default function WeeklySchedule() {
                             return (
                               <td
                                 key={day}
-                                className={`px-2 py-3.5 text-center whitespace-nowrap ${
+                                className={`px-2 py-3.5 whitespace-nowrap ${weekClass(day)} ${
                                   day === today ? todayCellBg : rowBg
                                 }`}
                                 style={{ backgroundColor: day === today ? todayCellBgHex : rowHex }}
