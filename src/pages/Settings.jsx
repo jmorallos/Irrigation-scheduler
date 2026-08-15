@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Upload, Trash2, Sprout, X } from 'lucide-react';
+import { Download, Upload, Trash2, Sprout, X, FileText, ExternalLink } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
@@ -18,6 +18,7 @@ import {
   serializeSaves,
   clearLiveData,
 } from '../utils/backupUtils';
+import { exportPrintableSchedule } from '../utils/scheduleHtmlExport';
 
 const BACKUP_VERSION = 3;
 const IMPORT_NOTICE_KEY = 'irrigation-import-notice';
@@ -35,6 +36,8 @@ export default function Settings() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [htmlSuccess, setHtmlSuccess] = useState(null);
+  const [htmlError, setHtmlError] = useState(null);
   const [sampleError, setSampleError] = useState(null);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [importNotice, setImportNotice] = useState(null);
@@ -88,6 +91,9 @@ export default function Settings() {
   const handleFileSelect = async (file) => {
     setImportError(null);
     try {
+      if (/\.html?$/i.test(file.name) || file.type === 'text/html') {
+        throw new Error('This is a printable schedule, not a backup. Import only accepts JSON backups.');
+      }
       const text = await file.text();
       const data = validateBackup(parseBackupFile(text));
       setPendingImport({ data, fileName: file.name });
@@ -154,6 +160,18 @@ export default function Settings() {
     }
   };
 
+  const handleHtmlExport = async (open) => {
+    setHtmlError(null);
+    setHtmlSuccess(null);
+    try {
+      await exportPrintableSchedule({ open });
+      setHtmlSuccess(open ? 'Opened in a new tab.' : 'Printable schedule downloaded.');
+      setTimeout(() => setHtmlSuccess(null), 3000);
+    } catch (err) {
+      setHtmlError(err.message);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -183,7 +201,17 @@ export default function Settings() {
           )}
           {exportSuccess && (
             <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-              Data exported successfully.
+              Backup downloaded. Import that JSON file later to restore this app.
+            </div>
+          )}
+          {htmlSuccess && (
+            <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+              {htmlSuccess}
+            </div>
+          )}
+          {htmlError && (
+            <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {htmlError}
             </div>
           )}
           {importError && (
@@ -191,11 +219,14 @@ export default function Settings() {
               Import failed: {importError}
             </div>
           )}
+          <p className="text-sm text-slate-500">
+            How to use: Export Data → file in Downloads → Import that file later. HTML is a printable sheet only and cannot restore the app.
+          </p>
           <button
             onClick={exportData}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <Download className="w-4 h-4 text-slate-500" />
+            <Upload className="w-4 h-4 text-slate-500" />
             Export Data
             <span className="ml-auto text-xs text-slate-400">Save as JSON</span>
           </button>
@@ -203,7 +234,7 @@ export default function Settings() {
             onClick={() => fileRef.current?.click()}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <Upload className="w-4 h-4 text-slate-500" />
+            <Download className="w-4 h-4 text-slate-500" />
             Import Data
             <span className="ml-auto text-xs text-slate-400">Restore from JSON</span>
           </button>
@@ -214,6 +245,22 @@ export default function Settings() {
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
           />
+          <button
+            onClick={() => handleHtmlExport(false)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
+          >
+            <FileText className="w-4 h-4 text-slate-500" />
+            Export printable schedule
+            <span className="ml-auto text-xs text-slate-400">HTML · cannot restore</span>
+          </button>
+          <button
+            onClick={() => handleHtmlExport(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
+          >
+            <ExternalLink className="w-4 h-4 text-slate-500" />
+            Open printable schedule
+            <span className="ml-auto text-xs text-slate-400">New tab</span>
+          </button>
           <button
             onClick={handleLoadSample}
             disabled={sampleLoading}

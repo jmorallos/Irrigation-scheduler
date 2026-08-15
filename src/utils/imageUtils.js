@@ -1,6 +1,25 @@
 const MAX_DIMENSION = 512;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const JPEG_QUALITY = 0.82;
+const TARGET_BYTES = 200 * 1024;
+const JPEG_QUALITIES = [0.82, 0.7, 0.6];
+
+function canvasToJpeg(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      result => (result ? resolve(result) : reject(new Error('Could not compress this photo. Try a different image.'))),
+      'image/jpeg',
+      quality,
+    );
+  });
+}
+
+export function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export async function compressImageFile(file) {
   if (!file.type.startsWith('image/')) {
@@ -10,7 +29,13 @@ export async function compressImageFile(file) {
     throw new Error('Image must be 10 MB or smaller.');
   }
 
-  const bitmap = await createImageBitmap(file);
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error('Could not read this photo. Try a different image.');
+  }
+
   const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);
@@ -18,16 +43,23 @@ export async function compressImageFile(file) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+  const context = canvas.getContext('2d');
+  if (!context) {
+    bitmap.close();
+    throw new Error('Could not compress this photo. Try a different image.');
+  }
+  context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob(
-      result => (result ? resolve(result) : reject(new Error('Failed to compress image.'))),
-      'image/jpeg',
-      JPEG_QUALITY,
-    );
-  });
+  let blob = null;
+  for (const quality of JPEG_QUALITIES) {
+    blob = await canvasToJpeg(canvas, quality);
+    if (blob.size <= TARGET_BYTES) break;
+  }
+
+  if (!blob || blob.size > MAX_FILE_BYTES) {
+    throw new Error('Could not shrink this photo enough. Try a different image.');
+  }
 
   return { blob, mimeType: 'image/jpeg', width, height };
 }
@@ -49,3 +81,4 @@ export function base64ToBlob(base64, mimeType) {
   }
   return new Blob([bytes], { type: mimeType });
 }
+

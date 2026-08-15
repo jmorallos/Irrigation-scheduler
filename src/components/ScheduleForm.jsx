@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
+import {
+  getSchedulesForProgram,
+  findScheduleConflict,
+  findNextAvailableStart,
+  conflictMessage,
+} from '../utils/scheduleConflict';
 
-export default function ScheduleForm({ initial, onSubmit, onCancel }) {
+export default function ScheduleForm({ initial, programId, programName, zoneId, onSubmit, onCancel }) {
   const [startTime, setStartTime] = useState(initial?.start_time ?? '06:00');
   const [duration, setDuration] = useState(String(initial?.duration_minutes ?? 15));
   const [days, setDays] = useState(initial?.days_of_week ?? []);
@@ -9,12 +15,64 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [existing, setExisting] = useState(null);
 
   const durationMins = parseInt(duration, 10);
   const endTime = Number.isFinite(durationMins) && durationMins > 0
     ? getEndTime(startTime, durationMins)
     : '';
   const wrapsNextDay = Number.isFinite(durationMins) && durationMins > 0 && endsNextDay(startTime, durationMins);
+  const hasConflict = Boolean(errors.conflict);
+
+  useEffect(() => {
+    if (!programId) return undefined;
+    let cancelled = false;
+    getSchedulesForProgram(programId).then(list => {
+      if (!cancelled) setExisting(list);
+    }).catch(() => {
+      if (!cancelled) setExisting([]);
+    });
+    return () => { cancelled = true; };
+  }, [programId]);
+
+  useEffect(() => {
+    if (!existing) return undefined;
+
+    const mins = parseInt(duration, 10);
+    const canCheck = startTime
+      && Number.isFinite(mins)
+      && mins > 0
+      && mins <= 480
+      && days.length > 0;
+
+    if (!canCheck || status === 'inactive') {
+      const timer = setTimeout(() => {
+        setErrors(prev => (prev.conflict ? { ...prev, conflict: undefined } : prev));
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      const candidate = {
+        id: initial?.id,
+        zone_id: zoneId,
+        start_time: startTime,
+        duration_minutes: mins,
+        days_of_week: days,
+        status,
+      };
+      const conflict = findScheduleConflict(candidate, existing);
+      if (!conflict) {
+        setErrors(prev => (prev.conflict ? { ...prev, conflict: undefined } : prev));
+        return;
+      }
+      const nextAvailable = findNextAvailableStart(candidate, existing);
+      const message = conflictMessage(conflict, programName, nextAvailable);
+      setErrors(prev => (prev.conflict === message ? prev : { ...prev, conflict: message }));
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [existing, startTime, duration, days, status, initial?.id, zoneId, programName]);
 
   const toggleDay = (day) => {
     setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
@@ -28,8 +86,8 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
     else if (mins > 480) errs.duration = 'Duration cannot exceed 480 minutes (8 hours).';
     if (days.length === 0) errs.days = 'Select at least one day.';
     if (notes.trim().length > 200) errs.notes = 'Notes cannot exceed 200 characters.';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    setErrors(prev => ({ ...errs, conflict: prev.conflict }));
+    return Object.keys(errs).length === 0 && !hasConflict;
   };
 
   const handleSubmit = async (e) => {
@@ -45,7 +103,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
         notes: notes.trim(),
       });
     } catch (err) {
-      setErrors({ conflict: err.message });
+      setErrors(prev => ({ ...prev, conflict: err.message }));
     } finally {
       setSaving(false);
     }
@@ -68,7 +126,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               id="sched-time"
               type="time"
               value={startTime}
-              onChange={e => { setStartTime(e.target.value); setErrors(prev => ({ ...prev, conflict: undefined })); }}
+              onChange={e => setStartTime(e.target.value)}
               className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}
@@ -95,7 +153,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               min="1"
               max="480"
               value={duration}
-              onChange={e => { setDuration(e.target.value); setErrors(prev => ({ ...prev, conflict: undefined })); }}
+              onChange={e => setDuration(e.target.value)}
               className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.duration ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.duration && <p className="mt-1 text-xs text-red-500">{errors.duration}</p>}
@@ -110,7 +168,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               <button
                 key={day}
                 type="button"
-                onClick={() => { toggleDay(day); setErrors(prev => ({ ...prev, conflict: undefined })); }}
+                onClick={() => toggleDay(day)}
                 className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                   days.includes(day)
                     ? 'bg-brand-600 border-brand-600 text-white'
@@ -146,7 +204,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
               <button
                 key={s}
                 type="button"
-                onClick={() => { setStatus(s); setErrors(prev => ({ ...prev, conflict: undefined })); }}
+                onClick={() => setStatus(s)}
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors capitalize ${
                   status === s
                     ? s === 'active' ? 'bg-brand-600 border-brand-600 text-white' : 'bg-slate-600 border-slate-600 text-white'
@@ -163,7 +221,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
         <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
+        <button type="submit" disabled={saving || hasConflict} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
           {saving ? 'Saving…' : initial?.id ? 'Save Cycle' : 'Add Cycle'}
         </button>
       </div>

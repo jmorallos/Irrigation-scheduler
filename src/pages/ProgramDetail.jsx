@@ -39,7 +39,7 @@ function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   );
 }
 
-function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
+function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
   const { schedules, createSchedule, updateSchedule, deleteSchedule, toggleStatus: toggleSched } = useSchedules(zone.id);
   const [addSched, setAddSched] = useState(false);
   const [editSched, setEditSched] = useState(null);
@@ -78,6 +78,9 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone, onSaveZon
       {addSched && (
         <Modal title="Add Cycle" onClose={() => setAddSched(false)}>
           <ScheduleForm
+            programId={program.id}
+            programName={program.name}
+            zoneId={zone.id}
             onSubmit={async data => { await createSchedule(data); setAddSched(false); }}
             onCancel={() => setAddSched(false)}
           />
@@ -87,6 +90,9 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone, onSaveZon
         <Modal title="Edit Cycle" onClose={() => setEditSched(null)}>
           <ScheduleForm
             initial={editSched}
+            programId={program.id}
+            programName={program.name}
+            zoneId={zone.id}
             onSubmit={async data => { await updateSchedule(editSched.id, data); setEditSched(null); }}
             onCancel={() => setEditSched(null)}
           />
@@ -109,6 +115,7 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone, onSaveZon
 
 function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
+    program,
     onEditZone,
     onDeleteZone,
     onToggleZone,
@@ -213,6 +220,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
 
 function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone, isFirstZone, zoneIndex, cellClass }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
+    program,
     onEditZone,
     onDeleteZone,
     onToggleZone,

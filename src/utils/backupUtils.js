@@ -6,7 +6,18 @@ import { savesRepository } from '../db/savesRepository';
 import { base64ToBlob, blobToBase64 } from './imageUtils';
 
 export function parseBackupFile(text) {
-  return JSON.parse(text);
+  const trimmed = String(text ?? '').trim();
+  if (!trimmed) {
+    throw new Error('This is not a backup file. Use a JSON export from this app.');
+  }
+  if (trimmed.startsWith('<')) {
+    throw new Error('This looks like a printable schedule, not a backup. Import only accepts JSON backups.');
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    throw new Error('This is not a backup file. Use a JSON export from this app.');
+  }
 }
 
 export function validateBackup(data) {

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';
 import ProgramLogo from './ProgramLogo';
-import { compressImageFile } from '../utils/imageUtils';
+import { compressImageFile, formatFileSize } from '../utils/imageUtils';
 import { useProfileImage } from '../hooks/useProfileImage';
 
 export default function ProfileImagePicker({ name, profileImageId, onChange, label = 'Profile photo' }) {
   const fileRef = useRef(null);
   const { url: storedUrl } = useProfileImage(profileImageId);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [savedInfo, setSavedInfo] = useState(null);
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,14 +25,16 @@ export default function ProfileImagePicker({ name, profileImageId, onChange, lab
     if (!file) return;
     setError(null);
     try {
-      const { blob, mimeType } = await compressImageFile(file);
+      const { blob, mimeType, width, height } = await compressImageFile(file);
       setPreviewUrl(prev => {
         if (prev) URL.revokeObjectURL(prev);
         return URL.createObjectURL(blob);
       });
+      setSavedInfo({ width, height, size: blob.size });
       setRemoved(false);
       onChange({ action: 'upload', blob, mimeType });
     } catch (err) {
+      setSavedInfo(null);
       setError(err.message);
     }
     if (fileRef.current) fileRef.current.value = '';
@@ -42,6 +45,7 @@ export default function ProfileImagePicker({ name, profileImageId, onChange, lab
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
+    setSavedInfo(null);
     setRemoved(true);
     onChange({ action: 'remove' });
   };
@@ -88,7 +92,13 @@ export default function ProfileImagePicker({ name, profileImageId, onChange, lab
         />
       </div>
       {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
-      <p className="mt-1.5 text-xs text-slate-400">JPEG or PNG, max 10 MB. Stored on this device only.</p>
+      {savedInfo ? (
+        <p className="mt-1.5 text-xs text-slate-500">
+          Saved at {savedInfo.width}×{savedInfo.height} · {formatFileSize(savedInfo.size)}
+        </p>
+      ) : (
+        <p className="mt-1.5 text-xs text-slate-400">JPEG or PNG, max 10 MB. Stored on this device only.</p>
+      )}
     </div>
   );
 }
