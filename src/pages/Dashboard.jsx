@@ -19,11 +19,12 @@ import NestedScroll from '../components/NestedScroll';
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
   { key: 'active', label: 'Active' },
-  { key: 'zones', label: 'Zones' },
+  { key: 'starts', label: 'Starts' },
+  { key: 'minutes', label: 'Minutes' },
 ];
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ total: 0, active: 0, zones: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, starts: 0, minutes: 0 });
   const [chartData, setChartData] = useState({ byProgramToday: [], zoneTotals: [] });
   const [chartsLoading, setChartsLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
@@ -80,11 +81,13 @@ export default function Dashboard() {
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
           {STAT_COLUMNS.map(({ key, label }) => (
             <div key={key} className="px-5 py-4 text-center sm:text-left">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">
+                {key === 'minutes' ? formatDuration(stats.minutes) : stats[key]}
+              </p>
             </div>
           ))}
         </div>

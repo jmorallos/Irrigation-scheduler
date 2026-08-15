@@ -42,22 +42,37 @@ export default function Saves() {
   const [deleting, setDeleting] = useState(null);
   const [restoringZone, setRestoringZone] = useState(null);
   const [restoreError, setRestoreError] = useState(null);
+  const [restoreNotice, setRestoreNotice] = useState(null);
 
   const programsSaves = saves.filter(save => save.type === 'program');
   const zoneSaves = saves.filter(save => save.type === 'zone');
 
   const handleRestoreProgram = async (save) => {
     setRestoreError(null);
-    const program = await restoreProgram(save);
-    navigate(`/programs/${program.id}`, { state: { program } });
+    setRestoreNotice(null);
+    try {
+      const { program, identical } = await restoreProgram(save);
+      if (identical) {
+        setRestoreNotice(`"${save.name}" is already on the live list.`);
+        return;
+      }
+      navigate(`/programs/${program.id}`, { state: { program } });
+    } catch (err) {
+      setRestoreError(err.message);
+    }
   };
 
   const handleRestoreZone = async (programId) => {
     if (!restoringZone) return;
     setRestoreError(null);
+    setRestoreNotice(null);
     try {
-      await restoreZone(restoringZone, programId);
+      const { identical } = await restoreZone(restoringZone, programId);
       setRestoringZone(null);
+      if (identical) {
+        setRestoreNotice(`"${restoringZone.name}" is already in that program.`);
+        return;
+      }
       navigate(`/programs/${programId}`);
     } catch (err) {
       setRestoreError(err.message);
@@ -73,6 +88,12 @@ export default function Saves() {
         <h1 className="text-2xl font-bold text-navy-900">Saves</h1>
         <p className="text-sm text-slate-500 mt-1">Copies of programs and zones you can restore later.</p>
       </div>
+
+      {restoreNotice && (
+        <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          {restoreNotice}
+        </div>
+      )}
 
       {restoreError && (
         <div className="mb-4 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">

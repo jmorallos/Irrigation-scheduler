@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, Bookmark } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, Bookmark, ChevronDown } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
 import { useZones } from '../hooks/useZones';
 import { useSchedules } from '../hooks/useSchedules';
@@ -113,6 +113,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
     onToggleZone,
     onSaveZone,
   });
+  const [open, setOpen] = useState(false);
   const theme = getZoneTheme(zone, program);
   const programName = program.name;
 
@@ -121,8 +122,13 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
       className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden ${zone.status === 'inactive' ? 'opacity-75' : ''}`}
       style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
     >
-      <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+      <div className="flex items-center gap-1 px-2 py-2">
+        <button
+          type="button"
+          onClick={() => setOpen(value => !value)}
+          aria-expanded={open}
+          className="flex items-center gap-3 min-w-0 flex-1 px-2 py-1.5 text-left rounded-lg hover:bg-black/5"
+        >
           <div className="w-12 h-12 flex-shrink-0">
             <ProgramLogo
               name={getZoneDisplayName(zone, programName)}
@@ -131,7 +137,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
               square
             />
           </div>
-          <div className="min-w-0 flex flex-col justify-center">
+          <div className="min-w-0 flex-1 flex flex-col justify-center">
             <p className="text-base font-semibold text-navy-900 leading-snug">{getZoneDisplayName(zone, programName)}</p>
             <p className="text-sm text-slate-500 mt-0.5">
               {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
@@ -142,8 +148,14 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
               </div>
             )}
           </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ease-out ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        <div className="flex-shrink-0" onClick={event => event.stopPropagation()}>
+          <ActionMenu items={zoneMenuItems} label="Zone actions" />
         </div>
-        <ActionMenu items={zoneMenuItems} label="Zone actions" />
       </div>
 
       {conflictError && (
@@ -152,40 +164,46 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
         </div>
       )}
 
-      {schedules.length === 0 ? (
-        <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-slate-600`}>
-          No cycles.{' '}
-          <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
-            Add one
-          </button>
-        </div>
-      ) : (
-        <div className={`border-t ${theme.border} divide-y ${theme.border}`}>
-          {schedules.map(schedule => (
-            <div
-              key={schedule.id}
-              className={`flex items-start justify-between gap-3 px-4 py-3.5 ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    {formatCycleLabel(schedule.cycle)}
-                  </span>
-                  <span className="font-mono text-lg font-semibold text-navy-900">
-                    {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
-                  </span>
-                  <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
-                </div>
-                <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
-                {schedule.notes && (
-                  <p className="text-sm text-slate-500 mt-1">{schedule.notes}</p>
-                )}
-              </div>
-              <ActionMenu items={scheduleMenuItems(schedule)} />
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+      >
+        <div className="min-h-0 overflow-hidden" inert={!open} aria-hidden={!open}>
+          {schedules.length === 0 ? (
+            <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-slate-600`}>
+              No cycles.{' '}
+              <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
+                Add one
+              </button>
             </div>
-          ))}
+          ) : (
+            <div className={`border-t ${theme.border} divide-y ${theme.border}`}>
+              {schedules.map(schedule => (
+                <div
+                  key={schedule.id}
+                  className={`flex items-start justify-between gap-3 px-4 py-3.5 ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        {formatCycleLabel(schedule.cycle)}
+                      </span>
+                      <span className="font-mono text-lg font-semibold text-navy-900">
+                        {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
+                      </span>
+                      <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
+                    {schedule.notes && (
+                      <p className="text-sm text-slate-500 mt-1">{schedule.notes}</p>
+                    )}
+                  </div>
+                  <ActionMenu items={scheduleMenuItems(schedule)} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {modals}
     </div>

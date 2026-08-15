@@ -14,6 +14,126 @@ function uniqueName(base, existing) {
   return `${trimmed} (${index})`;
 }
 
+function sameText(a, b) {
+  return (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase();
+}
+
+function daysKey(days) {
+  return [...(days ?? [])].map(day => String(day)).sort().join(',');
+}
+
+function scheduleSignature(schedule) {
+  return JSON.stringify({
+    start_time: schedule.start_time ?? '',
+    duration_minutes: Number(schedule.duration_minutes) || 0,
+    days: daysKey(schedule.days_of_week),
+    status: schedule.status ?? 'active',
+    notes: (schedule.notes ?? '').trim(),
+  });
+}
+
+function schedulesMatch(a, b) {
+  if (a.length !== b.length) return false;
+  const left = a.map(scheduleSignature).sort();
+  const right = b.map(scheduleSignature).sort();
+  return left.every((key, index) => key === right[index]);
+}
+
+function programMetaMatches(a, b) {
+  return sameText(a.name, b.name)
+    && (a.controller_program ?? null) === (b.controller_program ?? null)
+    && (a.color ?? '') === (b.color ?? '')
+    && (a.description ?? '').trim() === (b.description ?? '').trim()
+    && (a.status ?? 'active') === (b.status ?? 'active');
+}
+
+function zoneMetaMatches(a, b) {
+  return sameText(a.name, b.name)
+    && (getZoneNumber(a) ?? null) === (getZoneNumber(b) ?? null)
+    && (a.color ?? '') === (b.color ?? '')
+    && (a.status ?? 'active') === (b.status ?? 'active');
+}
+
+function blobFromMedia(id, media) {
+  if (!id) return null;
+  return (media ?? []).find(item => item.id === id)?.blob ?? null;
+}
+
+async function blobsEqual(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.size !== b.size) return false;
+  if (a.size === 0) return true;
+  const [left, right] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+  const ua = new Uint8Array(left);
+  const ub = new Uint8Array(right);
+  if (ua.length !== ub.length) return false;
+  for (let i = 0; i < ua.length; i += 1) {
+    if (ua[i] !== ub[i]) return false;
+  }
+  return true;
+}
+
+async function photosMatch(savedBlob, liveMediaId) {
+  if (!savedBlob && !liveMediaId) return true;
+  if (!savedBlob || !liveMediaId) return false;
+  const live = await mediaRepository.getById(liveMediaId);
+  return blobsEqual(savedBlob, live?.blob ?? null);
+}
+
+async function zoneFullyMatches(savedZone, savedSchedules, media, liveZone) {
+  if (!zoneMetaMatches(savedZone, liveZone)) return false;
+  if (!await photosMatch(blobFromMedia(savedZone.profile_image_id, media), liveZone.profile_image_id)) {
+    return false;
+  }
+  const liveSchedules = await schedulesRepository.getByZoneId(liveZone.id);
+  return schedulesMatch(savedSchedules, liveSchedules);
+}
+
+async function findIdenticalProgram({ program, zones = [], schedules = [], media = [] }) {
+  const existing = await programsRepository.getAll();
+  const candidates = existing.filter(item => programMetaMatches(item, program));
+
+  for (const candidate of candidates) {
+    if (!await photosMatch(blobFromMedia(program.profile_image_id, media), candidate.profile_image_id)) {
+      continue;
+    }
+
+    const liveZones = await zonesRepository.getByProgramId(candidate.id);
+    if (liveZones.length !== zones.length) continue;
+
+    const used = new Set();
+    let allMatch = true;
+    for (const savedZone of zones) {
+      const savedCycles = schedules.filter(item => item.zone_id === savedZone.id);
+      let found = false;
+      for (const liveZone of liveZones) {
+        if (used.has(liveZone.id)) continue;
+        if (!await zoneFullyMatches(savedZone, savedCycles, media, liveZone)) continue;
+        used.add(liveZone.id);
+        found = true;
+        break;
+      }
+      if (!found) {
+        allMatch = false;
+        break;
+      }
+    }
+
+    if (allMatch) return candidate;
+  }
+
+  return null;
+}
+
+async function findIdenticalZone({ zone, schedules = [], media = [] }, programId) {
+  const liveZones = await zonesRepository.getByProgramId(programId);
+  for (const liveZone of liveZones) {
+    if (await zoneFullyMatches(zone, schedules, media, liveZone)) return liveZone;
+  }
+  return null;
+}
+
 async function cloneMedia(id, collected, seen) {
   if (!id || seen.has(id)) return;
   const record = await mediaRepository.getById(id);
@@ -79,6 +199,9 @@ export async function restoreProgramSave(save) {
   const { program, zones = [], schedules = [], media = [] } = save.payload ?? {};
   if (!program) throw new Error('This save is missing program data.');
 
+  const identical = await findIdenticalProgram(save.payload ?? {});
+  if (identical) return { program: identical, identical: true };
+
   const existing = await programsRepository.getAll();
   const created = await programsRepository.create({
     name: uniqueName(program.name, existing.map(item => item.name)),
@@ -121,12 +244,15 @@ export async function restoreProgramSave(save) {
     });
   }
 
-  return created;
+  return { program: created, identical: false };
 }
 
 export async function restoreZoneSave(save, programId) {
   const { zone, schedules = [], media = [] } = save.payload ?? {};
   if (!zone) throw new Error('This save is missing zone data.');
+
+  const identical = await findIdenticalZone(save.payload ?? {}, programId);
+  if (identical) return { zone: identical, identical: true };
 
   const existing = await zonesRepository.getByProgramId(programId);
   const used = existing.map(item => getZoneNumber(item)).filter(n => n != null);
@@ -157,5 +283,5 @@ export async function restoreZoneSave(save, programId) {
     });
   }
 
-  return created;
+  return { zone: created, identical: false };
 }
