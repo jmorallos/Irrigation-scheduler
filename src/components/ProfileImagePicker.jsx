@@ -88,7 +88,7 @@ export default function ProfileImagePicker({ name, profileImageId, onChange, lab
         />
       </div>
       {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
-      <p className="mt-1.5 text-xs text-slate-400">JPEG or PNG, max 2 MB. Stored on this device only.</p>
+      <p className="mt-1.5 text-xs text-slate-400">JPEG or PNG, max 10 MB. Stored on this device only.</p>
     </div>
   );
 }

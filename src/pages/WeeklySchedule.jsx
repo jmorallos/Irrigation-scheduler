@@ -110,22 +110,22 @@ export default function WeeklySchedule() {
           <h2 className="text-lg font-bold text-navy-900 mb-3">By week</h2>
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
           <NestedScroll className="overflow-auto max-h-[70dvh] max-md:landscape:max-h-[calc(100dvh-3.25rem)]">
-            <table className="w-full text-sm border-separate border-spacing-0 table-fixed" style={{ minWidth: '680px' }}>
+            <table className="w-full text-sm border-separate border-spacing-0 table-fixed" style={{ minWidth: '800px' }}>
               <colgroup>
                 <col className="w-32 sm:w-44" />
                 {DAY_ORDER.map(day => (
-                  <col key={day} className="w-[4.75rem] sm:w-24" />
+                  <col key={day} className="w-24 sm:w-28" />
                 ))}
               </colgroup>
               <thead>
-                <tr className="text-white text-xs sm:text-sm">
-                  <th className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-semibold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
+                <tr className="text-white text-sm sm:text-base">
+                  <th className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`} style={{ backgroundColor: '#0a2540' }}>
                     Zone
                   </th>
                   {DAY_ORDER.map(day => (
                     <th
                       key={day}
-                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-semibold uppercase tracking-wider ${
+                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-bold uppercase tracking-wider ${
                         day === today ? 'bg-navy-800' : 'bg-navy-900'
                       }`}
                     >
@@ -202,10 +202,10 @@ export default function WeeklySchedule() {
                                   <div className="flex flex-col gap-2.5">
                                     {daySchedules.map(sched => (
                                       <div key={sched.id} className="leading-tight">
-                                        <span className={`block font-mono text-sm font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
+                                        <span className={`block font-mono text-base font-bold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
                                           {formatTime(sched.start_time)}
                                         </span>
-                                        <span className="block font-mono text-[11px] text-slate-500">
+                                        <span className="block font-mono text-xs font-medium text-slate-500">
                                           {formatTime(getEndTime(sched.start_time, sched.duration_minutes))}
                                         </span>
                                       </div>

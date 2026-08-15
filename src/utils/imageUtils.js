@@ -1,5 +1,5 @@
 const MAX_DIMENSION = 512;
-const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const JPEG_QUALITY = 0.82;
 
 export async function compressImageFile(file) {
@@ -7,7 +7,7 @@ export async function compressImageFile(file) {
     throw new Error('Please select an image file.');
   }
   if (file.size > MAX_FILE_BYTES) {
-    throw new Error('Image must be 2 MB or smaller.');
+    throw new Error('Image must be 10 MB or smaller.');
   }
 
   const bitmap = await createImageBitmap(file);

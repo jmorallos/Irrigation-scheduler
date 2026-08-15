@@ -111,7 +111,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
                 key={day}
                 type="button"
                 onClick={() => { toggleDay(day); setErrors(prev => ({ ...prev, conflict: undefined })); }}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                   days.includes(day)
                     ? 'bg-brand-600 border-brand-600 text-white'
                     : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
