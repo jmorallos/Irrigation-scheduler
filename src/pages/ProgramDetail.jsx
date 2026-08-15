@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, Bookmark } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
 import { useZones } from '../hooks/useZones';
 import { useSchedules } from '../hooks/useSchedules';
@@ -19,6 +19,7 @@ import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } f
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
+import { useSaves } from '../hooks/useSaves';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 
@@ -37,7 +38,7 @@ function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   );
 }
 
-function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
+function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
   const { schedules, createSchedule, updateSchedule, deleteSchedule, toggleStatus: toggleSched } = useSchedules(zone.id);
   const [addSched, setAddSched] = useState(false);
   const [editSched, setEditSched] = useState(null);
@@ -56,6 +57,7 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
   const zoneMenuItems = [
     { label: 'Add cycle', icon: Plus, onClick: () => setAddSched(true) },
     { label: 'Edit zone', icon: Pencil, onClick: onEditZone },
+    { label: 'Save zone', icon: Bookmark, onClick: onSaveZone },
     { label: zone.status === 'active' ? 'Deactivate zone' : 'Activate zone', icon: Power, onClick: onToggleZone },
     { label: 'Delete zone', icon: Trash2, onClick: onDeleteZone, danger: true },
   ];
@@ -104,11 +106,12 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
   return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError };
 }
 
-function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone }) {
+function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
+    onSaveZone,
   });
   const theme = getZoneTheme(zone, program);
   const programName = program.name;
@@ -189,11 +192,12 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone }) {
   );
 }
 
-function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, isFirstZone, zoneIndex }) {
+function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone, isFirstZone, zoneIndex }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
+    onSaveZone,
   });
   const theme = getZoneTheme(zone, program);
   const programName = program.name;
@@ -297,6 +301,8 @@ export default function ProgramDetail() {
   const [deleteZone, setDeleteZone] = useState(null);
   const { zones, createZone, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
   const { programs: allPrograms } = usePrograms();
+  const { saveProgram, saveZone } = useSaves();
+  const [savedNotice, setSavedNotice] = useState(null);
   const { items: todayItems } = useTodaySchedule();
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
@@ -327,6 +333,11 @@ export default function ProgramDetail() {
     });
     setProgram(updated);
     setEditProg(false);
+  };
+
+  const showSaved = (label) => {
+    setSavedNotice(label);
+    window.setTimeout(() => setSavedNotice(null), 3000);
   };
 
   if (loadingProg) {
@@ -381,15 +392,34 @@ export default function ProgramDetail() {
             {program.description && <p className="text-sm text-slate-500 mt-1">{program.description}</p>}
             <p className="text-xs text-slate-400 mt-1">{zones.length} zone{zones.length !== 1 ? 's' : ''}</p>
           </div>
-          <button
-            onClick={() => setEditProg(true)}
-            className="self-start m-3 sm:m-4 p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors flex-shrink-0"
-            title="Edit program"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
+          <div className="flex items-start m-3 sm:m-4 gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={async () => {
+                await saveProgram(program.id);
+                showSaved(`Saved "${program.name}" with its zones and cycles.`);
+              }}
+              className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+              title="Save program"
+            >
+              <Bookmark className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setEditProg(true)}
+              className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+              title="Edit program"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {savedNotice && (
+        <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          {savedNotice}
+        </div>
+      )}
 
       {todayForProgram.length > 0 && (
         <div
@@ -442,6 +472,10 @@ export default function ProgramDetail() {
                 onEditZone={() => setEditZone(zone)}
                 onDeleteZone={() => setDeleteZone(zone)}
                 onToggleZone={() => toggleZone(zone.id, zone.status)}
+                onSaveZone={async () => {
+                  await saveZone(zone.id);
+                  showSaved(`Saved "${zone.name}" with its cycles.`);
+                }}
               />
             ))}
           </div>
@@ -472,6 +506,10 @@ export default function ProgramDetail() {
                     onEditZone={() => setEditZone(zone)}
                     onDeleteZone={() => setDeleteZone(zone)}
                     onToggleZone={() => toggleZone(zone.id, zone.status)}
+                    onSaveZone={async () => {
+                      await saveZone(zone.id);
+                      showSaved(`Saved "${zone.name}" with its cycles.`);
+                    }}
                   />
                 ))}
               </tbody>

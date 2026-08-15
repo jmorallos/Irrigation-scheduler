@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import Programs from './pages/Programs';
 import ProgramDetail from './pages/ProgramDetail';
 import WeeklySchedule from './pages/WeeklySchedule';
+import Saves from './pages/Saves';
 import Settings from './pages/Settings';
 
 export default function AppRoutes() {
@@ -14,6 +15,7 @@ export default function AppRoutes() {
         <Route path="/" element={<Navigate to="/programs" replace />} />
         <Route path="/programs" element={<Programs />} />
         <Route path="/programs/:programId" element={<ProgramDetail />} />
+        <Route path="/saves" element={<Saves />} />
         <Route path="/schedule" element={<WeeklySchedule />} />
         <Route path="/summary" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />

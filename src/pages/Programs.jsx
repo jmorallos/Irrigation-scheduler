@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Eye, Power, List } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Power, List, Bookmark } from 'lucide-react';
 import { usePrograms } from '../hooks/usePrograms';
 import { useZones } from '../hooks/useZones';
 import { zonesRepository } from '../db/zonesRepository';
@@ -16,6 +16,7 @@ import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 import NestedScroll from '../components/NestedScroll';
+import { useSaves } from '../hooks/useSaves';
 
 function ZoneCount({ programId }) {
   const { zones } = useZones(programId);
@@ -25,10 +26,12 @@ function ZoneCount({ programId }) {
 export default function Programs() {
   const navigate = useNavigate();
   const { programs, loading, error, reload, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
+  const { saveProgram } = useSaves();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [deleteCounts, setDeleteCounts] = useState({ zones: 0, schedules: 0 });
+  const [savedNotice, setSavedNotice] = useState(null);
 
   const openDelete = async (program) => {
     const zones = await zonesRepository.getByProgramId(program.id);
@@ -39,6 +42,12 @@ export default function Programs() {
     }
     setDeleteCounts({ zones: zones.length, schedules: schedCount });
     setDeleting(program);
+  };
+
+  const handleSave = async (program) => {
+    await saveProgram(program.id);
+    setSavedNotice(program.name);
+    window.setTimeout(() => setSavedNotice(null), 3000);
   };
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading programs…</div>;
@@ -59,6 +68,12 @@ export default function Programs() {
           <span className="hidden sm:inline">Add Program</span>
         </button>
       </div>
+
+      {savedNotice && (
+        <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          {`Saved "${savedNotice}" with its zones and cycles.`}
+        </div>
+      )}
 
       {programs.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
@@ -136,6 +151,7 @@ export default function Programs() {
                         items={[
                           { label: 'View', icon: Eye, to: `/programs/${program.id}` },
                           { label: 'Edit', icon: Pencil, onClick: () => setEditing(program) },
+                          { label: 'Save', icon: Bookmark, onClick: () => handleSave(program) },
                           {
                             label: program.status === 'active' ? 'Deactivate' : 'Activate',
                             icon: Power,

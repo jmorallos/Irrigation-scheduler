@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, List, CalendarDays, Settings, Droplets, Menu, X } from 'lucide-react';
+import { LayoutDashboard, List, CalendarDays, Settings, Droplets, Menu, X, Bookmark } from 'lucide-react';
 import usePhoneLandscape from '../hooks/usePhoneLandscape';
 
 const NAV = [
   { to: '/programs', label: 'Programs', icon: List, exact: false },
   { to: '/schedule', label: 'Schedule', icon: CalendarDays, exact: true },
   { to: '/summary', label: 'Summary', icon: LayoutDashboard, exact: true },
+  { to: '/saves', label: 'Saves', icon: Bookmark, exact: true },
 ];
 
 const SYSTEM_NAV = [

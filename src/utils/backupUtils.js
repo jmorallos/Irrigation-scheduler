@@ -2,7 +2,8 @@ import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
-import { base64ToBlob } from './imageUtils';
+import { savesRepository } from '../db/savesRepository';
+import { base64ToBlob, blobToBase64 } from './imageUtils';
 
 export function parseBackupFile(text) {
   return JSON.parse(text);
@@ -53,10 +54,55 @@ export async function snapshotAllData() {
     zones: await zonesRepository.getAll(),
     schedules: await schedulesRepository.getAll(),
     media: await mediaRepository.getAll(),
+    saves: await savesRepository.getAll(),
   };
 }
 
-async function clearAllStores() {
+async function serializeMediaList(records) {
+  return Promise.all(
+    (records ?? []).map(async record => ({
+      id: record.id,
+      owner_type: record.owner_type,
+      owner_id: record.owner_id,
+      mime_type: record.mime_type,
+      size_bytes: record.size_bytes,
+      updated_at: record.updated_at,
+      data_base64: record.blob ? await blobToBase64(record.blob) : record.data_base64,
+    })),
+  );
+}
+
+function deserializeMediaList(records) {
+  return (records ?? []).map(record => {
+    if (!record.data_base64 || !record.mime_type) return { ...record, blob: record.blob };
+    const { data_base64, ...rest } = record;
+    return { ...rest, blob: base64ToBlob(data_base64, record.mime_type) };
+  });
+}
+
+export async function serializeSaves(saves) {
+  return Promise.all(
+    (saves ?? []).map(async save => ({
+      ...save,
+      payload: {
+        ...save.payload,
+        media: await serializeMediaList(save.payload?.media),
+      },
+    })),
+  );
+}
+
+export function deserializeSaves(saves) {
+  return (saves ?? []).map(save => ({
+    ...save,
+    payload: {
+      ...save.payload,
+      media: deserializeMediaList(save.payload?.media),
+    },
+  }));
+}
+
+export async function clearLiveData() {
   await mediaRepository.clear();
   await schedulesRepository.clear();
   await zonesRepository.clear();
@@ -76,15 +122,21 @@ async function writeSnapshot(snapshot) {
   for (const schedule of snapshot.schedules) {
     await schedulesRepository.putRaw(schedule);
   }
+  if (Array.isArray(snapshot.saves)) {
+    for (const save of snapshot.saves) {
+      await savesRepository.putRaw(save);
+    }
+  }
 }
 
 export async function restoreSnapshot(snapshot) {
-  await clearAllStores();
+  await clearLiveData();
+  if (Array.isArray(snapshot.saves)) await savesRepository.clear();
   await writeSnapshot(snapshot);
 }
 
 export async function applyBackup(data) {
-  await clearAllStores();
+  await clearLiveData();
 
   const restoredMediaIds = new Set();
 
@@ -128,6 +180,13 @@ export async function applyBackup(data) {
   }
   for (const schedule of data.schedules) {
     await schedulesRepository.putRaw(schedule);
+  }
+
+  if (Array.isArray(data.saves)) {
+    await savesRepository.clear();
+    for (const save of deserializeSaves(data.saves)) {
+      await savesRepository.putRaw(save);
+    }
   }
 
   return { missingPhotos };

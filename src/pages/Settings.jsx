@@ -5,7 +5,7 @@ import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
-import { resetDBInstance, deleteDatabase } from '../db/database';
+import { resetDBInstance } from '../db/database';
 import { cleanupDuplicatePrograms } from '../db/cleanupDuplicates';
 import { loadSampleData } from '../db/seedData';
 import { blobToBase64 } from '../utils/imageUtils';
@@ -15,9 +15,11 @@ import {
   snapshotAllData,
   restoreSnapshot,
   applyBackup,
+  serializeSaves,
+  clearLiveData,
 } from '../utils/backupUtils';
 
-const BACKUP_VERSION = 2;
+const BACKUP_VERSION = 3;
 const IMPORT_NOTICE_KEY = 'irrigation-import-notice';
 
 function missingPhotoMessage(count) {
@@ -51,6 +53,7 @@ export default function Settings() {
     const zones = await zonesRepository.getAll();
     const schedules = await schedulesRepository.getAll();
     const mediaRecords = await mediaRepository.getAll();
+    const saves = await serializeSaves((await snapshotAllData()).saves);
     const media = await Promise.all(
       mediaRecords.map(async record => ({
         id: record.id,
@@ -69,6 +72,7 @@ export default function Settings() {
       zones,
       schedules,
       media,
+      saves,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -127,7 +131,8 @@ export default function Settings() {
 
   const clearAll = async () => {
     try {
-      await deleteDatabase();
+      await clearLiveData();
+      resetDBInstance();
       setConfirmClear(false);
       window.location.reload();
     } catch (err) {
@@ -233,7 +238,7 @@ export default function Settings() {
         <ConfirmDialog
           title="Import backup?"
           message={`This will replace all current programs, zones, schedules, and photos with the data from "${pendingImport.fileName}".`}
-          detail={`Backup contains ${pendingImport.data.programs.length} program(s), ${pendingImport.data.zones.length} zone(s), and ${pendingImport.data.schedules.length} schedule(s).`}
+          detail={`Backup contains ${pendingImport.data.programs.length} program(s), ${pendingImport.data.zones.length} zone(s), ${pendingImport.data.schedules.length} schedule(s)${Array.isArray(pendingImport.data.saves) ? `, and ${pendingImport.data.saves.length} save(s)` : ''}.`}
           confirmLabel={importing ? 'Importing…' : 'Import'}
           onConfirm={confirmImport}
           onCancel={() => !importing && setPendingImport(null)}
@@ -243,7 +248,7 @@ export default function Settings() {
       {confirmClear && (
         <ConfirmDialog
           title="Clear all data?"
-          message="This will permanently delete all programs, zones, schedules, and profile photos stored in this browser. The app will stay empty after reload."
+          message="This will permanently delete all programs, zones, schedules, and profile photos stored in this browser. Saved copies in Saves are kept."
           confirmLabel="Clear All Data"
           onConfirm={clearAll}
           onCancel={() => setConfirmClear(false)}
