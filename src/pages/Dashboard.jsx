@@ -85,9 +85,7 @@ export default function Dashboard() {
           {STAT_COLUMNS.map(({ key, label }) => (
             <div key={key} className="px-5 py-4 text-center sm:text-left">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">
-                {key === 'minutes' ? formatDuration(stats.minutes) : stats[key]}
-              </p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
             </div>
           ))}
         </div>
