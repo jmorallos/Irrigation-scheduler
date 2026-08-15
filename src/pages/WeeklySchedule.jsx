@@ -109,7 +109,7 @@ export default function WeeklySchedule() {
         <section data-table-snap>
           <h2 className="text-lg font-bold text-navy-900 mb-3">By week</h2>
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <NestedScroll className="overflow-auto max-h-[70dvh] max-md:landscape:max-h-[calc(100dvh-3.25rem)]">
+          <NestedScroll className="overflow-auto max-h-[70dvh] phone-land:max-h-[calc(100dvh-3.25rem)]">
             <table className="w-full text-sm border-separate border-spacing-0 table-fixed" style={{ minWidth: '800px' }}>
               <colgroup>
                 <col className="w-32 sm:w-44" />

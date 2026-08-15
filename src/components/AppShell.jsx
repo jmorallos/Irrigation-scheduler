@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, List, CalendarDays, Settings, Droplets, Menu, X } from 'lucide-react';
+import usePhoneLandscape from '../hooks/usePhoneLandscape';
 
 const NAV = [
   { to: '/programs', label: 'Programs', icon: List, exact: false },
@@ -39,6 +40,7 @@ function NavItem({ item, pathname, onClick }) {
 export default function AppShell({ children }) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const phoneLand = usePhoneLandscape();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -53,7 +55,7 @@ export default function AppShell({ children }) {
 
   return (
     <div className="flex min-h-screen min-w-0 bg-surface overflow-x-hidden">
-      <aside className="hidden md:flex flex-col w-60 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">
+      <aside className={`${phoneLand ? 'hidden' : 'hidden md:flex'} flex-col w-60 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30`}>
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-100">
           <div className="w-9 h-9 bg-navy-900 rounded-lg flex items-center justify-center flex-shrink-0">
             <Droplets className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -84,20 +86,24 @@ export default function AppShell({ children }) {
         </nav>
       </aside>
 
-      <div className="md:hidden landscape:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 flex items-center gap-2 px-4 py-3.5">
+      <div className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 items-center gap-2 px-4 py-3.5`}>
         <div className="w-8 h-8 bg-navy-900 rounded-lg flex items-center justify-center flex-shrink-0">
           <Droplets className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
         <span className="text-sm font-bold text-navy-900 truncate">Irrigation Scheduler</span>
       </div>
 
-      <main className="flex-1 min-w-0 w-full md:ml-60 pt-14 landscape:pt-0 md:pt-0 pb-20 landscape:pb-0 md:pb-0 min-h-screen overflow-x-hidden">
-        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 md:p-8 max-md:landscape:px-3 max-md:landscape:py-3">
+      <main className={`flex-1 min-w-0 w-full min-h-screen overflow-x-hidden ${
+        phoneLand ? 'ml-0 pt-0 pb-0' : 'md:ml-60 pt-14 md:pt-0 pb-20 md:pb-0'
+      }`}>
+        <div className={`max-w-6xl mx-auto w-full min-w-0 ${
+          phoneLand ? 'px-3 py-3' : 'px-4 py-5 sm:px-6 sm:py-6 md:p-8'
+        }`}>
           {children}
         </div>
       </main>
 
-      <nav className="md:hidden landscape:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 flex">
+      <nav className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200`}>
         {ALL_NAV.map(item => {
           const active = isActive(item.to, item.exact, pathname);
           return (
@@ -115,7 +121,7 @@ export default function AppShell({ children }) {
         })}
       </nav>
 
-      <div className="hidden max-md:landscape:block">
+      <div className={phoneLand ? 'block' : 'hidden'}>
         {menuOpen && (
           <button
             type="button"

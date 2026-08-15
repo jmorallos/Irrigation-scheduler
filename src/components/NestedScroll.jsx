@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { isDesktopLayout, isPhoneLandscape } from '../utils/phoneLandscape';
 
 const EDGE = 1;
 const SNAP_RANGE = 140;
@@ -31,18 +32,18 @@ function scrollPage(deltaY) {
   pageScroller().scrollTop += deltaY;
 }
 
-function headerOffset() {
-  if (window.matchMedia('(min-width: 768px)').matches) return 16;
-  if (window.matchMedia('(orientation: landscape)').matches) return 12;
-  return 68;
-}
-
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function headerOffset() {
+  if (isPhoneLandscape()) return 12;
+  if (isDesktopLayout()) return 16;
+  return 68;
+}
+
 function isWideScreen() {
-  return window.matchMedia('(min-width: 768px)').matches;
+  return isDesktopLayout();
 }
 
 function clearSnapPad() {
