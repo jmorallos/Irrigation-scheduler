@@ -95,7 +95,7 @@ export default function AppShell({ children }) {
       </div>
 
       <main className={`flex-1 min-w-0 w-full min-h-screen overflow-x-hidden ${
-        phoneLand ? 'ml-0 pt-0 pb-0' : 'md:ml-60 pt-14 md:pt-0 pb-20 md:pb-0'
+        phoneLand ? 'ml-0 pt-0 pb-24' : 'md:ml-60 pt-14 md:pt-0 pb-20 md:pb-0'
       }`}>
         <div className={`max-w-6xl mx-auto w-full min-w-0 ${
           phoneLand ? 'px-3 py-3' : 'px-4 py-5 sm:px-6 sm:py-6 md:p-8'
