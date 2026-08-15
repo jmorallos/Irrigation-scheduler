@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, List, CalendarDays, Settings, Droplets } from 'lucide-react';
+import { LayoutDashboard, List, CalendarDays, Settings, Droplets, Menu, X } from 'lucide-react';
 
 const NAV = [
   { to: '/programs', label: 'Programs', icon: List, exact: false },
@@ -11,15 +12,18 @@ const SYSTEM_NAV = [
   { to: '/settings', label: 'Settings', icon: Settings, exact: true },
 ];
 
+const ALL_NAV = [...NAV, ...SYSTEM_NAV];
+
 function isActive(to, exact, pathname) {
   return exact ? pathname === to : pathname.startsWith(to);
 }
 
-function NavItem({ item, pathname }) {
+function NavItem({ item, pathname, onClick }) {
   const active = isActive(item.to, item.exact, pathname);
   return (
     <NavLink
       to={item.to}
+      onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
         active
           ? 'bg-navy-900 text-white'
@@ -34,10 +38,21 @@ function NavItem({ item, pathname }) {
 
 export default function AppShell({ children }) {
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   return (
     <div className="flex min-h-screen min-w-0 bg-surface overflow-x-hidden">
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-100">
           <div className="w-9 h-9 bg-navy-900 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -69,24 +84,21 @@ export default function AppShell({ children }) {
         </nav>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 flex items-center gap-2 px-4 py-3.5">
+      <div className="md:hidden landscape:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 flex items-center gap-2 px-4 py-3.5">
         <div className="w-8 h-8 bg-navy-900 rounded-lg flex items-center justify-center flex-shrink-0">
           <Droplets className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
         <span className="text-sm font-bold text-navy-900 truncate">Irrigation Scheduler</span>
       </div>
 
-      {/* Content area */}
-      <main className="flex-1 min-w-0 w-full md:ml-60 pt-14 md:pt-0 pb-20 md:pb-0 min-h-screen overflow-x-hidden">
-        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 md:p-8">
+      <main className="flex-1 min-w-0 w-full md:ml-60 pt-14 landscape:pt-0 md:pt-0 pb-20 landscape:pb-0 md:pb-0 min-h-screen overflow-x-hidden">
+        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 md:p-8 max-md:landscape:px-3 max-md:landscape:py-3">
           {children}
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 flex">
-        {[...NAV, ...SYSTEM_NAV].map(item => {
+      <nav className="md:hidden landscape:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 flex">
+        {ALL_NAV.map(item => {
           const active = isActive(item.to, item.exact, pathname);
           return (
             <NavLink
@@ -102,6 +114,41 @@ export default function AppShell({ children }) {
           );
         })}
       </nav>
+
+      <div className="hidden max-md:landscape:block">
+        {menuOpen && (
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-navy-900/30"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        {menuOpen && (
+          <div className="fixed z-50 bottom-20 right-4 w-56 bg-white rounded-xl border border-slate-200 shadow-xl p-2">
+            <p className="px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Menu</p>
+            {ALL_NAV.map(item => (
+              <NavItem
+                key={item.to}
+                item={item}
+                pathname={pathname}
+                onClick={() => setMenuOpen(false)}
+              />
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen(open => !open)}
+          className="fixed z-50 bottom-4 right-4 w-12 h-12 rounded-full bg-navy-900 text-white shadow-lg flex items-center justify-center hover:bg-navy-800 transition-colors"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
     </div>
   );
 }
