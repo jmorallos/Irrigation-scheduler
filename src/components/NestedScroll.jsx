@@ -41,6 +41,17 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function isWideScreen() {
+  return window.matchMedia('(min-width: 768px)').matches;
+}
+
+function clearSnapPad() {
+  if (!padEl) return;
+  padEl.style.marginBottom = '';
+  padEl = null;
+  padValue = 0;
+}
+
 function visibleSnapTargets() {
   return [...snapTargets].filter((el) => {
     if (!el.isConnected) return false;
@@ -60,11 +71,14 @@ let padValue = 0;
 let padObserver = null;
 
 function updateSnapEndPad() {
+  if (isWideScreen()) {
+    clearSnapPad();
+    return;
+  }
+
   const last = lastSnapTarget();
   if (padEl && padEl !== last) {
-    padEl.style.marginBottom = '';
-    padEl = null;
-    padValue = 0;
+    clearSnapPad();
   }
   if (!last) return;
 
@@ -108,7 +122,7 @@ function visibleHeight(el, viewTop, viewBottom) {
 }
 
 function snapIdle() {
-  if (snapping || prefersReducedMotion()) return;
+  if (snapping || prefersReducedMotion() || isWideScreen()) return;
 
   const y = window.scrollY;
   if (y !== lastScrollY) scrollDir = y > lastScrollY ? 1 : -1;
@@ -171,11 +185,7 @@ function registerSnapTarget(el) {
     padObserver?.unobserve(el);
     snapTargets.delete(el);
     el.classList.remove('table-snap');
-    if (el === padEl) {
-      el.style.marginBottom = '';
-      padEl = null;
-      padValue = 0;
-    }
+    if (el === padEl) clearSnapPad();
     snapUsers -= 1;
     if (snapUsers === 0) {
       window.removeEventListener('scroll', onPageScroll);
