@@ -11,7 +11,7 @@ import { ProgramTodayMinutesChart, ProgramTodayStartsChart } from '../components
 import PageError from '../components/PageError';
 import { formatDuration, formatTimeRange } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
-import { getProgramTheme } from '../utils/programColors';
+import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 
 const STAT_COLUMNS = [
@@ -136,10 +136,14 @@ export default function Dashboard() {
         ) : (
           <div>
             {items.map(item => {
-              const theme = getProgramTheme(item.program.controller_program);
+              const theme = getZoneTheme(item.zone, item.program);
               return (
-              <div key={item.schedule.id} className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}>
-                <ProgramBadge code={item.program.controller_program} size="sm" />
+              <div
+                key={item.schedule.id}
+                className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
+                style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
+              >
+                <ProgramBadge code={item.program.controller_program} color={item.zone.color || item.program.color} size="sm" />
                 <div className="flex-shrink-0 w-16 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   {formatCycleLabel(item.schedule.cycle)}
                 </div>

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import ProfileImagePicker from './ProfileImagePicker';
+import ColorPresetPicker from './ColorPresetPicker';
+import { colorFromLetter } from '../utils/programColors';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [] }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [controllerProgram, setControllerProgram] = useState(initial?.controller_program ?? '');
+  const [color, setColor] = useState(initial?.color ?? colorFromLetter(initial?.controller_program) ?? 'emerald');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
@@ -28,6 +31,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
       await onSubmit({
         name: name.trim(),
         controller_program: controllerProgram.trim().toUpperCase() || null,
+        color,
         description: description.trim(),
         status,
         profileImageChange,
@@ -69,11 +73,17 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
             id="prog-controller"
             type="text"
             value={controllerProgram}
-            onChange={e => setControllerProgram(e.target.value.toUpperCase().slice(0, 2))}
+            onChange={e => {
+              const next = e.target.value.toUpperCase().slice(0, 2);
+              setControllerProgram(next);
+              const mapped = colorFromLetter(next);
+              if (mapped) setColor(mapped);
+            }}
             placeholder="e.g. A"
             className="w-24 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-600 transition-colors font-mono uppercase"
           />
         </div>
+        <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-desc">
             Description <span className="text-gray-400 font-normal">(optional)</span>

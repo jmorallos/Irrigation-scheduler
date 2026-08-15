@@ -18,7 +18,7 @@ import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } f
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
-import { getProgramTheme } from '../utils/programColors';
+import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
@@ -103,16 +103,20 @@ function useZoneCycles(zone, { onEditZone, onDeleteZone, onToggleZone }) {
   return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError };
 }
 
-function ZoneCard({ zone, programName, programCode, onEditZone, onDeleteZone, onToggleZone }) {
+function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
   });
-  const theme = getProgramTheme(programCode);
+  const theme = getZoneTheme(zone, program);
+  const programName = program.name;
 
   return (
-    <div className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden ${zone.status === 'inactive' ? 'opacity-75' : ''}`}>
+    <div
+      className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden ${zone.status === 'inactive' ? 'opacity-75' : ''}`}
+      style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
+    >
       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-12 h-12 flex-shrink-0">
@@ -184,14 +188,16 @@ function ZoneCard({ zone, programName, programCode, onEditZone, onDeleteZone, on
   );
 }
 
-function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZone, onToggleZone, isFirstZone, zoneIndex }) {
+function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, isFirstZone, zoneIndex }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
     onEditZone,
     onDeleteZone,
     onToggleZone,
   });
-  const theme = getProgramTheme(programCode);
+  const theme = getZoneTheme(zone, program);
+  const programName = program.name;
   const rowBg = zoneIndex % 2 === 1 ? theme.rowAlt : theme.row;
+  const rowHex = zoneIndex % 2 === 1 ? theme.rowAltHex : theme.rowHex;
 
   const rows = schedules.length === 0
     ? [{ id: `${zone.id}-empty`, empty: true }]
@@ -205,7 +211,7 @@ function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZon
 
         if (schedule.empty) {
           return (
-            <tr key={schedule.id} className={`${rowBorder} ${rowBg}`}>
+            <tr key={schedule.id} className={`${rowBorder} ${rowBg}`} style={{ backgroundColor: rowHex, borderColor: theme.borderHex }}>
               <td className="px-4 py-3 align-middle">
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
@@ -227,6 +233,7 @@ function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZon
           <tr
             key={schedule.id}
             className={`${rowBorder} ${rowBg} ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
+            style={{ backgroundColor: rowHex, borderColor: theme.borderHex }}
           >
             <td className="px-4 py-3 align-middle">
               {index === 0 ? (
@@ -339,7 +346,7 @@ export default function ProgramDetail() {
   }
   if (!program) return null;
 
-  const theme = getProgramTheme(program.controller_program);
+  const theme = getProgramTheme(program);
   const existingNumbers = zones.map(z => getZoneNumber(z)).filter(n => n != null);
   const suggestedNumber = existingNumbers.length ? Math.max(...existingNumbers) + 1 : 1;
 
@@ -349,7 +356,10 @@ export default function ProgramDetail() {
         <ArrowLeft className="w-4 h-4" /> Programs
       </Link>
 
-      <div className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden mb-6`}>
+      <div
+        className={`${theme.row} rounded-lg border ${theme.border} shadow-sm overflow-hidden mb-6`}
+        style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
+      >
         <div className="flex min-h-[6.5rem]">
           <div className="w-[6.5rem] sm:w-28 flex-shrink-0">
             <ProgramLogo
@@ -361,7 +371,9 @@ export default function ProgramDetail() {
           </div>
           <div className="flex-1 min-w-0 px-4 py-4 sm:px-6 flex flex-col justify-center">
             <div className="flex items-center gap-2 flex-wrap">
-              {program.controller_program && <ProgramBadge code={program.controller_program} size="md" />}
+              {program.controller_program && (
+                <ProgramBadge code={program.controller_program} color={program.color} size="md" />
+              )}
               <h1 className="text-xl font-bold text-navy-900">{program.name}</h1>
               <Badge status={program.status} />
             </div>
@@ -379,7 +391,10 @@ export default function ProgramDetail() {
       </div>
 
       {todayForProgram.length > 0 && (
-        <div className={`${theme.row} border ${theme.border} rounded-lg p-5 mb-6`}>
+        <div
+          className={`${theme.row} border ${theme.border} rounded-lg p-5 mb-6`}
+          style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
+        >
           <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wider mb-3">{"Today's Schedule"}</h2>
           <div className="space-y-2">
             {todayForProgram.map(item => (
@@ -422,8 +437,7 @@ export default function ProgramDetail() {
               <ZoneCard
                 key={zone.id}
                 zone={zone}
-                programName={program.name}
-                programCode={program.controller_program}
+                program={program}
                 onEditZone={() => setEditZone(zone)}
                 onDeleteZone={() => setDeleteZone(zone)}
                 onToggleZone={() => toggleZone(zone.id, zone.status)}
@@ -450,8 +464,7 @@ export default function ProgramDetail() {
                   <ZoneTableRows
                     key={zone.id}
                     zone={zone}
-                    programName={program.name}
-                    programCode={program.controller_program}
+                    program={program}
                     isFirstZone={zoneIndex === 0}
                     zoneIndex={zoneIndex}
                     onEditZone={() => setEditZone(zone)}
@@ -481,6 +494,7 @@ export default function ProgramDetail() {
           <ZoneForm
             suggestedNumber={suggestedNumber}
             existingNumbers={existingNumbers}
+            defaultColor={theme.id}
             onSubmit={async data => { await createZone(data); setAddZone(false); }}
             onCancel={() => setAddZone(false)}
           />
@@ -492,6 +506,7 @@ export default function ProgramDetail() {
           <ZoneForm
             initial={editZone}
             existingNumbers={existingNumbers.filter(n => n !== getZoneNumber(editZone))}
+            defaultColor={theme.id}
             onSubmit={async data => { await updateZone(editZone.id, data); setEditZone(null); }}
             onCancel={() => setEditZone(null)}
           />

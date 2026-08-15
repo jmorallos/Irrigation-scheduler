@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, getEndTime } from '../utils/dateUtils';
 import { getZoneDisplayName } from '../utils/scheduleUtils';
-import { getProgramTheme } from '../utils/programColors';
+import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { CalendarDays } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
@@ -64,7 +64,7 @@ export default function WeeklySchedule() {
               </thead>
               <tbody>
                 {groups.map((group, gi) => {
-                  const theme = getProgramTheme(group.program.controller_program);
+                  const theme = getProgramTheme(group.program);
 
                   return (
                   <Fragment key={group.program.id}>
@@ -79,7 +79,7 @@ export default function WeeklySchedule() {
                           title={group.program.name}
                         >
                           {group.program.controller_program && (
-                            <ProgramBadge code={group.program.controller_program} size="sm" />
+                            <ProgramBadge code={group.program.controller_program} color={group.program.color} size="sm" />
                           )}
                           <span className="truncate">{group.program.name}</span>
                         </Link>
@@ -88,16 +88,19 @@ export default function WeeklySchedule() {
                         <td
                           key={day}
                           className={day === today ? theme.today : theme.header}
+                          style={{ backgroundColor: day === today ? theme.todayHex : theme.headerHex }}
                         />
                       ))}
                     </tr>
                     {group.rows.map((row, ri) => {
-                      const rowBg = ri % 2 === 1 ? theme.rowAlt : theme.row;
-                      const rowHex = ri % 2 === 1 ? theme.rowAltHex : theme.rowHex;
-                      const todayCellBg = ri % 2 === 1 ? theme.todayAlt : theme.today;
+                      const zoneTheme = getZoneTheme(row.zone, group.program);
+                      const rowBg = ri % 2 === 1 ? zoneTheme.rowAlt : zoneTheme.row;
+                      const rowHex = ri % 2 === 1 ? zoneTheme.rowAltHex : zoneTheme.rowHex;
+                      const todayCellBg = ri % 2 === 1 ? zoneTheme.todayAlt : zoneTheme.today;
+                      const todayCellBgHex = ri % 2 === 1 ? zoneTheme.todayAltHex : zoneTheme.todayHex;
 
                       return (
-                        <tr key={row.zone.id} className={`border-t ${theme.border} ${rowBg}`}>
+                        <tr key={row.zone.id} className={`border-t ${zoneTheme.border} ${rowBg}`} style={{ borderColor: zoneTheme.borderHex }}>
                           <td
                             className={`${ZONE_COL} py-3.5 text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
                             style={{ backgroundColor: rowHex }}
@@ -118,6 +121,7 @@ export default function WeeklySchedule() {
                                 className={`px-2 py-3.5 text-center whitespace-nowrap ${
                                   day === today ? todayCellBg : rowBg
                                 }`}
+                                style={{ backgroundColor: day === today ? todayCellBgHex : rowHex }}
                               >
                                 {daySchedules.length > 0 ? (
                                   <div className="flex flex-col gap-2.5">

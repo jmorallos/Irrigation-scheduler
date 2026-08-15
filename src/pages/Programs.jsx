@@ -83,7 +83,7 @@ export default function Programs() {
               </thead>
               <tbody>
                 {programs.map((program) => {
-                  const theme = getProgramTheme(program.controller_program);
+                  const theme = getProgramTheme(program);
                   return (
                   <tr
                     key={program.id}
@@ -97,9 +97,10 @@ export default function Programs() {
                       }
                     }}
                     className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
+                    style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                   >
                     <td className="px-4 py-4">
-                      <ProgramBadge code={program.controller_program} size="md" />
+                      <ProgramBadge code={program.controller_program} color={program.color} size="md" />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3 min-w-0">

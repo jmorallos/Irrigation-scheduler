@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import ProfileImagePicker from './ProfileImagePicker';
 import { parseZoneName, formatZoneName } from '../utils/scheduleUtils';
+import ColorPresetPicker from './ColorPresetPicker';
 
-export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers = [], suggestedNumber = 1 }) {
+export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers = [], suggestedNumber = 1, defaultColor = 'emerald' }) {
   const parsed = parseZoneName(initial?.name);
   const [zoneNumber, setZoneNumber] = useState(
     String(initial?.zone_number ?? parsed.number ?? suggestedNumber),
   );
   const [name, setName] = useState(parsed.number != null ? parsed.label : (initial?.name ?? ''));
+  const [color, setColor] = useState(initial?.color ?? defaultColor);
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
@@ -35,6 +37,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
       await onSubmit({
         zone_number: num,
         name: formatZoneName(num, name),
+        color,
         status,
         profileImageChange,
       });
@@ -85,6 +88,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
         {(errors.zoneNumber || errors.name) && (
           <p className="text-xs text-red-500 -mt-2">{errors.zoneNumber || errors.name}</p>
         )}
+        <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
           <div className="flex gap-2">

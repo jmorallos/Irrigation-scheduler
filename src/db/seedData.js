@@ -2,6 +2,7 @@ import { programsRepository } from "./programsRepository";
 import { zonesRepository } from "./zonesRepository";
 import { schedulesRepository } from "./schedulesRepository";
 import { SEED_RECORDS } from "./seedRecords";
+import { colorFromLetter } from "../utils/programColors";
 
 export async function loadSampleData() {
   const programs = await programsRepository.getAll();
@@ -15,6 +16,7 @@ export async function loadSampleData() {
     const program = {
       id: crypto.randomUUID(),
       controller_program: programSeed.controller_program ?? null,
+      color: programSeed.color ?? colorFromLetter(programSeed.controller_program) ?? "emerald",
       name: programSeed.name,
       description: programSeed.description,
       status: "active",
@@ -31,6 +33,7 @@ export async function loadSampleData() {
         program_id: program.id,
         name: `Zone ${zoneSeed.valve} · ${zoneSeed.name}`,
         zone_number: zoneSeed.valve,
+        color: zoneSeed.color ?? program.color,
         status: "active",
         created_at: now,
         updated_at: now,
