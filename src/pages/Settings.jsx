@@ -163,11 +163,17 @@ export default function Settings() {
   const handleHtmlExport = async (open) => {
     setHtmlError(null);
     setHtmlSuccess(null);
+    const previewWindow = open ? window.open('', '_blank') : null;
+    if (open && !previewWindow) {
+      setHtmlError('Pop-up blocked. Use Export printable schedule instead, then open the file.');
+      return;
+    }
     try {
-      await exportPrintableSchedule({ open });
+      await exportPrintableSchedule({ open, previewWindow });
       setHtmlSuccess(open ? 'Opened in a new tab.' : 'Printable schedule downloaded.');
       setTimeout(() => setHtmlSuccess(null), 3000);
     } catch (err) {
+      if (previewWindow && !previewWindow.closed) previewWindow.close();
       setHtmlError(err.message);
     }
   };

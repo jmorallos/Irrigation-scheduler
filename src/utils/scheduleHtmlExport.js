@@ -1,7 +1,9 @@
 import { loadMainScheduleRows } from './mainScheduleData';
-import { formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
-import { getZoneShortName } from './scheduleUtils';
+import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
+import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
+import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
 import { formatSoak } from './scheduleStats';
+import { getProgramTheme, getZoneTheme } from './programColors';
 
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -21,21 +23,116 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
-  const dateLabel = exportedAt.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+function dayKeyFromDate(date) {
+  const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  return keys[date.getDay()];
+}
+
+function badgeHtml(code, color) {
+  return `<span class="badge" style="background:${color}">${escapeHtml(code || '—')}</span>`;
+}
+
+function normalizeExportData(rowsOrData, options = {}) {
+  if (Array.isArray(rowsOrData)) {
+    return {
+      rows: rowsOrData,
+      groups: options.groups ?? [],
+      exportedAt: options.exportedAt ?? new Date(),
+    };
+  }
+  return {
+    rows: rowsOrData?.rows ?? [],
+    groups: rowsOrData?.groups ?? [],
+    exportedAt: rowsOrData?.exportedAt ?? options.exportedAt ?? new Date(),
+  };
+}
+
+function summarizeRows(rows) {
+  const programs = new Map();
+  const zones = new Map();
+  const minutesByDay = Object.fromEntries(DAY_ORDER.map(day => [day, 0]));
+  let weekMinutes = 0;
+
+  for (const row of rows) {
+    const programId = row.program?.id ?? row.program?.controller_program ?? row.program?.name;
+    const zoneId = row.zone?.id ?? `${programId}-${row.zoneNumber}-${row.zone?.name}`;
+    if (programId != null && !programs.has(programId)) programs.set(programId, row.program);
+    if (zoneId != null && !zones.has(zoneId)) {
+      const wateringDays = new Set();
+      zones.set(zoneId, {
+        id: zoneId,
+        program: row.program,
+        zone: row.zone,
+        zoneNumber: row.zoneNumber,
+        theme: row.theme,
+        programTheme: row.programTheme,
+        dailyRuntime: row.dailyRuntime ?? 0,
+        weekMinutes: 0,
+        cycles: 0,
+        days: wateringDays,
+        soakHours: row.soakHours,
+      });
+    }
+
+    const zone = zones.get(zoneId);
+    const duration = Number(row.schedule?.duration_minutes || 0);
+    const days = row.schedule?.days_of_week ?? [];
+    zone.cycles += 1;
+    zone.weekMinutes += duration * days.length;
+    zone.dailyRuntime = row.dailyRuntime ?? zone.dailyRuntime;
+    if (row.soakHours != null) zone.soakHours = row.soakHours;
+    for (const day of days) {
+      zone.days.add(day);
+      if (minutesByDay[day] != null) minutesByDay[day] += duration;
+    }
+    weekMinutes += duration * days.length;
+  }
+
+  const zoneRows = [...zones.values()].sort((a, b) => {
+    const codeA = (a.program?.controller_program ?? 'ZZ').toUpperCase();
+    const codeB = (b.program?.controller_program ?? 'ZZ').toUpperCase();
+    if (codeA !== codeB) return codeA.localeCompare(codeB);
+    return (a.zoneNumber ?? 999) - (b.zoneNumber ?? 999);
   });
-  const count = rows.length;
-  const body = count === 0
+
+  const dailyMinutes = zoneRows.reduce((sum, zone) => sum + Number(zone.dailyRuntime || 0), 0);
+
+  return {
+    programCount: programs.size,
+    zoneCount: zoneRows.length,
+    cycleCount: rows.length,
+    dailyMinutes,
+    weekMinutes,
+    minutesByDay,
+    zoneRows,
+  };
+}
+
+function renderOverview(summary) {
+  const stats = [
+    ['Programs', summary.programCount],
+    ['Zones', summary.zoneCount],
+    ['Cycles', summary.cycleCount],
+    ['Daily minutes', summary.dailyMinutes],
+    ['Weekly minutes', summary.weekMinutes],
+  ];
+  return `<div class="stats">
+    ${stats.map(([label, value]) => `
+      <div class="stat">
+        <div class="label">${label}</div>
+        <div class="value mono">${escapeHtml(value)}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderMainTable(rows) {
+  const body = rows.length === 0
     ? '<tr><td colspan="10" class="empty">No active schedules.</td></tr>'
     : rows.map(row => {
       const bg = row.theme?.rowHex || '#ffffff';
       const border = row.theme?.borderHex || '#e2e8f0';
       const badge = row.programTheme?.badgeHex || row.theme?.badgeHex || '#0a2540';
-      const code = escapeHtml(row.program?.controller_program || '');
+      const code = row.program?.controller_program || '';
       const name = escapeHtml(row.program?.name || '');
       const notes = escapeHtml(row.schedule?.notes || '—');
       const days = escapeHtml(formatDaysCompact(row.schedule?.days_of_week ?? []));
@@ -47,7 +144,7 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
       const runtime = row.dailyRuntime ?? '—';
       const zoneNum = row.zoneNumber ?? '—';
       return `<tr style="background:${bg};border-bottom:1px solid ${border}">
-          <td><span class="badge" style="background:${badge}">${code || '—'}</span> ${name}</td>
+          <td>${badgeHtml(code, badge)} ${name}</td>
           <td class="mono">${days || '—'}</td>
           <td class="mono">${escapeHtml(zoneNum)}</td>
           <td>${zoneName}</td>
@@ -59,6 +156,158 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
           <td class="mono">${escapeHtml(runtime)}</td>
         </tr>`;
     }).join('');
+
+  return `<table>
+    <thead>
+      <tr>
+        <th>Program</th>
+        <th>Days</th>
+        <th>Zone #</th>
+        <th>Zone Name</th>
+        <th>Start</th>
+        <th>Duration</th>
+        <th>End</th>
+        <th>Soak (hrs)</th>
+        <th>Notes</th>
+        <th>Daily runtime</th>
+      </tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>`;
+}
+
+function renderZoneRuntime(zoneRows) {
+  if (zoneRows.length === 0) return '';
+  const body = zoneRows.map(item => {
+    const bg = item.theme?.rowHex || '#ffffff';
+    const border = item.theme?.borderHex || '#e2e8f0';
+    const badge = item.programTheme?.badgeHex || item.theme?.badgeHex || '#0a2540';
+    const days = formatDaysCompact([...item.days]);
+    return `<tr style="background:${bg};border-bottom:1px solid ${border}">
+      <td>${badgeHtml(item.program?.controller_program || '', badge)} ${escapeHtml(item.program?.name || '')}</td>
+      <td class="mono">${escapeHtml(item.zoneNumber ?? '—')}</td>
+      <td>${escapeHtml(getZoneShortName(item.zone) || '—')}</td>
+      <td class="mono">${escapeHtml(days || '—')}</td>
+      <td class="mono">${escapeHtml(item.cycles)}</td>
+      <td class="mono">${escapeHtml(item.dailyRuntime)}</td>
+      <td class="mono">${escapeHtml(item.weekMinutes)}</td>
+      <td class="mono">${escapeHtml(formatSoak(item.soakHours))}</td>
+    </tr>`;
+  }).join('');
+
+  return `<section>
+    <h2>Runtime by zone</h2>
+    <p class="note">Daily minutes are the cycle total on a watering day. Weekly minutes multiply each cycle by the days it runs.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Program</th>
+          <th>Zone #</th>
+          <th>Zone Name</th>
+          <th>Days</th>
+          <th>Cycles</th>
+          <th>Daily min</th>
+          <th>Weekly min</th>
+          <th>Soak (hrs)</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  </section>`;
+}
+
+function renderMinutesByDay(minutesByDay, todayKey) {
+  const total = DAY_ORDER.reduce((sum, day) => sum + (minutesByDay[day] || 0), 0);
+  if (total === 0) return '';
+  return `<section>
+    <h2>Minutes by day</h2>
+    <table>
+      <thead>
+        <tr>
+          ${DAY_ORDER.map(day => `<th class="center${day === todayKey ? ' today' : ''}">${DAY_LABELS[day]}</th>`).join('')}
+          <th class="center">Week</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          ${DAY_ORDER.map(day => `<td class="mono center${day === todayKey ? ' today' : ''}">${minutesByDay[day] || 0}</td>`).join('')}
+          <td class="mono center start">${total}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>`;
+}
+
+function renderWeeklyGrid(groups, todayKey) {
+  if (!groups.length) return '';
+
+  const body = groups.map((group, gi) => {
+    const theme = getProgramTheme(group.program);
+    const header = `<tr class="${gi > 0 ? 'program-gap' : ''}">
+      <td class="zone" style="background:${theme.headerHex}">
+        ${badgeHtml(group.program?.controller_program || '', theme.badgeHex)} ${escapeHtml(group.program?.name || '')}
+      </td>
+      ${DAY_ORDER.map(day => `<td style="background:${day === todayKey ? theme.todayHex : theme.headerHex}"></td>`).join('')}
+    </tr>`;
+
+    const zoneRows = group.rows.map((row, ri) => {
+      const zoneTheme = getZoneTheme(row.zone, group.program);
+      const rowHex = ri % 2 === 1 ? zoneTheme.rowAltHex : zoneTheme.rowHex;
+      const todayHex = ri % 2 === 1 ? zoneTheme.todayAltHex : zoneTheme.todayHex;
+      const name = getZoneDisplayName(row.zone, group.program?.name);
+      const off = row.zone?.status === 'inactive' ? ' <span class="off">(off)</span>' : '';
+      const cells = DAY_ORDER.map(day => {
+        const cycles = row.days?.[day] ?? [];
+        const bg = day === todayKey ? todayHex : rowHex;
+        if (cycles.length === 0) {
+          return `<td class="center" style="background:${bg}"><span class="blank">—</span></td>`;
+        }
+        const list = cycles.map(sched => {
+          const duration = Number(sched.duration_minutes || 0);
+          const start = formatTime24(sched.start_time);
+          const end = formatTime24(getEndTime(sched.start_time, duration));
+          return `<div class="cycle">
+            <span class="start mono">${escapeHtml(start)}</span>
+            <span class="end mono">${escapeHtml(end)}</span>
+          </div>`;
+        }).join('');
+        return `<td class="center" style="background:${bg}">${list}</td>`;
+      }).join('');
+
+      return `<tr>
+        <td class="zone" style="background:${rowHex}">${escapeHtml(name)}${off}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    return header + zoneRows;
+  }).join('');
+
+  return `<section>
+    <h2>By week</h2>
+    <table class="week">
+      <thead>
+        <tr>
+          <th>Zone</th>
+          ${DAY_ORDER.map(day => `<th class="center${day === todayKey ? ' today' : ''}">${DAY_LABELS[day]}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  </section>`;
+}
+
+export function buildScheduleHtml(rowsOrData, options = {}) {
+  const { rows, groups, exportedAt } = normalizeExportData(rowsOrData, options);
+  const dateLabel = exportedAt.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const todayKey = dayKeyFromDate(exportedAt);
+  const summary = summarizeRows(rows);
+  const count = rows.length;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -77,7 +326,25 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
       background: #fff;
     }
     h1 { margin: 0; font-size: 22px; }
-    .meta { margin: 6px 0 18px; color: #64748b; font-size: 13px; }
+    h2 { margin: 28px 0 10px; font-size: 16px; }
+    .meta { margin: 6px 0 16px; color: #64748b; font-size: 13px; }
+    .note { margin: 0 0 10px; color: #64748b; font-size: 12px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+    .stat {
+      min-width: 108px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .stat .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .stat .value { margin-top: 4px; font-size: 20px; font-weight: 700; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
       background: #0a2540;
@@ -92,6 +359,8 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
     td { padding: 9px 8px; vertical-align: middle; }
     .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
     .start { font-weight: 700; }
+    .center { text-align: center; }
+    .today { box-shadow: inset 0 -3px 0 #38bdf8; }
     .badge {
       display: inline-block;
       min-width: 1.6em;
@@ -104,6 +373,14 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
       text-align: center;
     }
     .empty { text-align: center; color: #64748b; padding: 28px 8px; }
+    .week td { vertical-align: top; }
+    .week .zone { text-align: left; font-weight: 600; white-space: nowrap; }
+    .week .blank { color: #cbd5e1; }
+    .week .off { color: #94a3b8; font-weight: 500; }
+    .cycle + .cycle { margin-top: 8px; }
+    .cycle .end { display: block; font-size: 11px; color: #64748b; font-weight: 500; }
+    .program-gap td { border-top: 8px solid #fff; }
+    .keep { break-inside: avoid; }
     @page { size: landscape; margin: 10mm; }
     @media print {
       body { padding: 0; }
@@ -115,25 +392,18 @@ export function buildScheduleHtml(rows, { exportedAt = new Date() } = {}) {
 <body>
   <h1>Irrigation Schedule</h1>
   <p class="meta">${escapeHtml(dateLabel)} · ${count} cycle${count === 1 ? '' : 's'} · printable sheet (not a restore backup)</p>
-  <table>
-    <thead>
-      <tr>
-        <th>Program</th>
-        <th>Days</th>
-        <th>Zone #</th>
-        <th>Zone Name</th>
-        <th>Start</th>
-        <th>Duration</th>
-        <th>End</th>
-        <th>Soak (hrs)</th>
-        <th>Notes</th>
-        <th>Daily runtime</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${body}
-    </tbody>
-  </table>
+  <div class="keep">
+    ${renderOverview(summary)}
+  </div>
+  <h2>Schedule</h2>
+  ${renderMainTable(rows)}
+  <div class="keep">
+    ${renderZoneRuntime(summary.zoneRows)}
+  </div>
+  <div class="keep">
+    ${renderMinutesByDay(summary.minutesByDay, todayKey)}
+  </div>
+  ${renderWeeklyGrid(groups, todayKey)}
 </body>
 </html>`;
 }
@@ -143,21 +413,25 @@ export function downloadScheduleHtml(html) {
   downloadBlob(blob, `irrigation-schedule-${new Date().toISOString().slice(0, 10)}.html`);
 }
 
-export function openScheduleHtml(html) {
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank', 'noopener');
+export function openScheduleHtml(html, previewWindow) {
+  const win = previewWindow && !previewWindow.closed
+    ? previewWindow
+    : window.open('', '_blank');
   if (!win) {
-    URL.revokeObjectURL(url);
-    throw new Error('Pop-up blocked. Use Download HTML instead, then open the file.');
+    throw new Error('Pop-up blocked. Use Export printable schedule instead, then open the file.');
   }
-  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 
-export async function exportPrintableSchedule({ open = false } = {}) {
-  const rows = await loadMainScheduleRows();
-  const html = buildScheduleHtml(rows);
-  if (open) openScheduleHtml(html);
+export async function exportPrintableSchedule({ open = false, previewWindow = null } = {}) {
+  const [rows, groups] = await Promise.all([
+    loadMainScheduleRows(),
+    loadWeeklyScheduleGroups(),
+  ]);
+  const html = buildScheduleHtml({ rows, groups });
+  if (open) openScheduleHtml(html, previewWindow);
   else downloadScheduleHtml(html);
   return rows.length;
 }

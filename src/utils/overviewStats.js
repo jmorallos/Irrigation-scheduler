@@ -4,12 +4,13 @@ import { schedulesRepository } from '../db/schedulesRepository';
 
 export async function countOverviewStats(programsRepository) {
   const programs = sortProgramsByController(await programsRepository.getAll());
-  let starts = 0;
+  let zones = 0;
   let minutes = 0;
 
   for (const program of programs) {
-    if (program.status !== 'active') continue;
     const programZones = await zonesRepository.getByProgramId(program.id);
+    zones += programZones.length;
+    if (program.status !== 'active') continue;
 
     for (const zone of programZones) {
       if (zone.status !== 'active') continue;
@@ -17,7 +18,6 @@ export async function countOverviewStats(programsRepository) {
 
       for (const schedule of schedules) {
         if (schedule.status !== 'active') continue;
-        starts += 1;
         minutes += Number(schedule.duration_minutes) || 0;
       }
     }
@@ -26,7 +26,7 @@ export async function countOverviewStats(programsRepository) {
   return {
     total: programs.length,
     active: programs.filter(p => p.status === 'active').length,
-    starts,
+    zones,
     minutes,
   };
 }

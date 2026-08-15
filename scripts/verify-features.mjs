@@ -186,7 +186,30 @@ assert(html.includes('size: landscape'), 'print stylesheet is landscape');
 assert(html.includes('&lt;b&gt;soak&lt;/b&gt;'), 'HTML notes cannot inject markup');
 assert(!html.includes('<b>soak</b>'), 'raw HTML notes are not kept');
 assert(html.includes('cannot restore') || html.includes('not a restore backup'), 'HTML labeled as non-restore');
+assert(html.includes('Runtime by zone'), 'zone runtime section');
+assert(html.includes('Daily min'), 'daily minutes per zone');
+assert(html.includes('Weekly min'), 'weekly minutes per zone');
+assert(html.includes('Minutes by day'), 'minutes by day section');
+assert(html.includes('>30<'), 'weekly minutes total 15 x 2 days');
 assert(buildScheduleHtml([]).includes('No active schedules.'), 'empty schedule message');
+
+const weeklyHtml = buildScheduleHtml({
+  rows: [],
+  groups: [{
+    program: { name: 'Courts', controller_program: 'A', color: 'emerald' },
+    rows: [{
+      zone: { name: 'Zone 5 · Court', status: 'active' },
+      days: {
+        mon: [{ id: 's1', start_time: '06:00', duration_minutes: 15 }],
+      },
+    }],
+  }],
+  exportedAt: new Date('2026-08-15T00:00:00'),
+});
+assert(weeklyHtml.includes('By week'), 'weekly grid section');
+assert(weeklyHtml.includes('06:00'), 'weekly grid 24-hour start');
+assert(weeklyHtml.includes('06:15'), 'weekly grid 24-hour end');
+assert(weeklyHtml.includes('Zone 5 · Court'), 'weekly grid zone name');
 
 console.log('');
 if (failed) {

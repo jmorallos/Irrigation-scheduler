@@ -17,12 +17,12 @@ import ProgramBadge from '../components/ProgramBadge';
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
   { key: 'active', label: 'Active' },
-  { key: 'starts', label: 'Starts' },
+  { key: 'zones', label: 'Zones' },
   { key: 'minutes', label: 'Minutes' },
 ];
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ total: 0, active: 0, starts: 0, minutes: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, minutes: 0 });
   const [chartData, setChartData] = useState({
     minutesByDay: [],
     byProgramToday: [],
