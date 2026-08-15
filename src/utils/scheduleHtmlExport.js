@@ -316,6 +316,11 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Irrigation Schedule</title>
   <style>
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
     body {
@@ -386,6 +391,11 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
       body { padding: 0; }
       h1 { font-size: 18px; }
       table { font-size: 12px; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
     }
   </style>
 </head>

@@ -183,6 +183,7 @@ assert(html.includes('06:15'), '24-hour end time');
 assert(html.includes('Court'), 'zone short name');
 assert(html.includes('M-W'), 'compact days');
 assert(html.includes('size: landscape'), 'print stylesheet is landscape');
+assert(html.includes('print-color-adjust: exact'), 'print keeps row colors');
 assert(html.includes('&lt;b&gt;soak&lt;/b&gt;'), 'HTML notes cannot inject markup');
 assert(!html.includes('<b>soak</b>'), 'raw HTML notes are not kept');
 assert(html.includes('cannot restore') || html.includes('not a restore backup'), 'HTML labeled as non-restore');
