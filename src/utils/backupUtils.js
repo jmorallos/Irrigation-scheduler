@@ -86,28 +86,49 @@ export async function restoreSnapshot(snapshot) {
 export async function applyBackup(data) {
   await clearAllStores();
 
+  const restoredMediaIds = new Set();
+
   if (Array.isArray(data.media)) {
     for (const record of data.media) {
       if (!record.id || !record.data_base64 || !record.mime_type) continue;
-      await mediaRepository.putRaw({
-        id: record.id,
-        owner_type: record.owner_type,
-        owner_id: record.owner_id,
-        mime_type: record.mime_type,
-        size_bytes: record.size_bytes,
-        updated_at: record.updated_at,
-        blob: base64ToBlob(record.data_base64, record.mime_type),
-      });
+      try {
+        await mediaRepository.putRaw({
+          id: record.id,
+          owner_type: record.owner_type,
+          owner_id: record.owner_id,
+          mime_type: record.mime_type,
+          size_bytes: record.size_bytes,
+          updated_at: record.updated_at,
+          blob: base64ToBlob(record.data_base64, record.mime_type),
+        });
+        restoredMediaIds.add(record.id);
+      } catch {
+        // Incomplete photo payload — skip and drop the link below.
+      }
     }
   }
 
+  let missingPhotos = 0;
+
   for (const program of data.programs) {
-    await programsRepository.putRaw(program);
+    const row = { ...program };
+    if (row.profile_image_id && !restoredMediaIds.has(row.profile_image_id)) {
+      row.profile_image_id = null;
+      missingPhotos += 1;
+    }
+    await programsRepository.putRaw(row);
   }
   for (const zone of data.zones) {
-    await zonesRepository.putRaw(zone);
+    const row = { ...zone };
+    if (row.profile_image_id && !restoredMediaIds.has(row.profile_image_id)) {
+      row.profile_image_id = null;
+      missingPhotos += 1;
+    }
+    await zonesRepository.putRaw(row);
   }
   for (const schedule of data.schedules) {
     await schedulesRepository.putRaw(schedule);
   }
+
+  return { missingPhotos };
 }

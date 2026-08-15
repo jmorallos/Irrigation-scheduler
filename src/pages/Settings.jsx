@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Download, Upload, Trash2, Sprout } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Download, Upload, Trash2, Sprout, X } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
@@ -18,6 +18,14 @@ import {
 } from '../utils/backupUtils';
 
 const BACKUP_VERSION = 2;
+const IMPORT_NOTICE_KEY = 'irrigation-import-notice';
+
+function missingPhotoMessage(count) {
+  if (count === 1) {
+    return "Your schedule imported. One photo wasn't in this backup, so that item will show a letter until you add a photo again.";
+  }
+  return `Your schedule imported. ${count} photos weren't in this backup, so those items will show a letter until you add a photo again.`;
+}
 
 export default function Settings() {
   const [confirmClear, setConfirmClear] = useState(false);
@@ -27,7 +35,16 @@ export default function Settings() {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [sampleError, setSampleError] = useState(null);
   const [sampleLoading, setSampleLoading] = useState(false);
+  const [importNotice, setImportNotice] = useState(null);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(IMPORT_NOTICE_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(IMPORT_NOTICE_KEY);
+    const count = Number(raw);
+    if (count > 0) setImportNotice(count);
+  }, []);
 
   const exportData = async () => {
     const programs = await programsRepository.getAll();
@@ -83,8 +100,11 @@ export default function Settings() {
     const snapshot = await snapshotAllData();
 
     try {
-      await applyBackup(pendingImport.data);
+      const result = await applyBackup(pendingImport.data);
       await cleanupDuplicatePrograms();
+      if (result.missingPhotos > 0) {
+        sessionStorage.setItem(IMPORT_NOTICE_KEY, String(result.missingPhotos));
+      }
       resetDBInstance();
       setPendingImport(null);
       window.location.reload();
@@ -141,6 +161,19 @@ export default function Settings() {
           {sampleError && (
             <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {sampleError}
+            </div>
+          )}
+          {importNotice > 0 && (
+            <div className="flex items-start gap-3 px-4 py-2.5 bg-sky-50 border border-sky-200 rounded-lg text-sm text-navy-900">
+              <p className="flex-1">{missingPhotoMessage(importNotice)}</p>
+              <button
+                type="button"
+                onClick={() => setImportNotice(null)}
+                className="p-0.5 text-slate-400 hover:text-navy-900 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
           {exportSuccess && (
