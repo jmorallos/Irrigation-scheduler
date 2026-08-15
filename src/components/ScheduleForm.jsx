@@ -6,6 +6,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
   const [duration, setDuration] = useState(String(initial?.duration_minutes ?? 15));
   const [days, setDays] = useState(initial?.days_of_week ?? []);
   const [status, setStatus] = useState(initial?.status ?? 'active');
+  const [notes, setNotes] = useState(initial?.notes ?? '');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -26,6 +27,7 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
     if (!duration || isNaN(mins) || mins <= 0) errs.duration = 'Duration must be greater than 0.';
     else if (mins > 480) errs.duration = 'Duration cannot exceed 480 minutes (8 hours).';
     if (days.length === 0) errs.days = 'Select at least one day.';
+    if (notes.trim().length > 200) errs.notes = 'Notes cannot exceed 200 characters.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -35,7 +37,13 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
     if (!validate()) return;
     setSaving(true);
     try {
-      await onSubmit({ start_time: startTime, duration_minutes: parseInt(duration, 10), days_of_week: days, status });
+      await onSubmit({
+        start_time: startTime,
+        duration_minutes: parseInt(duration, 10),
+        days_of_week: days,
+        status,
+        notes: notes.trim(),
+      });
     } catch (err) {
       setErrors({ conflict: err.message });
     } finally {
@@ -115,6 +123,21 @@ export default function ScheduleForm({ initial, onSubmit, onCancel }) {
             ))}
           </div>
           {errors.days && <p className="mt-1.5 text-xs text-red-500">{errors.days}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-notes">
+            Notes <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            id="sched-notes"
+            rows={2}
+            maxLength={200}
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="e.g. 2nd cycle – soak"
+            className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none resize-none transition-colors ${errors.notes ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
+          />
+          {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes}</p>}
         </div>
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>

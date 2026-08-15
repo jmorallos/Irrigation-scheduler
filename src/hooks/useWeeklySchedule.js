@@ -3,7 +3,7 @@ import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { DAY_ORDER } from '../utils/dateUtils';
-import { withCycleNumbers } from '../utils/scheduleUtils';
+import { withCycleNumbers, getZoneNumber } from '../utils/scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
 
 export function useWeeklySchedule() {
@@ -18,6 +18,12 @@ export function useWeeklySchedule() {
 
         for (const program of programs) {
           const zones = await zonesRepository.getByProgramId(program.id);
+          zones.sort((a, b) => {
+            const numA = getZoneNumber(a) ?? 999;
+            const numB = getZoneNumber(b) ?? 999;
+            if (numA !== numB) return numA - numB;
+            return a.name.localeCompare(b.name);
+          });
           const rows = [];
 
           for (const zone of zones) {

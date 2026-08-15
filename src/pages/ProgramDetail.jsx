@@ -15,7 +15,7 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
-import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
+import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
 import { getProgramTheme } from '../utils/programColors';
@@ -169,6 +169,9 @@ function ZoneCard({ zone, programName, programCode, onEditZone, onDeleteZone, on
                   <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
+                {schedule.notes && (
+                  <p className="text-sm text-slate-500 mt-1">{schedule.notes}</p>
+                )}
               </div>
               <ActionMenu items={scheduleMenuItems(schedule)} />
             </div>
@@ -209,7 +212,7 @@ function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZon
                   <ActionMenu items={zoneMenuItems} label="Zone actions" />
                 </div>
               </td>
-              <td colSpan={5} className="px-4 py-3 text-sm text-slate-500">
+              <td colSpan={6} className="px-4 py-3 text-sm text-slate-500">
                 No cycles.{' '}
                 <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                   Add one
@@ -250,6 +253,9 @@ function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZon
             <td className="px-4 py-3">
               <span className="text-sm text-slate-600">{formatDays(schedule.days_of_week)}</span>
             </td>
+            <td className="px-4 py-3">
+              <span className="text-sm text-slate-500">{schedule.notes || '—'}</span>
+            </td>
             <td className="px-4 py-3 text-right whitespace-nowrap">
               <ActionMenu items={scheduleMenuItems(schedule)} />
             </td>
@@ -259,7 +265,7 @@ function ZoneTableRows({ zone, programName, programCode, onEditZone, onDeleteZon
 
       {conflictError && (
         <tr>
-          <td colSpan={7} className="px-4 py-2 bg-red-50 text-xs text-red-700">
+          <td colSpan={8} className="px-4 py-2 bg-red-50 text-xs text-red-700">
             {conflictError}
           </td>
         </tr>
@@ -334,6 +340,8 @@ export default function ProgramDetail() {
   if (!program) return null;
 
   const theme = getProgramTheme(program.controller_program);
+  const existingNumbers = zones.map(z => getZoneNumber(z)).filter(n => n != null);
+  const suggestedNumber = existingNumbers.length ? Math.max(...existingNumbers) + 1 : 1;
 
   return (
     <div>
@@ -433,6 +441,7 @@ export default function ProgramDetail() {
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">End</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Duration</th>
                   <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Days</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Notes</th>
                   <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-12" />
                 </tr>
               </thead>
@@ -470,6 +479,8 @@ export default function ProgramDetail() {
       {addZone && (
         <Modal title="Add Zone" onClose={() => setAddZone(false)} size="sm">
           <ZoneForm
+            suggestedNumber={suggestedNumber}
+            existingNumbers={existingNumbers}
             onSubmit={async data => { await createZone(data); setAddZone(false); }}
             onCancel={() => setAddZone(false)}
           />
@@ -480,6 +491,7 @@ export default function ProgramDetail() {
         <Modal title="Edit Zone" onClose={() => setEditZone(null)} size="sm">
           <ZoneForm
             initial={editZone}
+            existingNumbers={existingNumbers.filter(n => n !== getZoneNumber(editZone))}
             onSubmit={async data => { await updateZone(editZone.id, data); setEditZone(null); }}
             onCancel={() => setEditZone(null)}
           />

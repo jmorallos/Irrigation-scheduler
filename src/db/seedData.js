@@ -30,6 +30,7 @@ export async function loadSampleData() {
         id: crypto.randomUUID(),
         program_id: program.id,
         name: `Zone ${zoneSeed.valve} · ${zoneSeed.name}`,
+        zone_number: zoneSeed.valve,
         status: "active",
         created_at: now,
         updated_at: now,
@@ -44,7 +45,7 @@ export async function loadSampleData() {
           duration_minutes: scheduleSeed.duration_minutes,
           days_of_week: scheduleSeed.days_of_week,
           status: scheduleSeed.status,
-          cycle: scheduleSeed.cycle ?? 1,
+          notes: scheduleSeed.notes ?? '',
           created_at: now,
           updated_at: now,
         });

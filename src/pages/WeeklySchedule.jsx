@@ -120,16 +120,11 @@ export default function WeeklySchedule() {
                                 }`}
                               >
                                 {daySchedules.length > 0 ? (
-                                  <div className="flex flex-col gap-1.5">
+                                  <div className="flex flex-col gap-2.5">
                                     {daySchedules.map(sched => (
-                                      <div key={sched.id} className="leading-snug">
-                                        <span className={`font-mono text-sm font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
+                                      <div key={sched.id} className="leading-tight">
+                                        <span className={`block font-mono text-sm font-semibold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
                                           {formatTime(sched.start_time)}
-                                          {daySchedules.length > 1 && (
-                                            <span className="ml-1 text-xs text-slate-400 font-sans font-medium">
-                                              C{sched.cycle ?? 1}
-                                            </span>
-                                          )}
                                         </span>
                                         <span className="block font-mono text-[11px] text-slate-500">
                                           {formatTime(getEndTime(sched.start_time, sched.duration_minutes))}

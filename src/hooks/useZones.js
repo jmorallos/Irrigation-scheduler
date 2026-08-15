@@ -3,6 +3,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
+import { getZoneNumber } from '../utils/scheduleUtils';
 
 export function useZones(programId) {
   const [zones, setZones] = useState([]);
@@ -13,7 +14,12 @@ export function useZones(programId) {
     if (!programId) { setLoading(false); return; }
     try {
       const data = await zonesRepository.getByProgramId(programId);
-      data.sort((a, b) => a.created_at.localeCompare(b.created_at));
+      data.sort((a, b) => {
+        const numA = getZoneNumber(a) ?? 999;
+        const numB = getZoneNumber(b) ?? 999;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      });
       setZones(data);
     } catch (err) {
       setError(err.message);

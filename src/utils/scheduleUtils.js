@@ -11,6 +11,22 @@ export function formatCycleLabel(cycle) {
   return `Cycle ${cycle}`;
 }
 
+export function parseZoneName(name) {
+  const match = (name ?? '').match(/^Zone (\d+) · (.+)$/);
+  if (!match) return { number: null, label: name ?? '' };
+  return { number: parseInt(match[1], 10), label: match[2] };
+}
+
+export function formatZoneName(number, label) {
+  const loc = (label ?? '').trim();
+  return loc ? `Zone ${number} · ${loc}` : `Zone ${number}`;
+}
+
+export function getZoneNumber(zone) {
+  if (Number.isFinite(zone?.zone_number)) return zone.zone_number;
+  return parseZoneName(zone?.name).number;
+}
+
 export function getZoneDisplayName(zone, programName) {
   const match = zone.name.match(/^Zone (\d+) · (.+)$/);
   if (match && match[2].toLowerCase() === programName?.toLowerCase()) {
