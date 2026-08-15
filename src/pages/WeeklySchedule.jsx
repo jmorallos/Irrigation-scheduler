@@ -10,13 +10,31 @@ import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
 import NestedScroll from '../components/NestedScroll';
+import { useColumnAlign } from '../hooks/useColumnAlign';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
+const MAIN_ALIGN = {
+  program: 'left',
+  days: 'left',
+  zoneNum: 'left',
+  zoneName: 'left',
+  start: 'left',
+  duration: 'left',
+  end: 'left',
+  soak: 'left',
+  notes: 'left',
+  runtime: 'left',
+};
+
+const TH_MAIN =
+  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+
 export default function WeeklySchedule() {
   const { groups, loading: weekLoading } = useWeeklySchedule();
   const { rows, loading: tableLoading } = useMainSchedule();
+  const { cycle, cellClass } = useColumnAlign('schedule-main-align', MAIN_ALIGN);
   const today = getTodayKey();
   const loading = weekLoading || tableLoading;
 
@@ -43,16 +61,16 @@ export default function WeeklySchedule() {
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-white">
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Program</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Days</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Zone #</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Zone Name</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Start</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Duration</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">End</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Soak (hrs)</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Notes</th>
-                    <th className="sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900">Daily runtime</th>
+                    <th onClick={() => cycle('program')} className={TH_MAIN}>Program</th>
+                    <th onClick={() => cycle('days')} className={TH_MAIN}>Days</th>
+                    <th onClick={() => cycle('zoneNum')} className={TH_MAIN}>Zone #</th>
+                    <th onClick={() => cycle('zoneName')} className={TH_MAIN}>Zone Name</th>
+                    <th onClick={() => cycle('start')} className={TH_MAIN}>Start</th>
+                    <th onClick={() => cycle('duration')} className={TH_MAIN}>Duration</th>
+                    <th onClick={() => cycle('end')} className={TH_MAIN}>End</th>
+                    <th onClick={() => cycle('soak')} className={TH_MAIN}>Soak (hrs)</th>
+                    <th onClick={() => cycle('notes')} className={TH_MAIN}>Notes</th>
+                    <th onClick={() => cycle('runtime')} className={TH_MAIN}>Daily runtime</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -62,7 +80,7 @@ export default function WeeklySchedule() {
                       className={`border-t ${row.theme.border}`}
                       style={{ backgroundColor: row.theme.rowHex, borderColor: row.theme.borderHex }}
                     >
-                      <td className="px-3 py-3 whitespace-nowrap">
+                      <td className={`px-3 py-3 whitespace-nowrap ${cellClass('program')}`}>
                         <Link
                           to={`/programs/${row.program.id}`}
                           className="inline-flex items-center hover:opacity-80"
@@ -72,31 +90,31 @@ export default function WeeklySchedule() {
                           <ProgramBadge code={row.program.controller_program} color={row.program.color} size="sm" />
                         </Link>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('days')}`}>
                         {formatDaysCompact(row.schedule.days_of_week)}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900 ${cellClass('zoneNum')}`}>
                         {row.zoneNumber ?? '—'}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap text-navy-900 ${cellClass('zoneName')}`}>
                         {getZoneShortName(row.zone)}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900 ${cellClass('start')}`}>
                         {formatTime24(row.schedule.start_time)}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('duration')}`}>
                         {row.schedule.duration_minutes}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('end')}`}>
                         {formatTime24(getEndTime(row.schedule.start_time, row.schedule.duration_minutes))}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('soak')}`}>
                         {formatSoak(row.soakHours)}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-slate-600">
+                      <td className={`px-3 py-3 whitespace-nowrap text-slate-600 ${cellClass('notes')}`}>
                         {row.schedule.notes || '—'}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap font-mono text-navy-900">
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('runtime')}`}>
                         {row.dailyRuntime}
                       </td>
                     </tr>

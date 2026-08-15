@@ -17,16 +17,28 @@ import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 import NestedScroll from '../components/NestedScroll';
 import { useSaves } from '../hooks/useSaves';
+import { useColumnAlign } from '../hooks/useColumnAlign';
 
 function ZoneCount({ programId }) {
   const { zones } = useZones(programId);
   return <span>{zones.length}</span>;
 }
 
+const PROGRAMS_ALIGN = {
+  letter: 'left',
+  name: 'left',
+  zones: 'left',
+  status: 'left',
+};
+
+const TH_PROGRAMS =
+  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+
 export default function Programs() {
   const navigate = useNavigate();
   const { programs, loading, error, reload, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
   const { saveProgram } = useSaves();
+  const { cycle, cellClass, flexClass } = useColumnAlign('programs-align', PROGRAMS_ALIGN);
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -90,10 +102,10 @@ export default function Programs() {
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
-                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider w-10 bg-navy-900" aria-label="Controller program"></th>
-                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Program Name</th>
-                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell bg-navy-900">Zones</th>
-                  <th className="sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900">Status</th>
+                  <th onClick={() => cycle('letter')} className={`${TH_PROGRAMS} w-10`} aria-label="Controller program"></th>
+                  <th onClick={() => cycle('name')} className={TH_PROGRAMS}>Program Name</th>
+                  <th onClick={() => cycle('zones')} className={`${TH_PROGRAMS} hidden sm:table-cell`}>Zones</th>
+                  <th onClick={() => cycle('status')} className={TH_PROGRAMS}>Status</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
@@ -115,11 +127,11 @@ export default function Programs() {
                     className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
                     style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                   >
-                    <td className="px-4 py-4">
+                    <td className={`px-4 py-4 ${cellClass('letter')}`}>
                       <ProgramBadge code={program.controller_program} color={program.color} size="md" />
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3 min-w-0">
+                    <td className={`px-4 py-4 ${cellClass('name')}`}>
+                      <div className={`flex items-center gap-3 min-w-0 ${flexClass('name')}`}>
                         <div className="w-10 h-10 flex-shrink-0">
                           <ProgramLogo
                             name={program.name}
@@ -140,10 +152,10 @@ export default function Programs() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-slate-600 hidden sm:table-cell">
+                    <td className={`px-4 py-4 text-slate-600 hidden sm:table-cell ${cellClass('zones')}`}>
                       <ZoneCount programId={program.id} />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className={`px-4 py-4 ${cellClass('status')}`}>
                       <Badge status={program.status} size="sm" />
                     </td>
                     <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
