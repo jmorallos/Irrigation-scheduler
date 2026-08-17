@@ -21,6 +21,11 @@ export function formatSoak(hours) {
   return String(rounded);
 }
 
+export function soakMinutesFromHours(hours) {
+  if (hours == null) return null;
+  return Math.round(Number(hours) * 60);
+}
+
 export function decorateZoneSchedules(schedules) {
   const active = withCycleNumbers(schedules.filter(s => s.status === 'active'))
     .sort((a, b) => a.start_time.localeCompare(b.start_time));

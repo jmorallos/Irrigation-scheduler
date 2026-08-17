@@ -1,12 +1,11 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { useMainSchedule } from '../hooks/useMainSchedule';
 import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, formatTime24, formatDaysCompact, getEndTime } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
-import { formatSoak } from '../utils/scheduleStats';
-import { formatMinutes } from '../utils/formatMinutes';
+import { soakMinutesFromHours } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
@@ -23,7 +22,7 @@ const MAIN_ALIGN = {
   start: 'left',
   duration: 'left',
   end: 'left',
-  soak: 'left',
+  soakMin: 'left',
   notes: 'left',
   runtime: 'left',
 };
@@ -47,15 +46,8 @@ export default function WeeklySchedule() {
   const { rows, loading: tableLoading } = useMainSchedule();
   const { cycle, cellClass } = useColumnAlign('schedule-main-align', MAIN_ALIGN);
   const { cycle: cycleWeek, cellClass: weekClass, flexClass: weekFlex } = useColumnAlign('schedule-week-align', WEEK_ALIGN);
-  const [startSort, setStartSort] = useState(null);
   const today = getTodayKey();
   const loading = weekLoading || tableLoading;
-
-  const displayRows = useMemo(() => {
-    if (!startSort) return rows;
-    const sorted = [...rows].sort((a, b) => a.schedule.start_time.localeCompare(b.schedule.start_time));
-    return startSort === 'desc' ? sorted.reverse() : sorted;
-  }, [rows, startSort]);
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading schedule…</div>;
 
@@ -88,22 +80,17 @@ export default function WeeklySchedule() {
                     <th onClick={() => cycle('program')} className={TH_MAIN}>Program</th>
                     <th onClick={() => cycle('zoneNum')} className={TH_MAIN}>Zone #</th>
                     <th onClick={() => cycle('zoneName')} className={TH_MAIN}>Zone Name</th>
-                    <th
-                      onClick={() => setStartSort(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      className={TH_MAIN}
-                    >
-                      Start{startSort === 'asc' ? ' ↑' : startSort === 'desc' ? ' ↓' : ''}
-                    </th>
+                    <th onClick={() => cycle('start')} className={TH_MAIN}>Start</th>
                     <th onClick={() => cycle('end')} className={TH_MAIN}>End</th>
-                    <th onClick={() => cycle('duration')} className={TH_MAIN}>Duration</th>
-                    <th onClick={() => cycle('soak')} className={TH_MAIN}>Soak (hrs)</th>
+                    <th onClick={() => cycle('duration')} className={TH_MAIN}>Duration (Min)</th>
+                    <th onClick={() => cycle('soakMin')} className={TH_MAIN}>Soak (Min)</th>
+                    <th onClick={() => cycle('runtime')} className={TH_MAIN}>Daily runtime (Min)</th>
                     <th onClick={() => cycle('days')} className={TH_MAIN}>Days</th>
                     <th onClick={() => cycle('notes')} className={TH_MAIN}>Notes</th>
-                    <th onClick={() => cycle('runtime')} className={TH_MAIN}>Daily runtime</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayRows.map(row => (
+                  {rows.map(row => (
                     <tr
                       key={row.id}
                       className={`border-t ${row.theme.border}`}
@@ -132,19 +119,19 @@ export default function WeeklySchedule() {
                         {formatTime24(getEndTime(row.schedule.start_time, row.schedule.duration_minutes))}
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('duration')}`}>
-                        {formatMinutes(row.schedule.duration_minutes)}
+                        {row.schedule.duration_minutes}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('soak')}`}>
-                        {formatSoak(row.soakHours)}
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('soakMin')}`}>
+                        {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
+                      </td>
+                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('runtime')}`}>
+                        {row.dailyRuntime == null ? '—' : row.dailyRuntime}
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('days')}`}>
                         {formatDaysCompact(row.schedule.days_of_week)}
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap text-slate-600 ${cellClass('notes')}`}>
                         {row.schedule.notes || '—'}
-                      </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('runtime')}`}>
-                        {row.dailyRuntime == null ? '—' : formatMinutes(row.dailyRuntime)}
                       </td>
                     </tr>
                   ))}

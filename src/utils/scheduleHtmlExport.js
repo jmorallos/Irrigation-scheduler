@@ -2,8 +2,7 @@ import { loadMainScheduleRows } from './mainScheduleData';
 import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
 import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
-import { formatSoak } from './scheduleStats';
-import { formatMinutes } from './formatMinutes';
+import { formatSoak, soakMinutesFromHours } from './scheduleStats';
 import { getProgramTheme, getZoneTheme } from './programColors';
 
 export function escapeHtml(value) {
@@ -141,8 +140,8 @@ function renderMainTable(rows) {
       const start = escapeHtml(formatTime24(row.schedule?.start_time));
       const duration = Number(row.schedule?.duration_minutes || 0);
       const end = escapeHtml(formatTime24(getEndTime(row.schedule?.start_time, duration)));
-      const soak = escapeHtml(formatSoak(row.soakHours));
-      const runtime = row.dailyRuntime == null ? '—' : formatMinutes(row.dailyRuntime);
+      const soakMin = row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours);
+      const runtime = row.dailyRuntime == null ? '—' : row.dailyRuntime;
       const zoneNum = row.zoneNumber ?? '—';
       return `<tr style="background:${bg};border-bottom:1px solid ${border}">
           <td>${badgeHtml(code, badge)} ${name}</td>
@@ -150,11 +149,11 @@ function renderMainTable(rows) {
           <td>${zoneName}</td>
           <td class="mono start">${start}</td>
           <td class="mono">${end}</td>
-          <td class="mono">${escapeHtml(formatMinutes(duration))}</td>
-          <td class="mono">${soak}</td>
+          <td class="mono">${escapeHtml(duration)}</td>
+          <td class="mono">${escapeHtml(soakMin)}</td>
+          <td class="mono">${escapeHtml(runtime)}</td>
           <td class="mono">${days || '—'}</td>
           <td>${notes}</td>
-          <td class="mono">${escapeHtml(runtime)}</td>
         </tr>`;
     }).join('');
 
@@ -166,11 +165,11 @@ function renderMainTable(rows) {
         <th>Zone Name</th>
         <th>Start</th>
         <th>End</th>
-        <th>Duration</th>
-        <th>Soak (hrs)</th>
+        <th>Duration (Min)</th>
+        <th>Soak (Min)</th>
+        <th>Daily runtime (Min)</th>
         <th>Days</th>
         <th>Notes</th>
-        <th>Daily runtime</th>
       </tr>
     </thead>
     <tbody>${body}</tbody>
@@ -190,7 +189,7 @@ function renderZoneRuntime(zoneRows) {
       <td>${escapeHtml(getZoneShortName(item.zone) || '—')}</td>
       <td class="mono">${escapeHtml(days || '—')}</td>
       <td class="mono">${escapeHtml(item.cycles)}</td>
-      <td class="mono">${escapeHtml(item.dailyRuntime == null ? '—' : formatMinutes(item.dailyRuntime))}</td>
+      <td class="mono">${escapeHtml(item.dailyRuntime ?? '—')}</td>
       <td class="mono">${escapeHtml(item.weekMinutes)}</td>
       <td class="mono">${escapeHtml(formatSoak(item.soakHours))}</td>
     </tr>`;
