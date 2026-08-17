@@ -14,7 +14,6 @@ import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
-import NestedScroll from '../components/NestedScroll';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { applyProfileImageChange } from '../utils/profileImageService';
@@ -521,8 +520,8 @@ export default function ProgramDetail() {
             ))}
           </div>
 
-          <div data-table-snap className="hidden md:block bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <NestedScroll className="overflow-auto max-h-[70dvh]">
+          <div className="hidden md:block bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
@@ -556,7 +555,7 @@ export default function ProgramDetail() {
                 ))}
               </tbody>
             </table>
-            </NestedScroll>
+            </div>
           </div>
         </>
       )}

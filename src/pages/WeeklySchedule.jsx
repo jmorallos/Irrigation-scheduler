@@ -9,7 +9,6 @@ import { formatSoak } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
-import NestedScroll from '../components/NestedScroll';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
 const ZONE_COL =
@@ -69,12 +68,12 @@ export default function WeeklySchedule() {
         </>
       ) : (
         <>
-          <div data-table-snap>
+          <div>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
-              <NestedScroll className="overflow-auto max-h-[70dvh]">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-white">
@@ -138,15 +137,15 @@ export default function WeeklySchedule() {
                   ))}
                 </tbody>
               </table>
-            </NestedScroll>
+              </div>
             </div>
           </div>
 
           {groups.length > 0 && (
-        <section data-table-snap>
+        <section>
           <h2 className="text-lg font-bold text-navy-900 mb-3">By week</h2>
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <NestedScroll className="overflow-auto max-h-[70dvh] phone-land:max-h-[calc(100dvh-3.25rem)]">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm border-separate border-spacing-0 table-fixed" style={{ minWidth: '800px' }}>
               <colgroup>
                 <col className="w-32 sm:w-44" />
@@ -267,7 +266,7 @@ export default function WeeklySchedule() {
                 })}
               </tbody>
             </table>
-          </NestedScroll>
+          </div>
         </div>
         </section>
           )}

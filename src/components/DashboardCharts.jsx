@@ -166,8 +166,7 @@ export function ZoneMinutesChart({ data }) {
     <ProgramMetricChart
       data={data}
       metric="minutes"
-      period="day"
-      emptyMessage="No active zones."
+      emptyMessage="No zones scheduled today."
     />
   );
 }

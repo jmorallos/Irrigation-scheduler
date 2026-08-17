@@ -154,19 +154,21 @@ export default function Dashboard() {
         )}
       </div>
 
-      {!chartsLoading && chartData.zoneTotals.length > 0 && (
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Zone</h2>
         </div>
-        <div className="p-5">
-          <ZoneMinutesChart data={chartData.zoneTotals} />
-          <p className="mt-3 text-[11px] text-slate-400">
-            Daily cycle minutes per zone.
-          </p>
-        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <ZoneMinutesChart data={chartData.zoneTotals} />
+            <p className="mt-3 text-[11px] text-slate-400">
+              Cycle minutes per zone for today only.
+            </p>
+          </div>
+        )}
       </div>
-      )}
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">

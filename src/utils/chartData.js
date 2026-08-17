@@ -1,14 +1,13 @@
-import { DAY_ORDER, DAY_LABELS, getTodayKey, formatDaysCompact } from './dateUtils';
+import { DAY_ORDER, DAY_LABELS, getTodayKey } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
-import { decorateZoneSchedules } from './scheduleStats';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
 
 /**
  * Minutes by day = sum of active cycle durations on that weekday.
  * Weekly program minutes = duration × run days.
  * Today minutes/starts = cycles that run today.
- * Zone minutes = that zone's daily cycle total (not multiplied by days).
+ * Zone minutes = that zone's cycle total for today only.
  */
 export async function buildScheduleChartData({
   programsRepository,
@@ -38,6 +37,8 @@ export async function buildScheduleChartData({
     for (const zone of zones) {
       if (zone.status !== 'active') continue;
       const schedules = await schedulesRepository.getByZoneId(zone.id);
+      let zoneTodayMinutes = 0;
+      let zoneTodayRuns = 0;
 
       for (const schedule of schedules) {
         if (schedule.status !== 'active') continue;
@@ -53,13 +54,12 @@ export async function buildScheduleChartData({
         if (days.includes(todayKey)) {
           todayMinutes += duration;
           todayStarts += 1;
+          zoneTodayMinutes += duration;
+          zoneTodayRuns += 1;
         }
       }
 
-      const decorated = decorateZoneSchedules(schedules);
-      if (decorated.length > 0) {
-        const first = decorated[0];
-        const soak = decorated.map(item => item.soakHours).findLast(value => value != null) ?? null;
+      if (zoneTodayMinutes > 0) {
         const theme = getZoneTheme(zone, program);
         const zoneNumber = getZoneNumber(zone);
         const name = getZoneShortName(zone);
@@ -68,11 +68,9 @@ export async function buildScheduleChartData({
           zoneNumber,
           name: zoneNumber != null ? `${zoneNumber} · ${name}` : name,
           program: program.controller_program || program.name,
-          days: formatDaysCompact(first.days_of_week),
-          minutes: first.dailyRuntime,
-          hours: Math.round((first.dailyRuntime / 60) * 100) / 100,
-          runs: first.runsPerDay,
-          soakHours: soak,
+          minutes: zoneTodayMinutes,
+          hours: Math.round((zoneTodayMinutes / 60) * 100) / 100,
+          runs: zoneTodayRuns,
           color: theme.badgeHex,
           track: theme.rowAltHex,
           rowHex: theme.rowHex,

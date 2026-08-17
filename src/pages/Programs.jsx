@@ -15,7 +15,6 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
-import NestedScroll from '../components/NestedScroll';
 import { useSaves } from '../hooks/useSaves';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
@@ -92,7 +91,7 @@ export default function Programs() {
           </div>
         </>
       ) : (
-        <div data-table-snap>
+        <div>
           <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
@@ -114,7 +113,7 @@ export default function Programs() {
           )}
 
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <NestedScroll className="overflow-auto max-h-[70dvh]">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
@@ -194,7 +193,7 @@ export default function Programs() {
                 })}
               </tbody>
             </table>
-          </NestedScroll>
+            </div>
           <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
             {programs.length} program{programs.length !== 1 ? 's' : ''}
           </div>

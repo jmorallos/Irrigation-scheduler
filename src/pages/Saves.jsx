@@ -114,7 +114,7 @@ export default function Saves() {
           {programsSaves.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-navy-900 mb-3">Programs</h2>
-              <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <NestedScroll className="overflow-auto max-h-[70dvh]">
                   <ul className="divide-y divide-slate-100">
                     {programsSaves.map(save => (
@@ -134,7 +134,7 @@ export default function Saves() {
           {zoneSaves.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-navy-900 mb-3">Zones</h2>
-              <div data-table-snap className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <NestedScroll className="overflow-auto max-h-[70dvh]">
                   <ul className="divide-y divide-slate-100">
                     {zoneSaves.map(save => (
