@@ -67,7 +67,8 @@ export default function Zones() {
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
-                  <th onClick={() => cycle('number')} className={`${TH_ZONES} w-28`}>Zone #</th>
+                  <th className="sticky top-0 z-20 w-[4.5rem] min-w-[4.5rem] p-0 bg-navy-900" aria-hidden="true"></th>
+                  <th onClick={() => cycle('number')} className={TH_ZONES}>Zone #</th>
                   <th onClick={() => cycle('name')} className={TH_ZONES}>Zone Name</th>
                   <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
                   <th onClick={() => cycle('program')} className={TH_ZONES}>Program</th>
@@ -105,18 +106,18 @@ export default function Zones() {
                       className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
                       style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                     >
-                      <td className={`px-4 py-4 ${cellClass('number')}`}>
-                        <div className={`flex items-center gap-3 min-w-0 ${flexClass('number')}`}>
-                          <div className="w-10 h-10 flex-shrink-0">
-                            <ProgramLogo
-                              name={displayName}
-                              profileImageId={zone.profile_image_id}
-                              size="fill"
-                              square
-                            />
-                          </div>
-                          <span className="font-mono font-semibold text-navy-900">{group.number}</span>
+                      <td className="p-0 w-[4.5rem] min-w-[4.5rem] h-px">
+                        <div className="h-full min-h-[4.5rem] w-full">
+                          <ProgramLogo
+                            name={displayName}
+                            profileImageId={zone.profile_image_id}
+                            size="fill"
+                            square
+                          />
                         </div>
+                      </td>
+                      <td className={`px-4 py-4 font-mono font-semibold text-navy-900 ${cellClass('number')}`}>
+                        {group.number}
                       </td>
                       <td className={`px-4 py-4 text-navy-900 font-medium ${cellClass('name')}`}>
                         {shortName}
