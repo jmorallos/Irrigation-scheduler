@@ -1,5 +1,6 @@
 import { getTodayKey } from '../utils/dateUtils';
 import { maxValue } from '../utils/chartData';
+import { formatMinutes } from '../utils/formatMinutes';
 
 function ChartEmpty({ message }) {
   return (
@@ -19,10 +20,6 @@ function ChartTooltip({ label, value, className = '' }) {
       </div>
     </div>
   );
-}
-
-function formatMinutes(value) {
-  return `${value} ${value === 1 ? 'mn' : 'mns'}`;
 }
 
 function minuteLabel(value, period) {

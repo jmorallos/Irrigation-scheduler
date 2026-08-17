@@ -22,7 +22,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
     const num = parseInt(zoneNumber, 10);
     if (!zoneNumber || isNaN(num) || num < 1) errs.zoneNumber = 'Enter a zone number of 1 or higher.';
     else if (num > 99) errs.zoneNumber = 'Zone number cannot exceed 99.';
-    else if (existingNumbers.includes(num)) errs.zoneNumber = `Zone ${num} already exists in this program.`;
+    else if (existingNumbers.includes(num)) errs.zoneNumber = `Zone ${num} already exists.`;
     if (!name.trim()) errs.name = 'Zone name is required.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -41,6 +41,8 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
         status,
         profileImageChange,
       });
+    } catch (err) {
+      setErrors({ zoneNumber: err.message });
     } finally {
       setSaving(false);
     }

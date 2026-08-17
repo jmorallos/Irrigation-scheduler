@@ -79,39 +79,54 @@ export function findNextAvailableStart(candidate, existingSchedules) {
 
 export function conflictMessage(conflict, programName, nextAvailable) {
   const end = getEndTime(conflict.start_time, conflict.duration_minutes);
+  const otherProgram = conflict.program?.name ?? programName;
   const zoneLabel = conflict.zone
-    ? getZoneDisplayName(conflict.zone, programName)
+    ? getZoneDisplayName(conflict.zone, otherProgram)
     : 'another zone';
-  let message = `This schedule overlaps ${formatCycleLabel(conflict.cycle)} on ${zoneLabel} (${formatTime(conflict.start_time)} – ${formatTime(end)}).`;
+  const programPart = otherProgram ? ` in ${otherProgram}` : '';
+  let message = `This schedule overlaps ${formatCycleLabel(conflict.cycle)} on ${zoneLabel}${programPart} (${formatTime(conflict.start_time)} – ${formatTime(end)}).`;
   if (nextAvailable) {
     message += ` Next available: ${formatTime(nextAvailable)}.`;
   }
   return message;
 }
 
-export async function getSchedulesForProgram(programId) {
-  const zones = await zonesRepository.getByProgramId(programId);
+export async function getAllSchedulesForConflict() {
+  const [programs, zones] = await Promise.all([
+    programsRepository.getAll(),
+    zonesRepository.getAll(),
+  ]);
+  const programById = new Map(programs.map(program => [program.id, program]));
   const result = [];
 
   for (const zone of zones) {
+    const program = programById.get(zone.program_id);
     const schedules = withCycleNumbers(await schedulesRepository.getByZoneId(zone.id));
     for (const schedule of schedules) {
-      result.push({ ...schedule, zone });
+      result.push({ ...schedule, zone, program });
     }
   }
 
   return result;
 }
 
+export async function getSchedulesForProgram(programId) {
+  const all = await getAllSchedulesForConflict();
+  if (!programId) return all;
+  return all.filter(item => item.zone?.program_id === programId);
+}
+
 export async function assertNoScheduleConflict(schedule, { excludeId, programName } = {}) {
   const zone = await zonesRepository.getById(schedule.zone_id);
   if (!zone) throw new Error('Zone not found.');
 
-  const existing = await getSchedulesForProgram(zone.program_id);
+  const existing = await getAllSchedulesForConflict();
   const conflict = findScheduleConflict({ ...schedule, id: excludeId ?? schedule.id }, existing);
   if (!conflict) return;
 
-  const name = programName ?? (await programsRepository.getById(zone.program_id))?.name;
+  const name = conflict.program?.name
+    ?? programName
+    ?? (await programsRepository.getById(conflict.zone?.program_id ?? zone.program_id))?.name;
   const nextAvailable = findNextAvailableStart({ ...schedule, id: excludeId ?? schedule.id }, existing);
   throw new Error(conflictMessage(conflict, name, nextAvailable));
 }

@@ -37,6 +37,30 @@ body {
 
 * { scrollbar-width: thin; scrollbar-color: rgba(10, 37, 64, 0.15) transparent; }
 
+.table-h-scroll {
+  overflow-x: auto;
+  scrollbar-width: auto;
+  scrollbar-color: rgba(10, 37, 64, 0.4) #e8eef6;
+}
+
+.table-h-scroll::-webkit-scrollbar {
+  height: 14px;
+  width: 4px;
+}
+
+.table-h-scroll::-webkit-scrollbar-track {
+  background: #e8eef6;
+}
+
+.table-h-scroll::-webkit-scrollbar-thumb {
+  background: rgba(10, 37, 64, 0.4);
+  border-radius: 7px;
+}
+
+.table-h-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(10, 37, 64, 0.55);
+}
+
 @keyframes page-fade-in {
   from {
     opacity: 0;

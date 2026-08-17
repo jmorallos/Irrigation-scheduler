@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
 import {
-  getSchedulesForProgram,
+  getAllSchedulesForConflict,
   findScheduleConflict,
   findNextAvailableStart,
   conflictMessage,
@@ -25,15 +25,14 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
   const hasConflict = Boolean(errors.conflict);
 
   useEffect(() => {
-    if (!programId) return undefined;
     let cancelled = false;
-    getSchedulesForProgram(programId).then(list => {
+    getAllSchedulesForConflict().then(list => {
       if (!cancelled) setExisting(list);
     }).catch(() => {
       if (!cancelled) setExisting([]);
     });
     return () => { cancelled = true; };
-  }, [programId]);
+  }, []);
 
   useEffect(() => {
     if (!existing) return undefined;

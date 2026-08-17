@@ -4,6 +4,7 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { savesRepository } from '../db/savesRepository';
 import { formatZoneName, getZoneNumber, getZoneShortName } from './scheduleUtils';
+import { isZoneNumberTaken } from './zoneIdentity';
 
 function uniqueName(base, existing) {
   const names = new Set(existing.map(name => name.trim().toLowerCase()));
@@ -216,11 +217,16 @@ export async function restoreProgramSave(save) {
   if (photoId) await programsRepository.update(created.id, { profile_image_id: photoId });
 
   const zoneIds = {};
+  const allZones = await zonesRepository.getAll();
+  const taken = new Set(allZones.map(item => getZoneNumber(item)).filter(n => n != null));
   for (const zone of zones) {
+    let number = getZoneNumber(zone) ?? 1;
+    while (taken.has(number)) number += 1;
+    taken.add(number);
     const nextZone = await zonesRepository.create({
       program_id: created.id,
-      name: zone.name,
-      zone_number: zone.zone_number,
+      name: formatZoneName(number, getZoneShortName(zone) || zone.name),
+      zone_number: number,
       color: zone.color,
       status: zone.status ?? 'active',
       profile_image_id: null,
@@ -254,10 +260,9 @@ export async function restoreZoneSave(save, programId) {
   const identical = await findIdenticalZone(save.payload ?? {}, programId);
   if (identical) return { zone: identical, identical: true };
 
-  const existing = await zonesRepository.getByProgramId(programId);
-  const used = existing.map(item => getZoneNumber(item)).filter(n => n != null);
+  const existing = await zonesRepository.getAll();
   let number = getZoneNumber(zone) ?? 1;
-  while (used.includes(number)) number += 1;
+  while (isZoneNumberTaken(existing, number)) number += 1;
 
   const created = await zonesRepository.create({
     program_id: programId,

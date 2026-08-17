@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, Bookmark, ChevronDown } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
+import { zonesRepository } from '../db/zonesRepository';
 import { useZones } from '../hooks/useZones';
 import { useSchedules } from '../hooks/useSchedules';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
@@ -16,6 +17,7 @@ import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
+import { nextZoneNumber, takenZoneNumbers } from '../utils/zoneIdentity';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
 import { useSaves } from '../hooks/useSaves';
@@ -343,6 +345,7 @@ export default function ProgramDetail() {
   const { saveProgram, saveZone } = useSaves();
   const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
+  const [allZones, setAllZones] = useState([]);
   const { items: todayItems } = useTodaySchedule();
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
@@ -357,6 +360,14 @@ export default function ProgramDetail() {
     });
     return () => { cancelled = true; };
   }, [programId, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    zonesRepository.getAll().then(list => {
+      if (!cancelled) setAllZones(list);
+    });
+    return () => { cancelled = true; };
+  }, [zones]);
 
   const handleUpdateProgram = async (data) => {
     if (!programId) return;
@@ -399,8 +410,16 @@ export default function ProgramDetail() {
   if (!program) return null;
 
   const theme = getProgramTheme(program);
-  const existingNumbers = zones.map(z => getZoneNumber(z)).filter(n => n != null);
-  const suggestedNumber = existingNumbers.length ? Math.max(...existingNumbers) + 1 : 1;
+  const existingNumbers = takenZoneNumbers(allZones);
+  const suggestedNumber = nextZoneNumber(allZones);
+  const editExcludeIds = editZone
+    ? [
+        editZone.id,
+        ...allZones
+          .filter(zone => zone.id !== editZone.id && getZoneNumber(zone) === getZoneNumber(editZone))
+          .map(zone => zone.id),
+      ]
+    : [];
 
   return (
     <div>
@@ -521,7 +540,7 @@ export default function ProgramDetail() {
           </div>
 
           <div className="hidden md:block bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="table-h-scroll">
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
@@ -587,7 +606,7 @@ export default function ProgramDetail() {
         <Modal title="Edit Zone" onClose={() => setEditZone(null)} size="sm">
           <ZoneForm
             initial={editZone}
-            existingNumbers={existingNumbers.filter(n => n !== getZoneNumber(editZone))}
+            existingNumbers={takenZoneNumbers(allZones, editExcludeIds)}
             defaultColor={theme.id}
             onSubmit={async data => { await updateZone(editZone.id, data); setEditZone(null); }}
             onCancel={() => setEditZone(null)}

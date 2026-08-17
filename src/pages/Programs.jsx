@@ -113,7 +113,7 @@ export default function Programs() {
           )}
 
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="table-h-scroll">
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">

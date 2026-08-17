@@ -13,3 +13,5 @@ yarn-error.log*
 .env
 
 featurelist-roadmap.txt
+findings.txt
+zones.jpg
