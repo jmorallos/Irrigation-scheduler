@@ -5,6 +5,7 @@ import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { isZoneNumberTaken, nextZoneNumber, takenZoneNumbers } from '../src/utils/zoneIdentity.js';
+import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 
 let passed = 0;
 let failed = 0;
@@ -308,6 +309,18 @@ const roundtrip = hsvToHex(hexToHsv('#2563eb'));
 assert(roundtrip === '#2563eb', `hex roundtrip (got ${roundtrip})`);
 assert(hsvToHex({ h: 0, s: 0, v: 1 }) === '#ffffff', 'white');
 assert(hsvToHex({ h: 0, s: 0, v: 0 }) === '#000000', 'black');
+
+console.log('Selected weekday');
+const wed = new Date(2026, 7, 19);
+assert(getDateForDayKey('fri', wed).getDate() === 21, 'Friday is later this week');
+assert(getDateForDayKey('mon', wed).getDate() === 17, 'Monday is earlier this week');
+assert(getDateForDayKey('sun', wed).getDate() === 23, 'Sunday is end of Mon-Sun week');
+assert(dayScopeLabel('wed', 'wed').possessive === "Today's", 'clock today uses Today');
+assert(dayScopeLabel('fri', 'wed').possessive === "Friday's", 'other day uses weekday name');
+assert(
+  formatDayHeading('fri', new Date(2026, 7, 19)).startsWith('Viewing Friday'),
+  'other day heading says Viewing',
+);
 
 console.log('');
 if (failed) {

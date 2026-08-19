@@ -1,4 +1,3 @@
-import { getTodayKey } from '../utils/dateUtils';
 import { maxValue } from '../utils/chartData';
 import { formatMinutes } from '../utils/formatMinutes';
 
@@ -22,14 +21,15 @@ function ChartTooltip({ label, value, className = '' }) {
   );
 }
 
-function minuteLabel(value, period) {
+function minuteLabel(value, period, dayPhrase) {
   const unit = formatMinutes(value);
   if (period === 'week') return `${unit} / week`;
   if (period === 'day') return `${unit} / day`;
+  if (dayPhrase && dayPhrase !== 'today') return `${unit} ${dayPhrase}`;
   return `${unit} today`;
 }
 
-function ProgramMetricChart({ data, metric, emptyMessage, period = 'today' }) {
+function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayPhrase = 'today' }) {
   if (data.length === 0) {
     return <ChartEmpty message={emptyMessage} />;
   }
@@ -43,8 +43,8 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today' }) {
         const value = item[metric];
         const displayValue = isMinutes ? formatMinutes(value) : `${value} cycle${value !== 1 ? 's' : ''}`;
         const tooltipValue = isMinutes
-          ? minuteLabel(value, period)
-          : `${value} cycle${value !== 1 ? 's' : ''} today`;
+          ? minuteLabel(value, period, dayPhrase)
+          : `${value} cycle${value !== 1 ? 's' : ''} ${dayPhrase}`;
 
         return (
           <div key={item.id} className="group relative">
@@ -82,22 +82,29 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today' }) {
   );
 }
 
-export function MinutesByDayChart({ data }) {
+export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }) {
   const total = data.reduce((sum, item) => sum + item.minutes, 0);
   if (total === 0) {
     return <ChartEmpty message="No active cycles this week." />;
   }
 
   const max = maxValue(data, 'minutes');
-  const todayKey = getTodayKey();
 
   return (
     <div className="flex items-end gap-2">
       {data.map(item => {
-        const isToday = item.key === todayKey;
+        const isSelected = item.key === selectedDay;
+        const isClockToday = item.key === clockToday;
         const height = Math.max(item.minutes > 0 ? 6 : 0, (item.minutes / max) * 100);
         return (
-          <div key={item.key} className="group relative flex-1 min-w-0 flex flex-col items-center gap-1.5">
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => onSelectDay?.(item.key)}
+            className="group relative flex-1 min-w-0 flex flex-col items-center gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
+            aria-pressed={isSelected}
+            aria-label={`${item.label}: ${formatMinutes(item.minutes)}. Show ${item.label} schedule.`}
+          >
             <ChartTooltip
               label={item.label}
               value={formatMinutes(item.minutes)}
@@ -106,43 +113,60 @@ export function MinutesByDayChart({ data }) {
             <span className="text-[11px] font-mono text-slate-500 tabular-nums leading-none">
               {item.minutes ? formatMinutes(item.minutes) : ''}
             </span>
-            <div className="w-full h-24 rounded-sm bg-slate-100 overflow-hidden flex items-end">
+            <div
+              className={`w-full h-24 rounded-sm overflow-hidden flex items-end ${
+                isClockToday ? 'bg-blue-100 ring-2 ring-brand-600 ring-offset-1' : 'bg-slate-100'
+              }`}
+            >
               <div
                 className="w-full rounded-sm"
                 style={{
                   height: `${height}%`,
-                  backgroundColor: isToday ? '#2563eb' : '#0a2540',
+                  backgroundColor: isSelected ? '#2563eb' : isClockToday ? '#3b82f6' : '#0a2540',
                 }}
-                role="img"
-                aria-label={`${item.label}: ${formatMinutes(item.minutes)}`}
               />
             </div>
-            <span className={`text-[11px] font-semibold uppercase tracking-wide ${isToday ? 'text-navy-900' : 'text-slate-400'}`}>
+            <span className={`text-[11px] font-semibold uppercase tracking-wide ${
+              isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-slate-400'
+            }`}>
               {item.label}
             </span>
-          </div>
+            {isClockToday ? (
+              <span className="text-[9px] font-bold uppercase tracking-wider text-brand-600 leading-none">
+                Today
+              </span>
+            ) : isSelected ? (
+              <span className="text-[9px] font-bold uppercase tracking-wider text-navy-700 leading-none">
+                Viewing
+              </span>
+            ) : (
+              <span className="text-[9px] leading-none invisible">Today</span>
+            )}
+          </button>
         );
       })}
     </div>
   );
 }
 
-export function ProgramTodayMinutesChart({ data }) {
+export function ProgramTodayMinutesChart({ data, emptyMessage, dayPhrase }) {
   return (
     <ProgramMetricChart
       data={data}
       metric="minutes"
-      emptyMessage="No programs scheduled today."
+      emptyMessage={emptyMessage ?? 'No programs scheduled today.'}
+      dayPhrase={dayPhrase}
     />
   );
 }
 
-export function ProgramTodayStartsChart({ data }) {
+export function ProgramTodayStartsChart({ data, emptyMessage, dayPhrase }) {
   return (
     <ProgramMetricChart
       data={data}
       metric="starts"
-      emptyMessage="No programs scheduled today."
+      emptyMessage={emptyMessage ?? 'No programs scheduled today.'}
+      dayPhrase={dayPhrase}
     />
   );
 }
@@ -158,12 +182,13 @@ export function ProgramWeekMinutesChart({ data }) {
   );
 }
 
-export function ZoneMinutesChart({ data }) {
+export function ZoneMinutesChart({ data, emptyMessage, dayPhrase }) {
   return (
     <ProgramMetricChart
       data={data}
       metric="minutes"
-      emptyMessage="No valves scheduled today."
+      emptyMessage={emptyMessage ?? 'No valves scheduled today.'}
+      dayPhrase={dayPhrase}
     />
   );
 }

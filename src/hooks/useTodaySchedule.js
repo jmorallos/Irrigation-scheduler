@@ -6,7 +6,7 @@ import { getTodayKey } from '../utils/dateUtils';
 import { withCycleNumbers } from '../utils/scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
 
-export function useTodaySchedule() {
+export function useTodaySchedule(dayKey) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,7 +15,7 @@ export function useTodaySchedule() {
     setLoading(true);
     setError(null);
     try {
-      const todayKey = getTodayKey();
+      const todayKey = dayKey || getTodayKey();
       const programs = sortProgramsByController(await programsRepository.getAll());
       const result = [];
 
@@ -42,7 +42,7 @@ export function useTodaySchedule() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dayKey]);
 
   useEffect(() => { load(); }, [load]);
 

@@ -9,10 +9,11 @@ import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
 import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
-import { formatDuration, formatTimeRange } from '../utils/dateUtils';
+import { formatDuration, formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
+import { useSelectedDay } from '../context/SelectedDayContext';
 
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
@@ -22,6 +23,8 @@ const STAT_COLUMNS = [
 ];
 
 export default function Dashboard() {
+  const { selectedDay, setSelectedDay, clockToday, isClockToday } = useSelectedDay();
+  const scope = dayScopeLabel(selectedDay, clockToday);
   const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, minutes: 0 });
   const [chartData, setChartData] = useState({
     minutesByDay: [],
@@ -31,7 +34,7 @@ export default function Dashboard() {
   });
   const [chartsLoading, setChartsLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
-  const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule();
+  const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule(selectedDay);
 
   const loadDashboard = useCallback(async () => {
     setChartsLoading(true);
@@ -42,6 +45,7 @@ export default function Dashboard() {
         programsRepository,
         zonesRepository,
         schedulesRepository,
+        dayKey: selectedDay,
       });
       setStats(overview);
       setChartData(charts);
@@ -50,7 +54,7 @@ export default function Dashboard() {
     } finally {
       setChartsLoading(false);
     }
-  }, []);
+  }, [selectedDay]);
 
   useEffect(() => {
     loadDashboard();
@@ -63,13 +67,16 @@ export default function Dashboard() {
 
   const displayError = pageError || todayError;
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Summary</h1>
-        <p className="mt-1 text-sm text-slate-500">Today · {today}</p>
+        <p className="mt-1 text-sm text-slate-500">{scope.heading}</p>
+        {!isClockToday && (
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-brand-600">
+            {formatClockTodayLine()}
+          </p>
+        )}
       </div>
 
       {displayError && (
@@ -106,9 +113,14 @@ export default function Dashboard() {
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
                 Minutes by Day
               </h3>
-              <MinutesByDayChart data={chartData.minutesByDay} />
+              <MinutesByDayChart
+                data={chartData.minutesByDay}
+                selectedDay={selectedDay}
+                clockToday={clockToday}
+                onSelectDay={setSelectedDay}
+              />
               <p className="mt-3 text-[11px] text-slate-400">
-                Scheduled cycle minutes on each weekday. Today is highlighted.
+                Scheduled cycle minutes on each weekday. <span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
               </p>
             </div>
             <div className="p-5">
@@ -126,7 +138,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Load"}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Load`}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
@@ -136,18 +148,26 @@ export default function Dashboard() {
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
                 Run Time by Program
               </h3>
-              <ProgramTodayMinutesChart data={chartData.byProgramToday} />
+              <ProgramTodayMinutesChart
+                data={chartData.byProgramToday}
+                dayPhrase={scope.adjective}
+                emptyMessage={`No programs scheduled ${scope.adjective}.`}
+              />
               <p className="mt-3 text-[11px] text-slate-400">
-                Total cycle minutes for programs running today.
+                {`Total cycle minutes for programs running ${scope.adjective}.`}
               </p>
             </div>
             <div className="p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
                 Cycles by Program
               </h3>
-              <ProgramTodayStartsChart data={chartData.byProgramToday} />
+              <ProgramTodayStartsChart
+                data={chartData.byProgramToday}
+                dayPhrase={scope.adjective}
+                emptyMessage={`No programs scheduled ${scope.adjective}.`}
+              />
               <p className="mt-3 text-[11px] text-slate-400">
-                Number of cycles for programs running today.
+                {`Number of cycles for programs running ${scope.adjective}.`}
               </p>
             </div>
           </div>
@@ -162,9 +182,13 @@ export default function Dashboard() {
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
         ) : (
           <div className="p-5">
-            <ZoneMinutesChart data={chartData.zoneTotals} />
+            <ZoneMinutesChart
+              data={chartData.zoneTotals}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No valves scheduled ${scope.adjective}.`}
+            />
             <p className="mt-3 text-[11px] text-slate-400">
-              Cycle minutes per valve for today only.
+              {`Cycle minutes per valve for ${scope.short} only.`}
             </p>
           </div>
         )}
@@ -172,7 +196,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{"Today's Irrigation"}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Irrigation`}</h2>
           <Link to="/schedule" className="text-xs text-blue-200 hover:text-white font-medium flex items-center gap-1 transition-colors">
             Schedule <ArrowRight className="w-3 h-3" />
           </Link>
@@ -182,7 +206,7 @@ export default function Dashboard() {
         ) : items.length === 0 ? (
           <div className="p-10 text-center">
             <Droplets className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-500">No irrigation scheduled today</p>
+            <p className="text-sm font-medium text-slate-500">{`No irrigation scheduled ${scope.adjective}`}</p>
             <p className="text-xs text-slate-400 mt-1">Add schedules to your valves to see them here.</p>
           </div>
         ) : (

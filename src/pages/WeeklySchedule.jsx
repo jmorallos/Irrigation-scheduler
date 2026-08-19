@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { useMainSchedule } from '../hooks/useMainSchedule';
-import { DAY_ORDER, DAY_LABELS, getTodayKey, formatTime, formatTime24, formatDaysCompact, getEndTime } from '../utils/dateUtils';
+import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { soakMinutesFromHours } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
+import { useSelectedDay } from '../context/SelectedDayContext';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
@@ -35,8 +36,9 @@ function sortMark(sort, key) {
 export default function WeeklySchedule() {
   const { groups, loading: weekLoading } = useWeeklySchedule();
   const { rows, loading: tableLoading } = useMainSchedule();
+  const { selectedDay, setSelectedDay, clockToday, isClockToday } = useSelectedDay();
+  const scope = dayScopeLabel(selectedDay, clockToday);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  const today = getTodayKey();
   const loading = weekLoading || tableLoading;
 
   const displayRows = useMemo(() => {
@@ -82,6 +84,12 @@ export default function WeeklySchedule() {
           <div>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
+              <p className="mt-1 text-sm text-slate-500">{scope.heading}</p>
+              {!isClockToday && (
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-brand-600">
+                  {formatClockTodayLine()}
+                </p>
+              )}
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
               <div className="table-h-scroll">
@@ -178,19 +186,37 @@ export default function WeeklySchedule() {
                   >
                     Valve
                   </th>
-                  {DAY_ORDER.map(day => (
+                  {DAY_ORDER.map(day => {
+                    const isSelected = day === selectedDay;
+                    const isToday = day === clockToday;
+                    return (
                     <th
                       key={day}
-                      className={`sticky top-0 z-20 px-2 py-3.5 text-left font-bold uppercase tracking-wider ${
-                        day === today ? 'bg-navy-800' : 'bg-navy-900'
-                      }`}
+                      className={`sticky top-0 z-20 px-0 py-0 text-left font-bold uppercase tracking-wider ${
+                        isSelected ? 'bg-navy-800' : 'bg-navy-900'
+                      } ${isToday ? 'shadow-[inset_0_-3px_0_0_#38bdf8]' : ''}`}
                     >
-                      <span className="inline-flex flex-col items-start">
-                        {DAY_LABELS[day]}
-                        {day === today && <span className="w-1 h-1 rounded-full bg-blue-300 mt-1 block" />}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDay(day)}
+                        className="w-full px-2 py-3.5 text-left font-bold uppercase tracking-wider [-webkit-tap-highlight-color:transparent]"
+                        aria-pressed={isSelected}
+                        aria-label={isToday ? `${DAY_LABELS[day]}, today` : `Show ${DAY_LABELS[day]}`}
+                      >
+                        <span className="inline-flex flex-col items-start gap-0.5">
+                          <span className={isToday ? 'text-sky-300' : 'text-white'}>{DAY_LABELS[day]}</span>
+                          {isToday ? (
+                            <span className="text-[9px] font-bold tracking-wider text-sky-300">Today</span>
+                          ) : isSelected ? (
+                            <span className="text-[9px] font-bold tracking-wider text-blue-200">Viewing</span>
+                          ) : (
+                            <span className="text-[9px] font-bold tracking-wider invisible">Today</span>
+                          )}
+                        </span>
+                      </button>
                     </th>
-                  ))}
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -218,8 +244,10 @@ export default function WeeklySchedule() {
                       {DAY_ORDER.map(day => (
                         <td
                           key={day}
-                          className={day === today ? theme.today : theme.header}
-                          style={{ backgroundColor: day === today ? theme.todayHex : theme.headerHex }}
+                          className={`${day === selectedDay ? theme.today : theme.header} ${
+                            day === clockToday ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''
+                          }`}
+                          style={{ backgroundColor: day === selectedDay ? theme.todayHex : theme.headerHex }}
                         />
                       ))}
                     </tr>
@@ -250,15 +278,15 @@ export default function WeeklySchedule() {
                               <td
                                 key={day}
                                 className={`px-2 py-3.5 whitespace-nowrap text-left ${
-                                  day === today ? todayCellBg : rowBg
-                                }`}
-                                style={{ backgroundColor: day === today ? todayCellBgHex : rowHex }}
+                                  day === selectedDay ? todayCellBg : rowBg
+                                } ${day === clockToday ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''}`}
+                                style={{ backgroundColor: day === selectedDay ? todayCellBgHex : rowHex }}
                               >
                                 {daySchedules.length > 0 ? (
                                   <div className="flex flex-col gap-2.5">
                                     {daySchedules.map(sched => (
                                       <div key={sched.id} className="leading-tight">
-                                        <span className={`block font-mono text-base font-bold ${day === today ? 'text-brand-600' : 'text-navy-900'}`}>
+                                        <span className={`block font-mono text-base font-bold ${day === selectedDay ? 'text-brand-600' : 'text-navy-900'}`}>
                                           {formatTime(sched.start_time)}
                                         </span>
                                         <span className="block font-mono text-xs font-medium text-slate-500">

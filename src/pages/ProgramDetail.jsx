@@ -15,7 +15,7 @@ import ProgramLogo from '../components/ProgramLogo';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
-import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime } from '../utils/dateUtils';
+import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
 import { nextZoneNumber, takenZoneNumbers } from '../utils/zoneIdentity';
 import { applyProfileImageChange } from '../utils/profileImageService';
@@ -24,6 +24,7 @@ import { useSaves } from '../hooks/useSaves';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useColumnAlign } from '../hooks/useColumnAlign';
+import { useSelectedDay } from '../context/SelectedDayContext';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   const displayName = getZoneDisplayName(zone, programName);
@@ -346,7 +347,9 @@ export default function ProgramDetail() {
   const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
   const [allZones, setAllZones] = useState([]);
-  const { items: todayItems } = useTodaySchedule();
+  const { selectedDay, clockToday, isClockToday } = useSelectedDay();
+  const scope = dayScopeLabel(selectedDay, clockToday);
+  const { items: todayItems } = useTodaySchedule(selectedDay);
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
   useEffect(() => {
@@ -485,7 +488,14 @@ export default function ProgramDetail() {
           className={`${theme.row} border ${theme.border} rounded-lg p-5 mb-6`}
           style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
         >
-          <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wider mb-3">{"Today's Schedule"}</h2>
+          <h2 className={`text-sm font-semibold text-navy-900 uppercase tracking-wider ${isClockToday ? 'mb-3' : 'mb-1'}`}>
+            {`${scope.possessive} Schedule`}
+          </h2>
+          {!isClockToday && (
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-brand-600">
+              {formatClockTodayLine()}
+            </p>
+          )}
           <div className="space-y-2">
             {todayForProgram.map(item => (
               <div key={item.schedule.id} className="flex items-center gap-3">

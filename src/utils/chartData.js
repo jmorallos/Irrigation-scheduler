@@ -6,15 +6,16 @@ import { getZoneNumber, getZoneShortName } from './scheduleUtils';
 /**
  * Minutes by day = sum of active cycle durations on that weekday.
  * Weekly program minutes = duration × run days.
- * Today minutes/starts = cycles that run today.
- * Zone minutes = that zone's cycle total for today only.
+ * Today minutes/starts = cycles that run on the selected weekday.
+ * Zone minutes = that zone's cycle total for the selected weekday only.
  */
 export async function buildScheduleChartData({
   programsRepository,
   zonesRepository,
   schedulesRepository,
+  dayKey = getTodayKey(),
 }) {
-  const todayKey = getTodayKey();
+  const todayKey = dayKey;
   const programs = sortProgramsByController(await programsRepository.getAll());
   const minutesByDay = DAY_ORDER.map(day => ({
     key: day,

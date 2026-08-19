@@ -12,6 +12,55 @@ export function getTodayKey() {
   return keys[new Date().getDay()];
 }
 
+export function getDateForDayKey(dayKey, from = new Date()) {
+  const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const fromKey = keys[from.getDay()];
+  const fromIndex = DAY_ORDER.indexOf(fromKey);
+  const toIndex = DAY_ORDER.indexOf(dayKey);
+  const date = new Date(from);
+  if (fromIndex < 0 || toIndex < 0) return date;
+  date.setDate(date.getDate() + (toIndex - fromIndex));
+  return date;
+}
+
+export function formatDayHeading(dayKey, from = new Date()) {
+  const date = getDateForDayKey(dayKey, from);
+  const long = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  if (dayKey === getTodayKey()) return `Today · ${long}`;
+  return `Viewing ${long}`;
+}
+
+export function formatClockTodayLine(from = new Date()) {
+  const long = from.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  return `Today is ${long}`;
+}
+
+export function dayScopeLabel(dayKey, clockToday = getTodayKey()) {
+  const name = DAY_FULL[dayKey] ?? dayKey;
+  if (dayKey === clockToday) {
+    return {
+      short: 'today',
+      adjective: 'today',
+      possessive: "Today's",
+      heading: formatDayHeading(dayKey),
+    };
+  }
+  return {
+    short: name,
+    adjective: `on ${name}`,
+    possessive: `${name}'s`,
+    heading: formatDayHeading(dayKey),
+  };
+}
+
 export function timeToMinutes(time) {
   if (!time) return 0;
   const [h, m] = time.split(':').map(Number);

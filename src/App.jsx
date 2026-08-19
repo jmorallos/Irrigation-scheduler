@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import AppRoutes from './AppRoutes';
 import { cleanupDuplicatePrograms } from './db/cleanupDuplicates';
+import { SelectedDayProvider } from './context/SelectedDayContext';
 
 async function clearStaleServiceWorkers() {
   if (!('serviceWorker' in navigator)) return;
@@ -35,9 +36,11 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AppShell>
-        <AppRoutes />
-      </AppShell>
+      <SelectedDayProvider>
+        <AppShell>
+          <AppRoutes />
+        </AppShell>
+      </SelectedDayProvider>
     </BrowserRouter>
   );
 }
