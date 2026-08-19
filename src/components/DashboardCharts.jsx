@@ -41,10 +41,10 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today' }) {
     <div className="space-y-3.5">
       {data.map(item => {
         const value = item[metric];
-        const displayValue = isMinutes ? formatMinutes(value) : `${value} start${value !== 1 ? 's' : ''}`;
+        const displayValue = isMinutes ? formatMinutes(value) : `${value} cycle${value !== 1 ? 's' : ''}`;
         const tooltipValue = isMinutes
           ? minuteLabel(value, period)
-          : `${value} start${value !== 1 ? 's' : ''} today`;
+          : `${value} cycle${value !== 1 ? 's' : ''} today`;
 
         return (
           <div key={item.id} className="group relative">
