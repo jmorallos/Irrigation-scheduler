@@ -11,3 +11,4 @@ yarn-error.log*
 /build
 .env.local
 .env
+newlist.md

@@ -113,7 +113,7 @@ export default function Dashboard() {
             </div>
             <div className="p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                Minutes by Program
+                Minutes by Week
               </h3>
               <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
               <p className="mt-3 text-[11px] text-slate-400">
