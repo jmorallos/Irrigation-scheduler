@@ -39,10 +39,10 @@ export function validateBackup(data) {
   const zoneIds = new Set();
   for (const zone of data.zones) {
     if (!zone?.id || !zone?.program_id) {
-      throw new Error('Invalid zone record in backup.');
+      throw new Error('Invalid valve record in backup.');
     }
     if (!programIds.has(zone.program_id)) {
-      throw new Error(`Zone "${zone.name ?? zone.id}" references a missing program.`);
+      throw new Error(`Valve "${zone.name ?? zone.id}" references a missing program.`);
     }
     zoneIds.add(zone.id);
   }
@@ -52,7 +52,7 @@ export function validateBackup(data) {
       throw new Error('Invalid schedule record in backup.');
     }
     if (!zoneIds.has(schedule.zone_id)) {
-      throw new Error('A schedule references a missing zone.');
+      throw new Error('A schedule references a missing valve.');
     }
   }
 

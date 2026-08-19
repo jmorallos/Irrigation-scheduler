@@ -26,7 +26,7 @@ function SaveSummary({ save }) {
   if (save.type === 'program') {
     const zones = save.summary?.zones ?? 0;
     const cycles = save.summary?.cycles ?? 0;
-    return `${zones} zone${zones !== 1 ? 's' : ''} · ${cycles} cycle${cycles !== 1 ? 's' : ''}`;
+    return `${zones} valve${zones !== 1 ? 's' : ''} · ${cycles} cycle${cycles !== 1 ? 's' : ''}`;
   }
   const cycles = save.summary?.cycles ?? 0;
   const from = save.summary?.programName;
@@ -86,7 +86,7 @@ export default function Saves() {
     <div className="min-w-0 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Saves</h1>
-        <p className="text-sm text-slate-500 mt-1">Copies of programs and zones you can restore later.</p>
+        <p className="text-sm text-slate-500 mt-1">Copies of programs and valves you can restore later.</p>
       </div>
 
       {restoreNotice && (
@@ -106,7 +106,7 @@ export default function Saves() {
           <EmptyState
             icon={Bookmark}
             title="No saves yet"
-            description="Use Save on a program or zone to keep a copy, including zones, cycles, and photos."
+            description="Use Save on a program or valve to keep a copy, including valves, cycles, and photos."
           />
         </div>
       ) : (
@@ -133,7 +133,7 @@ export default function Saves() {
 
           {zoneSaves.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-navy-900 mb-3">Zones</h2>
+              <h2 className="text-sm font-semibold text-navy-900 mb-3">Valves</h2>
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <NestedScroll className="overflow-auto max-h-[70dvh]">
                   <ul className="divide-y divide-slate-100">
@@ -164,9 +164,9 @@ export default function Saves() {
       )}
 
       {restoringZone && (
-        <Modal title="Restore zone" onClose={() => setRestoringZone(null)} size="sm">
+        <Modal title="Restore valve" onClose={() => setRestoringZone(null)} size="sm">
           {programs.length === 0 ? (
-            <p className="text-sm text-slate-600">Add a program first, then restore this zone into it.</p>
+            <p className="text-sm text-slate-600">Add a program first, then restore this valve into it.</p>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-slate-600 mb-3">

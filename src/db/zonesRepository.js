@@ -43,7 +43,7 @@ export const zonesRepository = {
   async update(id, data) {
     const db = await openDB();
     const existing = await this.getById(id);
-    if (!existing) throw new Error('Zone not found');
+    if (!existing) throw new Error('Valve not found');
     const updated = { ...existing, ...data, updated_at: new Date().toISOString() };
     return new Promise((resolve, reject) => {
       const request = db.transaction('zones', 'readwrite').objectStore('zones').put(updated);

@@ -5,7 +5,7 @@ import usePhoneLandscape from '../hooks/usePhoneLandscape';
 
 const NAV = [
   { to: '/programs', label: 'Programs', icon: List, exact: false },
-  { to: '/zones', label: 'Zones', icon: MapPin, exact: true },
+  { to: '/valves', label: 'Valves', icon: MapPin, exact: true },
   { to: '/schedule', label: 'Schedule', icon: CalendarDays, exact: true },
   { to: '/summary', label: 'Summary', icon: LayoutDashboard, exact: true },
   { to: '/saves', label: 'Saves', icon: Bookmark, exact: true },

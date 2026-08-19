@@ -163,7 +163,7 @@ export function ZoneMinutesChart({ data }) {
     <ProgramMetricChart
       data={data}
       metric="minutes"
-      emptyMessage="No zones scheduled today."
+      emptyMessage="No valves scheduled today."
     />
   );
 }

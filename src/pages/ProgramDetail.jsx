@@ -58,10 +58,10 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
 
   const zoneMenuItems = [
     { label: 'Add cycle', icon: Plus, onClick: () => setAddSched(true) },
-    { label: 'Edit zone', icon: Pencil, onClick: onEditZone },
-    { label: 'Save zone', icon: Bookmark, onClick: onSaveZone },
-    { label: zone.status === 'active' ? 'Deactivate zone' : 'Activate zone', icon: Power, onClick: onToggleZone },
-    { label: 'Delete zone', icon: Trash2, onClick: onDeleteZone, danger: true },
+    { label: 'Edit valve', icon: Pencil, onClick: onEditZone },
+    { label: 'Save valve', icon: Bookmark, onClick: onSaveZone },
+    { label: zone.status === 'active' ? 'Deactivate valve' : 'Activate valve', icon: Power, onClick: onToggleZone },
+    { label: 'Delete valve', icon: Trash2, onClick: onDeleteZone, danger: true },
   ];
 
   const scheduleMenuItems = schedule => [
@@ -163,7 +163,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
           />
         </button>
         <div className="flex-shrink-0" onClick={event => event.stopPropagation()}>
-          <ActionMenu items={zoneMenuItems} label="Zone actions" />
+          <ActionMenu items={zoneMenuItems} label="Valve actions" />
         </div>
       </div>
 
@@ -248,7 +248,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
               <td className={`px-4 py-3 align-middle ${cellClass('zone')}`}>
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
-                  <ActionMenu items={zoneMenuItems} label="Zone actions" />
+                  <ActionMenu items={zoneMenuItems} label="Valve actions" />
                 </div>
               </td>
               <td colSpan={6} className="px-4 py-3 text-sm text-slate-500">
@@ -272,7 +272,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
               {index === 0 ? (
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
-                  <ActionMenu items={zoneMenuItems} label="Zone actions" />
+                  <ActionMenu items={zoneMenuItems} label="Valve actions" />
                 </div>
               ) : null}
             </td>
@@ -449,14 +449,14 @@ export default function ProgramDetail() {
               <Badge status={program.status} />
             </div>
             {program.description && <p className="text-sm text-slate-500 mt-1">{program.description}</p>}
-            <p className="text-xs text-slate-400 mt-1">{zones.length} zone{zones.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-400 mt-1">{zones.length} valve{zones.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="flex items-start m-3 sm:m-4 gap-1 flex-shrink-0">
             <button
               type="button"
               onClick={async () => {
                 await saveProgram(program.id);
-                showSaved(`Saved "${program.name}" with its zones and cycles.`);
+                showSaved(`Saved "${program.name}" with its valves and cycles.`);
               }}
               className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
               title="Save program"
@@ -504,21 +504,21 @@ export default function ProgramDetail() {
       )}
 
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-navy-900">Zones</h2>
+        <h2 className="text-sm font-semibold text-navy-900">Valves</h2>
         <button
           onClick={() => setAddZone(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white text-xs font-medium rounded-lg hover:bg-brand-700 transition-colors"
         >
-          <Plus className="w-3.5 h-3.5" /> Add Zone
+          <Plus className="w-3.5 h-3.5" /> Add Valve
         </button>
       </div>
 
       {zones.length === 0 ? (
         <EmptyState
           icon={Clock}
-          title="No zones yet"
-          description="Add a zone to start creating schedules."
-          action={{ label: 'Add Zone', onClick: () => setAddZone(true) }}
+          title="No valves yet"
+          description="Add a valve to start creating schedules."
+          action={{ label: 'Add Valve', onClick: () => setAddZone(true) }}
         />
       ) : (
         <>
@@ -544,7 +544,7 @@ export default function ProgramDetail() {
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
-                  <th onClick={() => cycle('zone')} className={TH_DETAIL}>Zone</th>
+                  <th onClick={() => cycle('zone')} className={TH_DETAIL}>Valve</th>
                   <th onClick={() => cycle('cycle')} className={TH_DETAIL}>Cycle</th>
                   <th onClick={() => cycle('start')} className={TH_DETAIL}>Start</th>
                   <th onClick={() => cycle('end')} className={TH_DETAIL}>End</th>
@@ -591,7 +591,7 @@ export default function ProgramDetail() {
       )}
 
       {addZone && (
-        <Modal title="Add Zone" onClose={() => setAddZone(false)} size="sm">
+        <Modal title="Add Valve" onClose={() => setAddZone(false)} size="sm">
           <ZoneForm
             suggestedNumber={suggestedNumber}
             existingNumbers={existingNumbers}
@@ -603,7 +603,7 @@ export default function ProgramDetail() {
       )}
 
       {editZone && (
-        <Modal title="Edit Zone" onClose={() => setEditZone(null)} size="sm">
+        <Modal title="Edit Valve" onClose={() => setEditZone(null)} size="sm">
           <ZoneForm
             initial={editZone}
             existingNumbers={takenZoneNumbers(allZones, editExcludeIds)}
@@ -617,8 +617,8 @@ export default function ProgramDetail() {
       {deleteZone && (
         <ConfirmDialog
           title={`Delete "${getZoneDisplayName(deleteZone, program.name)}"?`}
-          message="This will also delete all schedules for this zone."
-          confirmLabel="Delete Zone"
+          message="This will also delete all schedules for this valve."
+          confirmLabel="Delete Valve"
           onConfirm={async () => { await removeZone(deleteZone.id); setDeleteZone(null); }}
           onCancel={() => setDeleteZone(null)}
         />

@@ -62,7 +62,7 @@ export default function WeeklySchedule() {
             <EmptyState
               icon={CalendarDays}
               title="No schedules yet"
-              description="Create programs and zones with schedules to see them here."
+              description="Create programs and valves with schedules to see them here."
             />
           </div>
         </>
@@ -78,8 +78,8 @@ export default function WeeklySchedule() {
                 <thead>
                   <tr className="text-white">
                     <th onClick={() => cycle('program')} className={TH_MAIN}>Program</th>
-                    <th onClick={() => cycle('zoneNum')} className={TH_MAIN}>Zone #</th>
-                    <th onClick={() => cycle('zoneName')} className={TH_MAIN}>Zone Name</th>
+                    <th onClick={() => cycle('zoneNum')} className={TH_MAIN}>Valve #</th>
+                    <th onClick={() => cycle('zoneName')} className={TH_MAIN}>Valve Name</th>
                     <th onClick={() => cycle('start')} className={TH_MAIN}>Start</th>
                     <th onClick={() => cycle('end')} className={TH_MAIN}>End</th>
                     <th onClick={() => cycle('duration')} className={TH_MAIN}>Duration (Min)</th>
@@ -160,7 +160,7 @@ export default function WeeklySchedule() {
                     className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)] select-none [-webkit-tap-highlight-color:transparent]`}
                     style={{ backgroundColor: '#0a2540' }}
                   >
-                    Zone
+                    Valve
                   </th>
                   {DAY_ORDER.map(day => (
                     <th

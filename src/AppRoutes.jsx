@@ -16,7 +16,8 @@ export default function AppRoutes() {
         <Route path="/" element={<Navigate to="/programs" replace />} />
         <Route path="/programs" element={<Programs />} />
         <Route path="/programs/:programId" element={<ProgramDetail />} />
-        <Route path="/zones" element={<Zones />} />
+        <Route path="/valves" element={<Zones />} />
+        <Route path="/zones" element={<Navigate to="/valves" replace />} />
         <Route path="/saves" element={<Saves />} />
         <Route path="/schedule" element={<WeeklySchedule />} />
         <Route path="/summary" element={<Dashboard />} />

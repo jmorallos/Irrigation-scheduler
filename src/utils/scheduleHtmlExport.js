@@ -111,7 +111,7 @@ function summarizeRows(rows) {
 function renderOverview(summary) {
   const stats = [
     ['Programs', summary.programCount],
-    ['Zones', summary.zoneCount],
+    ['Valves', summary.zoneCount],
     ['Cycles', summary.cycleCount],
     ['Daily minutes', summary.dailyMinutes],
     ['Weekly minutes', summary.weekMinutes],
@@ -161,8 +161,8 @@ function renderMainTable(rows) {
     <thead>
       <tr>
         <th>Program</th>
-        <th>Zone #</th>
-        <th>Zone Name</th>
+        <th>Valve #</th>
+        <th>Valve Name</th>
         <th>Start</th>
         <th>End</th>
         <th>Duration (Min)</th>
@@ -196,14 +196,14 @@ function renderZoneRuntime(zoneRows) {
   }).join('');
 
   return `<section>
-    <h2>Runtime by zone</h2>
+    <h2>Runtime by valve</h2>
     <p class="note">Daily minutes are the cycle total on a watering day. Weekly minutes multiply each cycle by the days it runs.</p>
     <table>
       <thead>
         <tr>
           <th>Program</th>
-          <th>Zone #</th>
-          <th>Zone Name</th>
+          <th>Valve #</th>
+          <th>Valve Name</th>
           <th>Days</th>
           <th>Cycles</th>
           <th>Daily min</th>
@@ -288,7 +288,7 @@ function renderWeeklyGrid(groups, todayKey) {
     <table class="week">
       <thead>
         <tr>
-          <th>Zone</th>
+          <th>Valve</th>
           ${DAY_ORDER.map(day => `<th class="center${day === todayKey ? ' today' : ''}">${DAY_LABELS[day]}</th>`).join('')}
         </tr>
       </thead>

@@ -25,7 +25,7 @@ export function nextZoneNumber(zones) {
 }
 
 export function zoneNumberConflictMessage(number) {
-  return `Zone ${number} already exists.`;
+  return `Valve ${number} already exists.`;
 }
 
 export function groupZonesByNumber(zones) {

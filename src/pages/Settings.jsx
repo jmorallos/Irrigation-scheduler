@@ -290,8 +290,8 @@ export default function Settings() {
       {pendingImport && (
         <ConfirmDialog
           title="Import backup?"
-          message={`This will replace all current programs, zones, schedules, and photos with the data from "${pendingImport.fileName}".`}
-          detail={`Backup contains ${pendingImport.data.programs.length} program(s), ${pendingImport.data.zones.length} zone(s), ${pendingImport.data.schedules.length} schedule(s)${Array.isArray(pendingImport.data.saves) ? `, and ${pendingImport.data.saves.length} save(s)` : ''}.`}
+          message={`This will replace all current programs, valves, schedules, and photos with the data from "${pendingImport.fileName}".`}
+          detail={`Backup contains ${pendingImport.data.programs.length} program(s), ${pendingImport.data.zones.length} valve(s), ${pendingImport.data.schedules.length} schedule(s)${Array.isArray(pendingImport.data.saves) ? `, and ${pendingImport.data.saves.length} save(s)` : ''}.`}
           confirmLabel={importing ? 'Importing…' : 'Import'}
           onConfirm={confirmImport}
           onCancel={() => !importing && setPendingImport(null)}
@@ -301,7 +301,7 @@ export default function Settings() {
       {confirmClear && (
         <ConfirmDialog
           title="Clear all data?"
-          message="This will permanently delete all programs, zones, schedules, and profile photos stored in this browser. Saved copies in Saves are kept."
+          message="This will permanently delete all programs, valves, schedules, and profile photos stored in this browser. Saved copies in Saves are kept."
           confirmLabel="Clear All Data"
           onConfirm={clearAll}
           onCancel={() => setConfirmClear(false)}

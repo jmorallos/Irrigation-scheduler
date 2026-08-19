@@ -43,22 +43,22 @@ export default function Zones() {
     ? editing.members.map(zone => zone.id)
     : [];
 
-  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading zones…</div>;
-  if (error) return <PageError message={`Could not load zones: ${error}`} onRetry={reload} />;
+  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading valves…</div>;
+  if (error) return <PageError message={`Could not load valves: ${error}`} onRetry={reload} />;
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy-900">Zones</h1>
-        <p className="mt-1 text-sm text-slate-500">Each zone number is unique. Edit a zone once and it updates everywhere.</p>
+        <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
+        <p className="mt-1 text-sm text-slate-500">Each valve number is unique. Edit a valve once and it updates everywhere.</p>
       </div>
 
       {groups.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
           <EmptyState
             icon={MapPin}
-            title="No zones yet"
-            description="Add a zone from a program. Zone numbers cannot be reused."
+            title="No valves yet"
+            description="Add a valve from a program. Valve numbers cannot be reused."
           />
         </div>
       ) : (
@@ -68,8 +68,8 @@ export default function Zones() {
               <thead>
                 <tr className="text-white">
                   <th className="sticky top-0 z-20 w-[4.5rem] min-w-[4.5rem] p-0 bg-navy-900" aria-hidden="true"></th>
-                  <th onClick={() => cycle('number')} className={TH_ZONES}>Zone #</th>
-                  <th onClick={() => cycle('name')} className={TH_ZONES}>Zone Name</th>
+                  <th onClick={() => cycle('number')} className={TH_ZONES}>Valve #</th>
+                  <th onClick={() => cycle('name')} className={TH_ZONES}>Valve Name</th>
                   <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
                   <th onClick={() => cycle('program')} className={TH_ZONES}>Program</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
@@ -161,13 +161,13 @@ export default function Zones() {
             </table>
           </div>
           <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
-            {groups.length} zone{groups.length !== 1 ? 's' : ''}
+            {groups.length} valve{groups.length !== 1 ? 's' : ''}
           </div>
         </div>
       )}
 
       {editing && (
-        <Modal title="Edit Zone" onClose={() => setEditing(null)} size="sm">
+        <Modal title="Edit Valve" onClose={() => setEditing(null)} size="sm">
           <ZoneForm
             initial={editing.zone}
             existingNumbers={takenZoneNumbers(zones, editExcludeIds)}

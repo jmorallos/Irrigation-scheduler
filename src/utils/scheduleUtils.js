@@ -12,14 +12,14 @@ export function formatCycleLabel(cycle) {
 }
 
 export function parseZoneName(name) {
-  const match = (name ?? '').match(/^Zone (\d+) · (.+)$/);
+  const match = (name ?? '').match(/^(?:Zone|Valve) (\d+)(?: · (.+))?$/i);
   if (!match) return { number: null, label: name ?? '' };
-  return { number: parseInt(match[1], 10), label: match[2] };
+  return { number: parseInt(match[1], 10), label: match[2] ?? '' };
 }
 
 export function formatZoneName(number, label) {
   const loc = (label ?? '').trim();
-  return loc ? `Zone ${number} · ${loc}` : `Zone ${number}`;
+  return loc ? `Valve ${number} · ${loc}` : `Valve ${number}`;
 }
 
 export function getZoneNumber(zone) {
@@ -32,11 +32,12 @@ export function getZoneShortName(zone) {
 }
 
 export function getZoneDisplayName(zone, programName) {
-  const match = zone.name.match(/^Zone (\d+) · (.+)$/);
-  if (match && match[2].toLowerCase() === programName?.toLowerCase()) {
-    return `Zone ${match[1]}`;
+  const parsed = parseZoneName(zone?.name);
+  if (parsed.number == null) return zone?.name ?? '';
+  if (parsed.label && parsed.label.toLowerCase() === programName?.toLowerCase()) {
+    return `Valve ${parsed.number}`;
   }
-  return zone.name;
+  return formatZoneName(parsed.number, parsed.label);
 }
 
 export function dedupeProgramsByName(programs) {

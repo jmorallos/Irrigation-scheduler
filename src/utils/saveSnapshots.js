@@ -172,7 +172,7 @@ export async function saveProgram(programId) {
 
 export async function saveZone(zoneId) {
   const zone = await zonesRepository.getById(zoneId);
-  if (!zone) throw new Error('Zone not found.');
+  if (!zone) throw new Error('Valve not found.');
 
   const program = await programsRepository.getById(zone.program_id);
   const schedules = await schedulesRepository.getByZoneId(zoneId);
@@ -255,7 +255,7 @@ export async function restoreProgramSave(save) {
 
 export async function restoreZoneSave(save, programId) {
   const { zone, schedules = [], media = [] } = save.payload ?? {};
-  if (!zone) throw new Error('This save is missing zone data.');
+  if (!zone) throw new Error('This save is missing valve data.');
 
   const identical = await findIdenticalZone(save.payload ?? {}, programId);
   if (identical) return { zone: identical, identical: true };

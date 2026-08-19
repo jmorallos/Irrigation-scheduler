@@ -17,7 +17,7 @@ import ProgramBadge from '../components/ProgramBadge';
 const STAT_COLUMNS = [
   { key: 'total', label: 'Programs' },
   { key: 'active', label: 'Active' },
-  { key: 'zones', label: 'Zones' },
+  { key: 'zones', label: 'Valves' },
   { key: 'minutes', label: 'Minutes' },
 ];
 
@@ -156,7 +156,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Zone</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
@@ -164,7 +164,7 @@ export default function Dashboard() {
           <div className="p-5">
             <ZoneMinutesChart data={chartData.zoneTotals} />
             <p className="mt-3 text-[11px] text-slate-400">
-              Cycle minutes per zone for today only.
+              Cycle minutes per valve for today only.
             </p>
           </div>
         )}
@@ -183,7 +183,7 @@ export default function Dashboard() {
           <div className="p-10 text-center">
             <Droplets className="w-8 h-8 text-slate-300 mx-auto mb-3" />
             <p className="text-sm font-medium text-slate-500">No irrigation scheduled today</p>
-            <p className="text-xs text-slate-400 mt-1">Add schedules to your zones to see them here.</p>
+            <p className="text-xs text-slate-400 mt-1">Add schedules to your valves to see them here.</p>
           </div>
         ) : (
           <div>

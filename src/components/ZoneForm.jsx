@@ -20,10 +20,10 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
   const validate = () => {
     const errs = {};
     const num = parseInt(zoneNumber, 10);
-    if (!zoneNumber || isNaN(num) || num < 1) errs.zoneNumber = 'Enter a zone number of 1 or higher.';
-    else if (num > 99) errs.zoneNumber = 'Zone number cannot exceed 99.';
-    else if (existingNumbers.includes(num)) errs.zoneNumber = `Zone ${num} already exists.`;
-    if (!name.trim()) errs.name = 'Zone name is required.';
+    if (!zoneNumber || isNaN(num) || num < 1) errs.zoneNumber = 'Enter a valve number of 1 or higher.';
+    else if (num > 99) errs.zoneNumber = 'Valve number cannot exceed 99.';
+    else if (existingNumbers.includes(num)) errs.zoneNumber = `Valve ${num} already exists.`;
+    if (!name.trim()) errs.name = 'Valve name is required.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -53,15 +53,15 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
       <div className="space-y-4">
         <ProfileImagePicker
           key={initial?.id ?? 'new'}
-          name={previewName || 'Zone'}
+          name={previewName || 'Valve'}
           profileImageId={initial?.profile_image_id}
           onChange={setProfileImageChange}
-          label="Zone photo"
+          label="Valve photo"
         />
         <div className="grid grid-cols-[6.5rem_1fr] gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-number">
-              Zone # <span className="text-red-500">*</span>
+              Valve # <span className="text-red-500">*</span>
             </label>
             <input
               id="zone-number"
@@ -75,7 +75,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-name">
-              Zone Name <span className="text-red-500">*</span>
+              Valve Name <span className="text-red-500">*</span>
             </label>
             <input
               id="zone-name"
@@ -116,7 +116,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
           Cancel
         </button>
         <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
-          {saving ? 'Saving…' : initial?.id ? 'Save Zone' : 'Add Zone'}
+          {saving ? 'Saving…' : initial?.id ? 'Save Valve' : 'Add Valve'}
         </button>
       </div>
     </form>

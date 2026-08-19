@@ -138,7 +138,7 @@ const conflict = findScheduleConflict({
 }, existing);
 const message = conflictMessage(conflict, 'Courts', '06:15');
 assert(message.includes('Cycle 1'), 'banner names the other cycle');
-assert(message.includes('Zone 5'), 'banner names the other zone');
+assert(message.includes('Valve 5'), 'banner names the other valve');
 assert(message.includes('Courts'), 'banner names the other program');
 assert(message.includes('Next available: 6:15 AM'), 'banner includes next available');
 
@@ -174,8 +174,8 @@ assert(
 );
 const crossMessage = conflictMessage(otherProgramExisting[0], 'Courts');
 assert(
-  crossMessage.includes('Zone 1') && crossMessage.includes('Lawns'),
-  'banner names other zone and program',
+  crossMessage.includes('Valve 1') && crossMessage.includes('Lawns'),
+  'banner names other valve and program',
 );
 
 console.log('Backup JSON vs HTML');
@@ -226,9 +226,9 @@ assert(html.includes('06:15'), '24-hour end time');
 assert(html.includes('<th>Duration (Min)</th>'), 'duration unit is in the header');
 assert(html.includes('<th>Daily runtime (Min)</th>'), 'daily runtime unit is in the header');
 assert(!html.includes('15 Min'), 'cells do not repeat Min');
-assert(html.includes('Court'), 'zone short name');
+assert(html.includes('Court'), 'valve short name');
 assert(html.includes('M-W'), 'compact days');
-const zoneIdx = html.indexOf('<th>Zone #</th>');
+const zoneIdx = html.indexOf('<th>Valve #</th>');
 const startIdx = html.indexOf('<th>Start</th>');
 const endIdx = html.indexOf('<th>End</th>');
 const daysIdx = html.indexOf('<th>Days</th>');
@@ -242,9 +242,9 @@ assert(html.includes('print-color-adjust: exact'), 'print keeps row colors');
 assert(html.includes('&lt;b&gt;soak&lt;/b&gt;'), 'HTML notes cannot inject markup');
 assert(!html.includes('<b>soak</b>'), 'raw HTML notes are not kept');
 assert(html.includes('cannot restore') || html.includes('not a restore backup'), 'HTML labeled as non-restore');
-assert(html.includes('Runtime by zone'), 'zone runtime section');
-assert(html.includes('Daily min'), 'daily minutes per zone');
-assert(html.includes('Weekly min'), 'weekly minutes per zone');
+assert(html.includes('Runtime by valve'), 'valve runtime section');
+assert(html.includes('Daily min'), 'daily minutes per valve');
+assert(html.includes('Weekly min'), 'weekly minutes per valve');
 assert(html.includes('Minutes by day'), 'minutes by day section');
 assert(html.includes('>30<'), 'weekly minutes total 15 x 2 days');
 assert(buildScheduleHtml([]).includes('No active schedules.'), 'empty schedule message');
@@ -265,9 +265,9 @@ const weeklyHtml = buildScheduleHtml({
 assert(weeklyHtml.includes('By week'), 'weekly grid section');
 assert(weeklyHtml.includes('06:00'), 'weekly grid 24-hour start');
 assert(weeklyHtml.includes('06:15'), 'weekly grid 24-hour end');
-assert(weeklyHtml.includes('Zone 5 · Court'), 'weekly grid zone name');
+assert(weeklyHtml.includes('Valve 5 · Court'), 'weekly grid valve name');
 
-console.log('Zone numbers');
+console.log('Valve numbers');
 const zoneRows = [
   { id: 'a', program_id: 'p1', zone_number: 1, name: 'Zone 1 · Front' },
   { id: 'b', program_id: 'p2', zone_number: 3, name: 'Zone 3 · Lawn' },

@@ -31,7 +31,7 @@ export async function loadSampleData() {
       const zone = {
         id: crypto.randomUUID(),
         program_id: program.id,
-        name: `Zone ${zoneSeed.valve} · ${zoneSeed.name}`,
+        name: `Valve ${zoneSeed.valve} · ${zoneSeed.name}`,
         zone_number: zoneSeed.valve,
         color: zoneSeed.color ?? program.color,
         status: "active",

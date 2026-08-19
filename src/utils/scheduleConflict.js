@@ -82,7 +82,7 @@ export function conflictMessage(conflict, programName, nextAvailable) {
   const otherProgram = conflict.program?.name ?? programName;
   const zoneLabel = conflict.zone
     ? getZoneDisplayName(conflict.zone, otherProgram)
-    : 'another zone';
+    : 'another valve';
   const programPart = otherProgram ? ` in ${otherProgram}` : '';
   let message = `This schedule overlaps ${formatCycleLabel(conflict.cycle)} on ${zoneLabel}${programPart} (${formatTime(conflict.start_time)} – ${formatTime(end)}).`;
   if (nextAvailable) {
@@ -118,7 +118,7 @@ export async function getSchedulesForProgram(programId) {
 
 export async function assertNoScheduleConflict(schedule, { excludeId, programName } = {}) {
   const zone = await zonesRepository.getById(schedule.zone_id);
-  if (!zone) throw new Error('Zone not found.');
+  if (!zone) throw new Error('Valve not found.');
 
   const existing = await getAllSchedulesForConflict();
   const conflict = findScheduleConflict({ ...schedule, id: excludeId ?? schedule.id }, existing);

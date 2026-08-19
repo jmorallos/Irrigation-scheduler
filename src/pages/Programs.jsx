@@ -108,7 +108,7 @@ export default function Programs() {
 
           {savedNotice && (
             <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-              {`Saved "${savedNotice}" with its zones and cycles.`}
+              {`Saved "${savedNotice}" with its valves and cycles.`}
             </div>
           )}
 
@@ -119,7 +119,7 @@ export default function Programs() {
                 <tr className="text-white">
                   <th onClick={() => cycle('letter')} className={`${TH_PROGRAMS} w-10`} aria-label="Controller program"></th>
                   <th onClick={() => cycle('name')} className={TH_PROGRAMS}>Program Name</th>
-                  <th onClick={() => cycle('zones')} className={`${TH_PROGRAMS} hidden sm:table-cell`}>Zones</th>
+                  <th onClick={() => cycle('zones')} className={`${TH_PROGRAMS} hidden sm:table-cell`}>Valves</th>
                   <th onClick={() => cycle('status')} className={TH_PROGRAMS}>Status</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
@@ -161,7 +161,7 @@ export default function Programs() {
                             <p className="text-xs text-slate-400 truncate mt-0.5">{program.description}</p>
                           ) : (
                             <p className="text-xs text-slate-400 mt-0.5 sm:hidden">
-                              <ZoneCount programId={program.id} /> zone(s)
+                              <ZoneCount programId={program.id} /> valve(s)
                             </p>
                           )}
                         </div>
@@ -226,7 +226,7 @@ export default function Programs() {
         <ConfirmDialog
           title={`Delete "${deleting.name}"?`}
           message="This action cannot be undone."
-          detail={`This will also delete:\n• ${deleteCounts.zones} zone${deleteCounts.zones !== 1 ? 's' : ''}\n• ${deleteCounts.schedules} schedule${deleteCounts.schedules !== 1 ? 's' : ''}`}
+          detail={`This will also delete:\n• ${deleteCounts.zones} valve${deleteCounts.zones !== 1 ? 's' : ''}\n• ${deleteCounts.schedules} schedule${deleteCounts.schedules !== 1 ? 's' : ''}`}
           confirmLabel="Delete"
           onConfirm={async () => { await deleteProgram(deleting.id); setDeleting(null); }}
           onCancel={() => setDeleting(null)}
