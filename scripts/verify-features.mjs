@@ -3,6 +3,7 @@ import { parseBackupFile, validateBackup } from '../src/utils/backupUtils.js';
 import { formatFileSize } from '../src/utils/imageUtils.js';
 import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
+import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { isZoneNumberTaken, nextZoneNumber, takenZoneNumbers } from '../src/utils/zoneIdentity.js';
 
 let passed = 0;
@@ -301,6 +302,12 @@ assert(
   takenZoneNumbers(zoneRows).includes(1) && takenZoneNumbers(zoneRows).includes(3),
   'taken list includes other programs',
 );
+
+console.log('HSV color');
+const roundtrip = hsvToHex(hexToHsv('#2563eb'));
+assert(roundtrip === '#2563eb', `hex roundtrip (got ${roundtrip})`);
+assert(hsvToHex({ h: 0, s: 0, v: 1 }) === '#ffffff', 'white');
+assert(hsvToHex({ h: 0, s: 0, v: 0 }) === '#000000', 'black');
 
 console.log('');
 if (failed) {
