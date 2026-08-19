@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
@@ -9,45 +9,56 @@ import { soakMinutesFromHours } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
-import { useColumnAlign } from '../hooks/useColumnAlign';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
-const MAIN_ALIGN = {
-  program: 'left',
-  days: 'left',
-  zoneNum: 'left',
-  zoneName: 'left',
-  start: 'left',
-  duration: 'left',
-  end: 'left',
-  soakMin: 'left',
-  notes: 'left',
-  runtime: 'left',
-};
-
-const WEEK_ALIGN = {
-  zone: 'left',
-  mon: 'center',
-  tue: 'center',
-  wed: 'center',
-  thu: 'center',
-  fri: 'center',
-  sat: 'center',
-  sun: 'center',
-};
-
 const TH_MAIN =
-  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900';
+
+const TH_SORT =
+  `${TH_MAIN} select-none cursor-pointer [-webkit-tap-highlight-color:transparent]`;
+
+function programSortKey(row) {
+  return `${(row.program.controller_program ?? '').toUpperCase()}\0${(row.program.name ?? '').toLowerCase()}`;
+}
+
+function valveNameSortKey(row) {
+  return (getZoneShortName(row.zone) || '').toLowerCase();
+}
+
+function sortMark(sort, key) {
+  if (sort.key !== key) return '';
+  return sort.dir === 'asc' ? ' ↑' : ' ↓';
+}
 
 export default function WeeklySchedule() {
   const { groups, loading: weekLoading } = useWeeklySchedule();
   const { rows, loading: tableLoading } = useMainSchedule();
-  const { cycle, cellClass } = useColumnAlign('schedule-main-align', MAIN_ALIGN);
-  const { cycle: cycleWeek, cellClass: weekClass, flexClass: weekFlex } = useColumnAlign('schedule-week-align', WEEK_ALIGN);
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
   const today = getTodayKey();
   const loading = weekLoading || tableLoading;
+
+  const displayRows = useMemo(() => {
+    if (!sort.key) return rows;
+    const sorted = [...rows].sort((a, b) => {
+      let cmp = 0;
+      if (sort.key === 'program') cmp = programSortKey(a).localeCompare(programSortKey(b));
+      else if (sort.key === 'zoneName') cmp = valveNameSortKey(a).localeCompare(valveNameSortKey(b));
+      else if (sort.key === 'start') cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+      if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+      return cmp;
+    });
+    return sort.dir === 'desc' ? sorted.reverse() : sorted;
+  }, [rows, sort]);
+
+  const toggleSort = (key) => {
+    setSort(prev => (
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' }
+    ));
+  };
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading schedule…</div>;
 
@@ -77,26 +88,32 @@ export default function WeeklySchedule() {
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-white">
-                    <th onClick={() => cycle('program')} className={TH_MAIN}>Program</th>
-                    <th onClick={() => cycle('zoneNum')} className={TH_MAIN}>Valve #</th>
-                    <th onClick={() => cycle('zoneName')} className={TH_MAIN}>Valve Name</th>
-                    <th onClick={() => cycle('start')} className={TH_MAIN}>Start</th>
-                    <th onClick={() => cycle('end')} className={TH_MAIN}>End</th>
-                    <th onClick={() => cycle('duration')} className={TH_MAIN}>Duration (Min)</th>
-                    <th onClick={() => cycle('soakMin')} className={TH_MAIN}>Soak (Min)</th>
-                    <th onClick={() => cycle('runtime')} className={TH_MAIN}>Daily runtime (Min)</th>
-                    <th onClick={() => cycle('days')} className={TH_MAIN}>Days</th>
-                    <th onClick={() => cycle('notes')} className={TH_MAIN}>Notes</th>
+                    <th onClick={() => toggleSort('program')} className={TH_SORT}>
+                      Program{sortMark(sort, 'program')}
+                    </th>
+                    <th className={TH_MAIN}>Valve #</th>
+                    <th onClick={() => toggleSort('zoneName')} className={TH_SORT}>
+                      Valve Name{sortMark(sort, 'zoneName')}
+                    </th>
+                    <th onClick={() => toggleSort('start')} className={TH_SORT}>
+                      Start{sortMark(sort, 'start')}
+                    </th>
+                    <th className={TH_MAIN}>End</th>
+                    <th className={TH_MAIN}>Duration (Min)</th>
+                    <th className={TH_MAIN}>Soak (Min)</th>
+                    <th className={TH_MAIN}>Daily runtime (Min)</th>
+                    <th className={TH_MAIN}>Days</th>
+                    <th className={TH_MAIN}>Notes</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(row => (
+                  {displayRows.map(row => (
                     <tr
                       key={row.id}
                       className={`border-t ${row.theme.border}`}
                       style={{ backgroundColor: row.theme.rowHex, borderColor: row.theme.borderHex }}
                     >
-                      <td className={`px-3 py-3 whitespace-nowrap ${cellClass('program')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left">
                         <Link
                           to={`/programs/${row.program.id}`}
                           className="inline-flex items-center hover:opacity-80"
@@ -106,31 +123,31 @@ export default function WeeklySchedule() {
                           <ProgramBadge code={row.program.controller_program} color={row.program.color} size="sm" />
                         </Link>
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900 ${cellClass('zoneNum')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {row.zoneNumber ?? '—'}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-navy-900 ${cellClass('zoneName')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left text-navy-900">
                         {getZoneShortName(row.zone)}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono font-semibold text-navy-900 ${cellClass('start')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {formatTime24(row.schedule.start_time)}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('end')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {formatTime24(getEndTime(row.schedule.start_time, row.schedule.duration_minutes))}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('duration')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.schedule.duration_minutes}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('soakMin')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('runtime')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.dailyRuntime == null ? '—' : row.dailyRuntime}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap font-mono text-navy-900 ${cellClass('days')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {formatDaysCompact(row.schedule.days_of_week)}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-slate-600 ${cellClass('notes')}`}>
+                      <td className="px-3 py-3 whitespace-nowrap text-left text-slate-600">
                         {row.schedule.notes || '—'}
                       </td>
                     </tr>
@@ -156,8 +173,7 @@ export default function WeeklySchedule() {
               <thead>
                 <tr className="text-white text-sm sm:text-base">
                   <th
-                    onClick={() => cycleWeek('zone')}
-                    className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)] select-none [-webkit-tap-highlight-color:transparent]`}
+                    className={`${ZONE_COL} sticky top-0 z-30 text-left py-3.5 font-bold uppercase tracking-wider shadow-[4px_0_8px_-4px_rgba(0,0,0,0.25)]`}
                     style={{ backgroundColor: '#0a2540' }}
                   >
                     Valve
@@ -165,12 +181,11 @@ export default function WeeklySchedule() {
                   {DAY_ORDER.map(day => (
                     <th
                       key={day}
-                      onClick={() => cycleWeek(day)}
-                      className={`sticky top-0 z-20 px-2 py-3.5 text-center font-bold uppercase tracking-wider select-none [-webkit-tap-highlight-color:transparent] ${
+                      className={`sticky top-0 z-20 px-2 py-3.5 text-left font-bold uppercase tracking-wider ${
                         day === today ? 'bg-navy-800' : 'bg-navy-900'
                       }`}
                     >
-                      <span className="inline-flex flex-col items-center">
+                      <span className="inline-flex flex-col items-start">
                         {DAY_LABELS[day]}
                         {day === today && <span className="w-1 h-1 rounded-full bg-blue-300 mt-1 block" />}
                       </span>
@@ -186,12 +201,12 @@ export default function WeeklySchedule() {
                   <Fragment key={group.program.id}>
                     <tr className={gi > 0 ? 'border-t-2 border-slate-200' : ''}>
                       <td
-                        className={`${ZONE_COL} py-2.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)] ${weekClass('zone')}`}
+                        className={`${ZONE_COL} py-2.5 text-left shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
                         style={{ backgroundColor: theme.headerHex }}
                       >
                         <Link
                           to={`/programs/${group.program.id}`}
-                          className={`flex items-center gap-2 min-w-0 text-sm font-semibold text-navy-900 hover:opacity-80 transition-opacity ${weekFlex('zone')}`}
+                          className="flex items-center justify-start gap-2 min-w-0 text-sm font-semibold text-navy-900 hover:opacity-80 transition-opacity"
                           title={group.program.name}
                         >
                           {group.program.controller_program && (
@@ -218,7 +233,7 @@ export default function WeeklySchedule() {
                       return (
                         <tr key={row.zone.id} className={`border-t ${zoneTheme.border} ${rowBg}`} style={{ borderColor: zoneTheme.borderHex }}>
                           <td
-                            className={`${ZONE_COL} py-3.5 text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)] ${weekClass('zone')}`}
+                            className={`${ZONE_COL} py-3.5 text-left text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
                             style={{ backgroundColor: rowHex }}
                             title={row.zone.name}
                           >
@@ -234,7 +249,7 @@ export default function WeeklySchedule() {
                             return (
                               <td
                                 key={day}
-                                className={`px-2 py-3.5 whitespace-nowrap ${weekClass(day)} ${
+                                className={`px-2 py-3.5 whitespace-nowrap text-left ${
                                   day === today ? todayCellBg : rowBg
                                 }`}
                                 style={{ backgroundColor: day === today ? todayCellBgHex : rowHex }}
