@@ -1,4 +1,4 @@
-import { findScheduleConflict, findNextAvailableStart, conflictMessage } from '../src/utils/scheduleConflict.js';
+import { findScheduleConflict, findNextAvailableStart, defaultStartForNewCycle, conflictMessage } from '../src/utils/scheduleConflict.js';
 import { parseBackupFile, validateBackup } from '../src/utils/backupUtils.js';
 import { formatFileSize } from '../src/utils/imageUtils.js';
 import { formatMinutes } from '../src/utils/formatMinutes.js';
@@ -176,6 +176,27 @@ const crossMessage = conflictMessage(otherProgramExisting[0], 'Courts');
 assert(
   crossMessage.includes('Valve 1') && crossMessage.includes('Lawns'),
   'banner names other valve and program',
+);
+assert(
+  defaultStartForNewCycle({
+    durationMinutes: 15,
+    existingSchedules: [{
+      id: 'hour',
+      start_time: '04:00',
+      duration_minutes: 60,
+      days_of_week: ['mon'],
+      status: 'active',
+    }],
+  }) === '05:00',
+  'new cycle start follows a 04:00 1-hour run',
+);
+assert(
+  defaultStartForNewCycle({ durationMinutes: 15, existingSchedules: [] }) === '06:00',
+  'empty calendar keeps 06:00',
+);
+assert(
+  defaultStartForNewCycle({ durationMinutes: 15, existingSchedules: existing }) === '06:15',
+  'new cycle start follows 06:00–06:15',
 );
 
 console.log('Backup JSON vs HTML');

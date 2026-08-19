@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
 import {
   getAllSchedulesForConflict,
   findScheduleConflict,
   findNextAvailableStart,
+  defaultStartForNewCycle,
   conflictMessage,
 } from '../utils/scheduleConflict';
 
 export default function ScheduleForm({ initial, programId, programName, zoneId, onSubmit, onCancel }) {
+  const isNew = !initial?.id;
+  const startTouched = useRef(false);
   const [startTime, setStartTime] = useState(initial?.start_time ?? '06:00');
   const [duration, setDuration] = useState(String(initial?.duration_minutes ?? 15));
   const [days, setDays] = useState(initial?.days_of_week ?? []);
@@ -33,6 +36,16 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
     });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!isNew || !existing || startTouched.current) return;
+    const suggested = defaultStartForNewCycle({
+      durationMinutes: parseInt(duration, 10),
+      daysOfWeek: days,
+      existingSchedules: existing,
+    });
+    setStartTime(prev => (prev === suggested ? prev : suggested));
+  }, [existing, isNew]);
 
   useEffect(() => {
     if (!existing) return undefined;
@@ -125,7 +138,10 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
               id="sched-time"
               type="time"
               value={startTime}
-              onChange={e => setStartTime(e.target.value)}
+              onChange={e => {
+                startTouched.current = true;
+                setStartTime(e.target.value);
+              }}
               className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
             />
             {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}

@@ -77,6 +77,35 @@ export function findNextAvailableStart(candidate, existingSchedules) {
   return null;
 }
 
+export function defaultStartForNewCycle({
+  durationMinutes = 15,
+  daysOfWeek,
+  existingSchedules,
+  fallback = '06:00',
+} = {}) {
+  const active = (existingSchedules ?? []).filter(item => item.status !== 'inactive');
+  if (active.length === 0) return fallback;
+
+  const duration = Number(durationMinutes);
+  const mins = Number.isFinite(duration) && duration > 0 ? duration : 15;
+  const days = daysOfWeek?.length ? daysOfWeek : DAY_ORDER;
+
+  let origin = active[0].start_time;
+  for (const item of active) {
+    if (item.start_time < origin) origin = item.start_time;
+  }
+
+  const candidate = {
+    start_time: origin,
+    duration_minutes: mins,
+    days_of_week: days,
+    status: 'active',
+  };
+
+  if (!findScheduleConflict(candidate, existingSchedules)) return origin;
+  return findNextAvailableStart(candidate, existingSchedules) ?? fallback;
+}
+
 export function conflictMessage(conflict, programName, nextAvailable) {
   const end = getEndTime(conflict.start_time, conflict.duration_minutes);
   const otherProgram = conflict.program?.name ?? programName;
