@@ -1,5 +1,5 @@
 import { programsRepository } from '../db/programsRepository';
-import { zonesRepository } from '../db/zonesRepository';
+import { loadProgramHydratedZones } from './valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { DAY_ORDER } from './dateUtils';
 import { withCycleNumbers, getZoneNumber } from './scheduleUtils';
@@ -10,7 +10,7 @@ export async function loadWeeklyScheduleGroups() {
   const result = [];
 
   for (const program of programs) {
-    const zones = await zonesRepository.getByProgramId(program.id);
+    const zones = await loadProgramHydratedZones(program.id);
     zones.sort((a, b) => {
       const numA = getZoneNumber(a) ?? 999;
       const numB = getZoneNumber(b) ?? 999;

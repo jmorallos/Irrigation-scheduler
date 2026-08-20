@@ -1,39 +1,102 @@
 import { useState, useEffect, useCallback } from 'react';
+import { valvesRepository } from '../db/valvesRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
-import { getZoneNumber } from '../utils/scheduleUtils';
-import { isZoneNumberTaken, zoneNumberConflictMessage } from '../utils/zoneIdentity';
+import {
+  isValveNumberTaken,
+  valveNumberConflictMessage,
+} from '../utils/zoneIdentity';
+import { hydrateZones, programHasValve } from '../utils/valveRecords';
 
-export async function applyZoneIdentityUpdate(id, data) {
-  const { profileImageChange, ...zoneData } = data;
-  const existing = await zonesRepository.getById(id);
-  const prevNumber = getZoneNumber(existing);
-  const nextNumber = zoneData.zone_number ?? prevNumber;
-  const all = await zonesRepository.getAll();
-  const siblingIds = all
-    .filter(zone => zone.id !== id && getZoneNumber(zone) === prevNumber)
-    .map(zone => zone.id);
-  if (isZoneNumberTaken(all, nextNumber, [id, ...siblingIds])) {
-    throw new Error(zoneNumberConflictMessage(nextNumber));
+export async function updateValveCatalog(valveId, data) {
+  const { profileImageChange, ...valveData } = data;
+  const existing = await valvesRepository.getById(valveId);
+  if (!existing) throw new Error('Valve not found.');
+
+  const allValves = await valvesRepository.getAll();
+  const nextNumber = valveData.zone_number ?? existing.zone_number;
+  if (isValveNumberTaken(allValves, nextNumber, valveId)) {
+    throw new Error(valveNumberConflictMessage(nextNumber));
   }
+
   const imageId = await applyProfileImageChange(
-    'zone',
-    id,
+    'valve',
+    valveId,
     profileImageChange,
-    existing?.profile_image_id ?? null,
+    existing.profile_image_id ?? null,
   );
-  const updated = await zonesRepository.update(id, { ...zoneData, profile_image_id: imageId });
-  for (const siblingId of siblingIds) {
-    await zonesRepository.update(siblingId, {
-      name: updated.name,
-      color: updated.color,
-      zone_number: updated.zone_number,
-      profile_image_id: updated.profile_image_id,
-    });
+
+  return valvesRepository.update(valveId, {
+    ...valveData,
+    profile_image_id: imageId,
+  });
+}
+
+export async function createValveCatalog(data) {
+  const { profileImageChange, status: _status, ...valveData } = data;
+  const allValves = await valvesRepository.getAll();
+  if (isValveNumberTaken(allValves, valveData.zone_number)) {
+    throw new Error(valveNumberConflictMessage(valveData.zone_number));
   }
-  return updated;
+
+  const valve = await valvesRepository.create({ ...valveData, profile_image_id: null });
+  const imageId = await applyProfileImageChange('valve', valve.id, profileImageChange, null);
+  if (imageId !== valve.profile_image_id) {
+    await valvesRepository.update(valve.id, { profile_image_id: imageId });
+  }
+  return valvesRepository.getById(valve.id);
+}
+
+export async function deleteValveCatalog(valveId) {
+  const memberships = await zonesRepository.getByValveId(valveId);
+  if (memberships.length > 0) {
+    throw new Error('Remove this valve from all programs before deleting it.');
+  }
+  const valve = await valvesRepository.getById(valveId);
+  if (valve?.profile_image_id) {
+    await mediaRepository.deleteById(valve.profile_image_id);
+  }
+  await valvesRepository.delete(valveId);
+}
+
+export async function attachValveToProgram(valveId, programId) {
+  const memberships = await zonesRepository.getAll();
+  if (programHasValve(memberships, programId, valveId)) {
+    throw new Error('This valve is already in the program.');
+  }
+  return zonesRepository.create({
+    program_id: programId,
+    valve_id: valveId,
+    status: 'active',
+  });
+}
+
+async function loadHydratedProgramZones(programId) {
+  const [memberships, valves] = await Promise.all([
+    zonesRepository.getByProgramId(programId),
+    valvesRepository.getAll(),
+  ]);
+  const hydrated = hydrateZones(memberships, valves);
+  hydrated.sort((a, b) => {
+    const numA = a.zone_number ?? 999;
+    const numB = b.zone_number ?? 999;
+    if (numA !== numB) return numA - numB;
+    return (a.name ?? '').localeCompare(b.name ?? '');
+  });
+  return hydrated;
+}
+
+/** @deprecated use updateValveCatalog */
+export async function applyZoneIdentityUpdate(id, data) {
+  const membership = await zonesRepository.getById(id);
+  if (!membership?.valve_id) throw new Error('Valve not found.');
+  await updateValveCatalog(membership.valve_id, data);
+  if (data.status != null) {
+    await zonesRepository.update(id, { status: data.status });
+  }
+  return zonesRepository.getById(id);
 }
 
 export function useZones(programId) {
@@ -44,14 +107,7 @@ export function useZones(programId) {
   const load = useCallback(async () => {
     if (!programId) { setLoading(false); return; }
     try {
-      const data = await zonesRepository.getByProgramId(programId);
-      data.sort((a, b) => {
-        const numA = getZoneNumber(a) ?? 999;
-        const numB = getZoneNumber(b) ?? 999;
-        if (numA !== numB) return numA - numB;
-        return a.name.localeCompare(b.name);
-      });
-      setZones(data);
+      setZones(await loadHydratedProgramZones(programId));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -62,31 +118,31 @@ export function useZones(programId) {
   useEffect(() => { load(); }, [load]);
 
   const createZone = useCallback(async (data) => {
-    const { profileImageChange, ...zoneData } = data;
-    const all = await zonesRepository.getAll();
-    if (isZoneNumberTaken(all, zoneData.zone_number)) {
-      throw new Error(zoneNumberConflictMessage(zoneData.zone_number));
-    }
-    const zone = await zonesRepository.create({ program_id: programId, ...zoneData, profile_image_id: null });
-    const imageId = await applyProfileImageChange('zone', zone.id, profileImageChange, null);
-    if (imageId !== zone.profile_image_id) {
-      await zonesRepository.update(zone.id, { profile_image_id: imageId });
-    }
+    const valve = await createValveCatalog(data);
+    await attachValveToProgram(valve.id, programId);
+    await load();
+  }, [programId, load]);
+
+  const addExistingValve = useCallback(async (valveId) => {
+    await attachValveToProgram(valveId, programId);
     await load();
   }, [programId, load]);
 
   const updateZone = useCallback(async (id, data) => {
-    await applyZoneIdentityUpdate(id, data);
+    const membership = await zonesRepository.getById(id);
+    if (!membership) throw new Error('Valve not found.');
+    if (membership.valve_id) {
+      await updateValveCatalog(membership.valve_id, data);
+    }
+    if (data.status != null) {
+      await zonesRepository.update(id, { status: data.status });
+    }
     await load();
   }, [load]);
 
   const deleteZone = useCallback(async (id) => {
-    const zone = await zonesRepository.getById(id);
-    if (zone?.profile_image_id) {
-      await mediaRepository.deleteById(zone.profile_image_id);
-    }
     const schedules = await schedulesRepository.getByZoneId(id);
-    for (const s of schedules) await schedulesRepository.delete(s.id);
+    for (const schedule of schedules) await schedulesRepository.delete(schedule.id);
     await zonesRepository.delete(id);
     await load();
   }, [load]);
@@ -96,24 +152,35 @@ export function useZones(programId) {
     await load();
   }, [load]);
 
-  return { zones, loading, error, reload: load, createZone, updateZone, deleteZone, toggleStatus };
+  return {
+    zones,
+    loading,
+    error,
+    reload: load,
+    createZone,
+    addExistingValve,
+    updateZone,
+    deleteZone,
+    toggleStatus,
+  };
 }
 
 export function useAllZones() {
   const [zones, setZones] = useState([]);
+  const [valves, setValves] = useState([]);
+  const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await zonesRepository.getAll();
-      data.sort((a, b) => {
-        const numA = getZoneNumber(a) ?? 999;
-        const numB = getZoneNumber(b) ?? 999;
-        if (numA !== numB) return numA - numB;
-        return (a.name ?? '').localeCompare(b.name ?? '');
-      });
-      setZones(data);
+      const [rawMemberships, catalog] = await Promise.all([
+        zonesRepository.getAll(),
+        valvesRepository.getAll(),
+      ]);
+      setMemberships(rawMemberships);
+      setValves(catalog);
+      setZones(hydrateZones(rawMemberships, catalog));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -123,10 +190,35 @@ export function useAllZones() {
 
   useEffect(() => { load(); }, [load]);
 
-  const updateZone = useCallback(async (id, data) => {
-    await applyZoneIdentityUpdate(id, data);
+  const createValve = useCallback(async (data) => {
+    await createValveCatalog(data);
     await load();
   }, [load]);
 
-  return { zones, loading, error, reload: load, updateZone };
+  const updateValve = useCallback(async (valveId, data) => {
+    await updateValveCatalog(valveId, data);
+    await load();
+  }, [load]);
+
+  const deleteValve = useCallback(async (valveId) => {
+    await deleteValveCatalog(valveId);
+    await load();
+  }, [load]);
+
+  return {
+    zones,
+    valves,
+    memberships,
+    loading,
+    error,
+    reload: load,
+    createValve,
+    updateValve,
+    deleteValve,
+    updateZone: async (membershipId, data) => {
+      const membership = await zonesRepository.getById(membershipId);
+      if (membership?.valve_id) await updateValveCatalog(membership.valve_id, data);
+      await load();
+    },
+  };
 }

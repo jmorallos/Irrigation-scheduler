@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Power, Clock, Bookmark, ChevronDown } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
-import { zonesRepository } from '../db/zonesRepository';
 import { useZones } from '../hooks/useZones';
 import { useSchedules } from '../hooks/useSchedules';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
@@ -17,7 +16,9 @@ import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
-import { nextZoneNumber, takenZoneNumbers } from '../utils/zoneIdentity';
+import AddValveToProgram from '../components/AddValveToProgram';
+import { valvesRepository } from '../db/valvesRepository';
+import { nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
 import { useSaves } from '../hooks/useSaves';
@@ -62,7 +63,7 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
     { label: 'Edit valve', icon: Pencil, onClick: onEditZone },
     { label: 'Save valve', icon: Bookmark, onClick: onSaveZone },
     { label: zone.status === 'active' ? 'Deactivate valve' : 'Activate valve', icon: Power, onClick: onToggleZone },
-    { label: 'Delete valve', icon: Trash2, onClick: onDeleteZone, danger: true },
+    { label: 'Remove from program', icon: Trash2, onClick: onDeleteZone, danger: true },
   ];
 
   const scheduleMenuItems = schedule => [
@@ -341,12 +342,12 @@ export default function ProgramDetail() {
   const [addZone, setAddZone] = useState(false);
   const [editZone, setEditZone] = useState(null);
   const [deleteZone, setDeleteZone] = useState(null);
-  const { zones, createZone, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
+  const { zones, createZone, addExistingValve, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
   const { programs: allPrograms } = usePrograms();
   const { saveProgram, saveZone } = useSaves();
   const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
-  const [allZones, setAllZones] = useState([]);
+  const [catalogValves, setCatalogValves] = useState([]);
   const { selectedDay, clockToday, isClockToday } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, clockToday);
   const { items: todayItems } = useTodaySchedule(selectedDay);
@@ -366,8 +367,8 @@ export default function ProgramDetail() {
 
   useEffect(() => {
     let cancelled = false;
-    zonesRepository.getAll().then(list => {
-      if (!cancelled) setAllZones(list);
+    valvesRepository.getAll().then(list => {
+      if (!cancelled) setCatalogValves(list);
     });
     return () => { cancelled = true; };
   }, [zones]);
@@ -413,16 +414,10 @@ export default function ProgramDetail() {
   if (!program) return null;
 
   const theme = getProgramTheme(program);
-  const existingNumbers = takenZoneNumbers(allZones);
-  const suggestedNumber = nextZoneNumber(allZones);
-  const editExcludeIds = editZone
-    ? [
-        editZone.id,
-        ...allZones
-          .filter(zone => zone.id !== editZone.id && getZoneNumber(zone) === getZoneNumber(editZone))
-          .map(zone => zone.id),
-      ]
-    : [];
+  const existingNumbers = takenValveNumbers(catalogValves);
+  const suggestedNumber = nextValveNumber(catalogValves);
+  const programValveIds = new Set(zones.map(zone => zone.valve_id).filter(Boolean));
+  const editExcludeIds = editZone?.valve_id ? [editZone.valve_id] : [];
 
   return (
     <div>
@@ -602,11 +597,27 @@ export default function ProgramDetail() {
 
       {addZone && (
         <Modal title="Add Valve" onClose={() => setAddZone(false)} size="sm">
-          <ZoneForm
-            suggestedNumber={suggestedNumber}
-            existingNumbers={existingNumbers}
-            defaultColor={theme.id}
-            onSubmit={async data => { await createZone(data); setAddZone(false); }}
+          <AddValveToProgram
+            catalogValves={catalogValves}
+            programValveIds={programValveIds}
+            onAddExisting={async (valveId) => {
+              await addExistingValve(valveId);
+              setAddZone(false);
+            }}
+            onCreateNew={({ onDone }) => (
+              <ZoneForm
+                suggestedNumber={suggestedNumber}
+                existingNumbers={existingNumbers}
+                defaultColor={theme.id}
+                showStatus={false}
+                onSubmit={async data => {
+                  await createZone(data);
+                  onDone();
+                  setAddZone(false);
+                }}
+                onCancel={onDone}
+              />
+            )}
             onCancel={() => setAddZone(false)}
           />
         </Modal>
@@ -616,7 +627,7 @@ export default function ProgramDetail() {
         <Modal title="Edit Valve" onClose={() => setEditZone(null)} size="sm">
           <ZoneForm
             initial={editZone}
-            existingNumbers={takenZoneNumbers(allZones, editExcludeIds)}
+            existingNumbers={takenValveNumbers(catalogValves, editExcludeIds)}
             defaultColor={theme.id}
             onSubmit={async data => { await updateZone(editZone.id, data); setEditZone(null); }}
             onCancel={() => setEditZone(null)}
@@ -626,9 +637,9 @@ export default function ProgramDetail() {
 
       {deleteZone && (
         <ConfirmDialog
-          title={`Delete "${getZoneDisplayName(deleteZone, program.name)}"?`}
-          message="This will also delete all schedules for this valve."
-          confirmLabel="Delete Valve"
+          title={`Remove "${getZoneDisplayName(deleteZone, program.name)}"?`}
+          message="This removes the valve from this program and deletes its cycles here. The catalog valve stays on the Valves page."
+          confirmLabel="Remove from Program"
           onConfirm={async () => { await removeZone(deleteZone.id); setDeleteZone(null); }}
           onCancel={() => setDeleteZone(null)}
         />

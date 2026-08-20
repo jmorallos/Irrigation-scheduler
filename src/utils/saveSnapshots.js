@@ -1,10 +1,12 @@
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
+import { valvesRepository } from '../db/valvesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { savesRepository } from '../db/savesRepository';
 import { formatZoneName, getZoneNumber, getZoneShortName } from './scheduleUtils';
-import { isZoneNumberTaken } from './zoneIdentity';
+import { programHasValve } from './valveRecords';
+import { attachValveToProgram, createValveCatalog } from '../hooks/useZones';
 
 function uniqueName(base, existing) {
   const names = new Set(existing.map(name => name.trim().toLowerCase()));
@@ -217,23 +219,26 @@ export async function restoreProgramSave(save) {
   if (photoId) await programsRepository.update(created.id, { profile_image_id: photoId });
 
   const zoneIds = {};
-  const allZones = await zonesRepository.getAll();
-  const taken = new Set(allZones.map(item => getZoneNumber(item)).filter(n => n != null));
   for (const zone of zones) {
-    let number = getZoneNumber(zone) ?? 1;
-    while (taken.has(number)) number += 1;
-    taken.add(number);
-    const nextZone = await zonesRepository.create({
+    const number = getZoneNumber(zone) ?? 1;
+    let catalogValve = await valvesRepository.getByNumber(number);
+    if (!catalogValve) {
+      catalogValve = await createValveCatalog({
+        zone_number: number,
+        name: zone.name ?? formatZoneName(number, getZoneShortName(zone)),
+        color: zone.color,
+        profileImageChange: { action: 'none' },
+      });
+      const photoId = await restorePhoto(zone.profile_image_id, media, 'valve', catalogValve.id);
+      if (photoId) await valvesRepository.update(catalogValve.id, { profile_image_id: photoId });
+    }
+
+    const membership = await zonesRepository.create({
       program_id: created.id,
-      name: formatZoneName(number, getZoneShortName(zone) || zone.name),
-      zone_number: number,
-      color: zone.color,
+      valve_id: catalogValve.id,
       status: zone.status ?? 'active',
-      profile_image_id: null,
     });
-    zoneIds[zone.id] = nextZone.id;
-    const zonePhoto = await restorePhoto(zone.profile_image_id, media, 'zone', nextZone.id);
-    if (zonePhoto) await zonesRepository.update(nextZone.id, { profile_image_id: zonePhoto });
+    zoneIds[zone.id] = membership.id;
   }
 
   for (const schedule of schedules) {
@@ -260,25 +265,29 @@ export async function restoreZoneSave(save, programId) {
   const identical = await findIdenticalZone(save.payload ?? {}, programId);
   if (identical) return { zone: identical, identical: true };
 
-  const existing = await zonesRepository.getAll();
-  let number = getZoneNumber(zone) ?? 1;
-  while (isZoneNumberTaken(existing, number)) number += 1;
+  const number = getZoneNumber(zone) ?? 1;
+  let catalogValve = await valvesRepository.getByNumber(number);
+  if (!catalogValve) {
+    catalogValve = await createValveCatalog({
+      zone_number: number,
+      name: zone.name ?? formatZoneName(number, getZoneShortName(zone) || zone.name),
+      color: zone.color,
+      profileImageChange: { action: 'none' },
+    });
+    const photoId = await restorePhoto(zone.profile_image_id, media, 'valve', catalogValve.id);
+    if (photoId) await valvesRepository.update(catalogValve.id, { profile_image_id: photoId });
+  }
 
-  const created = await zonesRepository.create({
-    program_id: programId,
-    name: formatZoneName(number, getZoneShortName(zone) || zone.name),
-    zone_number: number,
-    color: zone.color,
-    status: zone.status ?? 'active',
-    profile_image_id: null,
-  });
+  const memberships = await zonesRepository.getAll();
+  if (programHasValve(memberships, programId, catalogValve.id)) {
+    throw new Error('This valve is already in the program.');
+  }
 
-  const photoId = await restorePhoto(zone.profile_image_id, media, 'zone', created.id);
-  if (photoId) await zonesRepository.update(created.id, { profile_image_id: photoId });
+  const membership = await attachValveToProgram(catalogValve.id, programId);
 
   for (const schedule of schedules) {
     await schedulesRepository.create({
-      zone_id: created.id,
+      zone_id: membership.id,
       start_time: schedule.start_time,
       duration_minutes: schedule.duration_minutes,
       days_of_week: schedule.days_of_week ?? [],
@@ -288,5 +297,6 @@ export async function restoreZoneSave(save, programId) {
     });
   }
 
-  return { zone: created, identical: false };
+  const hydrated = { ...membership, ...catalogValve, valve_id: catalogValve.id, name: catalogValve.name, zone_number: catalogValve.zone_number, color: catalogValve.color, profile_image_id: catalogValve.profile_image_id };
+  return { zone: hydrated, identical: false };
 }

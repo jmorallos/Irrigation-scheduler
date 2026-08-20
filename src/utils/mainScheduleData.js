@@ -1,5 +1,5 @@
 import { programsRepository } from '../db/programsRepository';
-import { zonesRepository } from '../db/zonesRepository';
+import { loadProgramHydratedZones } from './valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { sortProgramsByController } from '../db/programSort';
 import { getZoneNumber } from './scheduleUtils';
@@ -12,7 +12,7 @@ export async function loadMainScheduleRows() {
 
   for (const program of programs) {
     if (program.status !== 'active') continue;
-    const zones = await zonesRepository.getByProgramId(program.id);
+    const zones = await loadProgramHydratedZones(program.id);
 
     for (const zone of zones) {
       if (zone.status !== 'active') continue;

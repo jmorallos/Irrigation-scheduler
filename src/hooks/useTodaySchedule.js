@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { programsRepository } from '../db/programsRepository';
-import { zonesRepository } from '../db/zonesRepository';
+import { loadProgramHydratedZones } from '../utils/valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { getTodayKey } from '../utils/dateUtils';
 import { withCycleNumbers } from '../utils/scheduleUtils';
@@ -20,7 +20,7 @@ export function useTodaySchedule(dayKey) {
       const result = [];
 
       for (const program of programs.filter(p => p.status === 'active')) {
-        const zones = await zonesRepository.getByProgramId(program.id);
+        const zones = await loadProgramHydratedZones(program.id);
         for (const zone of zones.filter(z => z.status === 'active')) {
           const schedules = withCycleNumbers(await schedulesRepository.getByZoneId(zone.id));
           for (const schedule of schedules) {

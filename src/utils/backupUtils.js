@@ -1,9 +1,12 @@
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
+import { valvesRepository } from '../db/valvesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { savesRepository } from '../db/savesRepository';
 import { base64ToBlob, blobToBase64 } from './imageUtils';
+import { hydrateZones, legacyZoneNumber } from './valveRecords';
+import { formatZoneName, getZoneShortName } from './scheduleUtils';
 
 export function parseBackupFile(text) {
   const trimmed = String(text ?? '').trim();
@@ -39,12 +42,20 @@ export function validateBackup(data) {
   const zoneIds = new Set();
   for (const zone of data.zones) {
     if (!zone?.id || !zone?.program_id) {
-      throw new Error('Invalid valve record in backup.');
+      throw new Error('Invalid program valve record in backup.');
     }
     if (!programIds.has(zone.program_id)) {
-      throw new Error(`Valve "${zone.name ?? zone.id}" references a missing program.`);
+      throw new Error('A program valve references a missing program.');
     }
     zoneIds.add(zone.id);
+  }
+
+  if (Array.isArray(data.valves)) {
+    for (const valve of data.valves) {
+      if (!valve?.id || valve.zone_number == null) {
+        throw new Error('Invalid valve catalog record in backup.');
+      }
+    }
   }
 
   for (const schedule of data.schedules) {
@@ -62,6 +73,7 @@ export function validateBackup(data) {
 export async function snapshotAllData() {
   return {
     programs: await programsRepository.getAll(),
+    valves: await valvesRepository.getAll(),
     zones: await zonesRepository.getAll(),
     schedules: await schedulesRepository.getAll(),
     media: await mediaRepository.getAll(),
@@ -117,6 +129,7 @@ export async function clearLiveData() {
   await mediaRepository.clear();
   await schedulesRepository.clear();
   await zonesRepository.clear();
+  await valvesRepository.clear();
   await programsRepository.clear();
 }
 
@@ -126,6 +139,9 @@ async function writeSnapshot(snapshot) {
   }
   for (const program of snapshot.programs) {
     await programsRepository.putRaw(program);
+  }
+  for (const valve of snapshot.valves ?? []) {
+    await valvesRepository.putRaw(valve);
   }
   for (const zone of snapshot.zones) {
     await zonesRepository.putRaw(zone);
@@ -181,13 +197,54 @@ export async function applyBackup(data) {
     }
     await programsRepository.putRaw(row);
   }
-  for (const zone of data.zones) {
-    const row = { ...zone };
-    if (row.profile_image_id && !restoredMediaIds.has(row.profile_image_id)) {
-      row.profile_image_id = null;
-      missingPhotos += 1;
+  const valveByNumber = new Map();
+
+  if (Array.isArray(data.valves)) {
+    for (const valve of data.valves) {
+      const row = { ...valve };
+      if (row.profile_image_id && !restoredMediaIds.has(row.profile_image_id)) {
+        row.profile_image_id = null;
+        missingPhotos += 1;
+      }
+      await valvesRepository.putRaw(row);
+      valveByNumber.set(row.zone_number, row);
     }
-    await zonesRepository.putRaw(row);
+  }
+
+  for (const zone of data.zones) {
+    let membership = { ...zone };
+
+    if (!membership.valve_id) {
+      const number = legacyZoneNumber(zone);
+      let valve = number != null ? valveByNumber.get(number) : null;
+      if (!valve && number != null) {
+        valve = {
+          id: crypto.randomUUID(),
+          zone_number: number,
+          name: zone.name ?? formatZoneName(number, getZoneShortName(zone)),
+          color: zone.color ?? 'emerald',
+          profile_image_id: zone.profile_image_id ?? null,
+          created_at: zone.created_at ?? new Date().toISOString(),
+          updated_at: zone.updated_at ?? new Date().toISOString(),
+        };
+        if (valve.profile_image_id && !restoredMediaIds.has(valve.profile_image_id)) {
+          valve.profile_image_id = null;
+          missingPhotos += 1;
+        }
+        await valvesRepository.putRaw(valve);
+        valveByNumber.set(number, valve);
+      }
+      membership = {
+        id: zone.id,
+        program_id: zone.program_id,
+        valve_id: valve?.id ?? null,
+        status: zone.status ?? 'active',
+        created_at: zone.created_at,
+        updated_at: zone.updated_at,
+      };
+    }
+
+    await zonesRepository.putRaw(membership);
   }
   for (const schedule of data.schedules) {
     await schedulesRepository.putRaw(schedule);

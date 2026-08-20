@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Download, Upload, Trash2, Sprout, X, FileText, ExternalLink } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
+import { valvesRepository } from '../db/valvesRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
@@ -20,7 +21,7 @@ import {
 } from '../utils/backupUtils';
 import { exportPrintableSchedule } from '../utils/scheduleHtmlExport';
 
-const BACKUP_VERSION = 3;
+const BACKUP_VERSION = 4;
 const IMPORT_NOTICE_KEY = 'irrigation-import-notice';
 
 function missingPhotoMessage(count) {
@@ -72,6 +73,7 @@ export default function Settings() {
       version: BACKUP_VERSION,
       exported_at: new Date().toISOString(),
       programs,
+      valves: await valvesRepository.getAll(),
       zones,
       schedules,
       media,

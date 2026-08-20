@@ -4,7 +4,7 @@ import { formatFileSize } from '../src/utils/imageUtils.js';
 import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
-import { isZoneNumberTaken, nextZoneNumber, takenZoneNumbers } from '../src/utils/zoneIdentity.js';
+import { isValveNumberTaken, nextValveNumber, takenValveNumbers } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 
 let passed = 0;
@@ -291,17 +291,17 @@ assert(weeklyHtml.includes('06:15'), 'weekly grid 24-hour end');
 assert(weeklyHtml.includes('Valve 5 · Court'), 'weekly grid valve name');
 
 console.log('Valve numbers');
-const zoneRows = [
-  { id: 'a', program_id: 'p1', zone_number: 1, name: 'Zone 1 · Front' },
-  { id: 'b', program_id: 'p2', zone_number: 3, name: 'Zone 3 · Lawn' },
+const catalogValves = [
+  { id: 'v1', zone_number: 1, name: 'Valve 1 · Front' },
+  { id: 'v3', zone_number: 3, name: 'Valve 3 · Lawn' },
 ];
-assert(isZoneNumberTaken(zoneRows, 1), 'number taken in another program');
-assert(!isZoneNumberTaken(zoneRows, 1, ['a']), 'not taken when editing self');
-assert(!isZoneNumberTaken(zoneRows, 2), 'unused number is free');
-assert(nextZoneNumber(zoneRows) === 2, 'next unused is 2');
+assert(isValveNumberTaken(catalogValves, 1), 'catalog number 1 is taken');
+assert(!isValveNumberTaken(catalogValves, 1, 'v1'), 'not taken when editing self');
+assert(!isValveNumberTaken(catalogValves, 2), 'unused catalog number is free');
+assert(nextValveNumber(catalogValves) === 2, 'next unused catalog number is 2');
 assert(
-  takenZoneNumbers(zoneRows).includes(1) && takenZoneNumbers(zoneRows).includes(3),
-  'taken list includes other programs',
+  takenValveNumbers(catalogValves).includes(1) && takenValveNumbers(catalogValves).includes(3),
+  'taken catalog numbers list',
 );
 
 console.log('HSV color');

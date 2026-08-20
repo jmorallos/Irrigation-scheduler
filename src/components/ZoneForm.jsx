@@ -3,7 +3,15 @@ import ProfileImagePicker from './ProfileImagePicker';
 import { parseZoneName, formatZoneName } from '../utils/scheduleUtils';
 import ColorPresetPicker from './ColorPresetPicker';
 
-export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers = [], suggestedNumber = 1, defaultColor = 'emerald' }) {
+export default function ZoneForm({
+  initial,
+  onSubmit,
+  onCancel,
+  existingNumbers = [],
+  suggestedNumber = 1,
+  defaultColor = 'emerald',
+  showStatus = true,
+}) {
   const parsed = parseZoneName(initial?.name);
   const [zoneNumber, setZoneNumber] = useState(
     String(initial?.zone_number ?? parsed.number ?? suggestedNumber),
@@ -91,6 +99,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
           <p className="text-xs text-red-500 -mt-2">{errors.zoneNumber || errors.name}</p>
         )}
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
+        {showStatus && (
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
           <div className="flex gap-2">
@@ -110,6 +119,7 @@ export default function ZoneForm({ initial, onSubmit, onCancel, existingNumbers 
             ))}
           </div>
         </div>
+        )}
       </div>
       <div className="flex gap-3 mt-6 justify-end">
         <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">

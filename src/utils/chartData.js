@@ -2,6 +2,7 @@ import { DAY_ORDER, DAY_LABELS, getTodayKey } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
+import { loadProgramHydratedZones } from './valveRecords';
 
 /**
  * Minutes by day = sum of active cycle durations on that weekday.
@@ -33,7 +34,7 @@ export async function buildScheduleChartData({
     let todayMinutes = 0;
     let todayStarts = 0;
     let weekMinutes = 0;
-    const zones = await zonesRepository.getByProgramId(program.id);
+    const zones = await loadProgramHydratedZones(program.id);
 
     for (const zone of zones) {
       if (zone.status !== 'active') continue;

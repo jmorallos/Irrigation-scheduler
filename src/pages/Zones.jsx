@@ -1,17 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Pencil, Eye } from 'lucide-react';
+import { MapPin, Pencil, Eye, Plus, Trash2 } from 'lucide-react';
 import { useAllZones } from '../hooks/useZones';
 import { usePrograms } from '../hooks/usePrograms';
 import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import ZoneForm from '../components/ZoneForm';
 import ProgramLogo from '../components/ProgramLogo';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
-import { getZoneDisplayName, getZoneNumber, getZoneShortName } from '../utils/scheduleUtils';
-import { groupZonesByNumber, takenZoneNumbers } from '../utils/zoneIdentity';
+import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
+import { groupValvesCatalog, nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
 import { getZoneTheme } from '../utils/programColors';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
@@ -27,30 +28,40 @@ const TH_ZONES =
 
 export default function Zones() {
   const navigate = useNavigate();
-  const { zones, loading, error, reload, updateZone } = useAllZones();
+  const { valves, memberships, loading, error, reload, createValve, updateValve, deleteValve } = useAllZones();
   const { programs } = usePrograms();
   const { cycle, cellClass, flexClass } = useColumnAlign('zones-align', ZONES_ALIGN);
+  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   const programsById = useMemo(
     () => new Map(programs.map(program => [program.id, program])),
     [programs],
   );
 
-  const groups = useMemo(() => groupZonesByNumber(zones), [zones]);
-
-  const editExcludeIds = editing
-    ? editing.members.map(zone => zone.id)
-    : [];
+  const groups = useMemo(() => groupValvesCatalog(valves, memberships), [valves, memberships]);
+  const suggestedNumber = useMemo(() => nextValveNumber(valves), [valves]);
 
   if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading valves…</div>;
   if (error) return <PageError message={`Could not load valves: ${error}`} onRetry={reload} />;
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
-        <p className="mt-1 text-sm text-slate-500">Each valve number is unique. Edit a valve once and it updates everywhere.</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Create numbered valves here, then add them to programs. Edit once — updates everywhere.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Add Valve
+        </button>
       </div>
 
       {groups.length === 0 ? (
@@ -58,7 +69,8 @@ export default function Zones() {
           <EmptyState
             icon={MapPin}
             title="No valves yet"
-            description="Add a valve from a program. Valve numbers cannot be reused."
+            description="Create valves here first, then add them to programs from the program page."
+            action={{ label: 'Add Valve', onClick: () => setCreating(true) }}
           />
         </div>
       ) : (
@@ -71,46 +83,36 @@ export default function Zones() {
                   <th onClick={() => cycle('number')} className={TH_ZONES}>Valve #</th>
                   <th onClick={() => cycle('name')} className={TH_ZONES}>Valve Name</th>
                   <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
-                  <th onClick={() => cycle('program')} className={TH_ZONES}>Program</th>
+                  <th onClick={() => cycle('program')} className={TH_ZONES}>Programs</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
               <tbody>
                 {groups.map((group) => {
-                  const zone = group.zone;
-                  const program = programsById.get(zone.program_id);
-                  const theme = getZoneTheme(zone, program);
-                  const displayName = getZoneDisplayName(zone, program?.name);
-                  const shortName = getZoneShortName(zone) || displayName;
+                  const valve = group.valve;
+                  const theme = getZoneTheme(valve, null);
+                  const displayName = getZoneDisplayName(valve);
+                  const shortName = getZoneShortName(valve) || displayName;
                   const programNames = [...new Set(
-                    group.members
+                    group.memberships
                       .map(member => programsById.get(member.program_id)?.name)
                       .filter(Boolean),
                   )];
-                  const firstProgram = programsById.get(group.members[0].program_id);
+                  const firstProgram = group.memberships[0]
+                    ? programsById.get(group.memberships[0].program_id)
+                    : null;
 
                   return (
                     <tr
-                      key={group.number}
-                      role="link"
-                      tabIndex={0}
-                      onClick={() => {
-                        if (firstProgram) navigate(`/programs/${firstProgram.id}`, { state: { program: firstProgram } });
-                      }}
-                      onKeyDown={(e) => {
-                        if ((e.key === 'Enter' || e.key === ' ') && firstProgram) {
-                          e.preventDefault();
-                          navigate(`/programs/${firstProgram.id}`, { state: { program: firstProgram } });
-                        }
-                      }}
-                      className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
+                      key={valve.id}
+                      className={`border-b ${theme.border} last:border-0 ${theme.row} ${theme.hover}`}
                       style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                     >
                       <td className="p-0 w-[4.5rem] min-w-[4.5rem] h-px">
                         <div className="h-full min-h-[4.5rem] w-full">
                           <ProgramLogo
                             name={displayName}
-                            profileImageId={zone.profile_image_id}
+                            profileImageId={valve.profile_image_id}
                             size="fill"
                             square
                           />
@@ -142,15 +144,21 @@ export default function Zones() {
                           <span className="truncate text-slate-700">{programNames.join(', ') || '—'}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-4 py-4 text-right">
                         <ActionMenu
                           items={[
                             firstProgram && {
                               label: 'View program',
                               icon: Eye,
-                              to: `/programs/${firstProgram.id}`,
+                              onClick: () => navigate(`/programs/${firstProgram.id}`, { state: { program: firstProgram } }),
                             },
-                            { label: 'Edit', icon: Pencil, onClick: () => setEditing(group) },
+                            { label: 'Edit', icon: Pencil, onClick: () => setEditing(valve) },
+                            {
+                              label: 'Delete',
+                              icon: Trash2,
+                              onClick: () => setDeleting(valve),
+                              danger: true,
+                            },
                           ].filter(Boolean)}
                         />
                       </td>
@@ -166,19 +174,47 @@ export default function Zones() {
         </div>
       )}
 
+      {creating && (
+        <Modal title="Add Valve" onClose={() => setCreating(false)} size="sm">
+          <ZoneForm
+            suggestedNumber={suggestedNumber}
+            existingNumbers={takenValveNumbers(valves)}
+            showStatus={false}
+            onSubmit={async data => {
+              await createValve(data);
+              setCreating(false);
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        </Modal>
+      )}
+
       {editing && (
         <Modal title="Edit Valve" onClose={() => setEditing(null)} size="sm">
           <ZoneForm
-            initial={editing.zone}
-            existingNumbers={takenZoneNumbers(zones, editExcludeIds)}
-            defaultColor={editing.zone.color}
+            initial={editing}
+            existingNumbers={takenValveNumbers(valves, editing.id)}
+            showStatus={false}
             onSubmit={async data => {
-              await updateZone(editing.zone.id, data);
+              await updateValve(editing.id, data);
               setEditing(null);
             }}
             onCancel={() => setEditing(null)}
           />
         </Modal>
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete Valve ${deleting.zone_number}?`}
+          message="This removes the valve from your catalog. It must not be used in any program."
+          confirmLabel="Delete Valve"
+          onConfirm={async () => {
+            await deleteValve(deleting.id);
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        />
       )}
     </div>
   );

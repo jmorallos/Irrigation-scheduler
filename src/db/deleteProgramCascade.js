@@ -1,7 +1,7 @@
-import { programsRepository } from './programsRepository';
-import { zonesRepository } from './zonesRepository';
-import { schedulesRepository } from './schedulesRepository';
-import { mediaRepository } from './mediaRepository';
+import { programsRepository } from '../db/programsRepository';
+import { zonesRepository } from '../db/zonesRepository';
+import { schedulesRepository } from '../db/schedulesRepository';
+import { mediaRepository } from '../db/mediaRepository';
 
 export async function deleteProgramCascade(programId) {
   const program = await programsRepository.getById(programId);
@@ -9,9 +9,6 @@ export async function deleteProgramCascade(programId) {
 
   const zones = await zonesRepository.getByProgramId(programId);
   for (const zone of zones) {
-    if (zone.profile_image_id) {
-      await mediaRepository.deleteById(zone.profile_image_id);
-    }
     const schedules = await schedulesRepository.getByZoneId(zone.id);
     for (const schedule of schedules) {
       await schedulesRepository.delete(schedule.id);

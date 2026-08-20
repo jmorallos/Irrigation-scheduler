@@ -1,4 +1,5 @@
 import { zonesRepository } from '../db/zonesRepository';
+import { hydrateMembershipById, loadAllHydratedZones } from './valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { programsRepository } from '../db/programsRepository';
 import { DAY_ORDER, timeToMinutes, minutesToTime, getEndTime, formatTime } from './dateUtils';
@@ -123,7 +124,7 @@ export function conflictMessage(conflict, programName, nextAvailable) {
 export async function getAllSchedulesForConflict() {
   const [programs, zones] = await Promise.all([
     programsRepository.getAll(),
-    zonesRepository.getAll(),
+    loadAllHydratedZones(),
   ]);
   const programById = new Map(programs.map(program => [program.id, program]));
   const result = [];
@@ -146,7 +147,7 @@ export async function getSchedulesForProgram(programId) {
 }
 
 export async function assertNoScheduleConflict(schedule, { excludeId, programName } = {}) {
-  const zone = await zonesRepository.getById(schedule.zone_id);
+  const zone = await hydrateMembershipById(schedule.zone_id);
   if (!zone) throw new Error('Valve not found.');
 
   const existing = await getAllSchedulesForConflict();
