@@ -8,7 +8,7 @@ import {
   isValveNumberTaken,
   valveNumberConflictMessage,
 } from '../utils/zoneIdentity';
-import { hydrateZones, programHasValve } from '../utils/valveRecords';
+import { hydrateZones } from '../utils/valveRecords';
 
 export async function updateValveCatalog(valveId, data) {
   const { profileImageChange, ...valveData } = data;
@@ -62,10 +62,6 @@ export async function deleteValveCatalog(valveId) {
 }
 
 export async function attachValveToProgram(valveId, programId) {
-  const memberships = await zonesRepository.getAll();
-  if (programHasValve(memberships, programId, valveId)) {
-    throw new Error('This valve is already in the program.');
-  }
   return zonesRepository.create({
     program_id: programId,
     valve_id: valveId,
@@ -83,7 +79,9 @@ async function loadHydratedProgramZones(programId) {
     const numA = a.zone_number ?? 999;
     const numB = b.zone_number ?? 999;
     if (numA !== numB) return numA - numB;
-    return (a.name ?? '').localeCompare(b.name ?? '');
+    const byName = (a.name ?? '').localeCompare(b.name ?? '');
+    if (byName !== 0) return byName;
+    return (a.created_at ?? '').localeCompare(b.created_at ?? '');
   });
   return hydrated;
 }

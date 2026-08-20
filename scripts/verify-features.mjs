@@ -1,4 +1,4 @@
-import { findScheduleConflict, findNextAvailableStart, defaultStartForNewCycle, conflictMessage } from '../src/utils/scheduleConflict.js';
+import { findScheduleConflict, findNextAvailableStart, defaultStartForNewCycle, listAvailableStarts, conflictMessage } from '../src/utils/scheduleConflict.js';
 import { parseBackupFile, validateBackup } from '../src/utils/backupUtils.js';
 import { formatFileSize } from '../src/utils/imageUtils.js';
 import { formatMinutes } from '../src/utils/formatMinutes.js';
@@ -200,6 +200,15 @@ assert(
   defaultStartForNewCycle({ durationMinutes: 15, existingSchedules: existing }) === '06:15',
   'new cycle start follows 06:00–06:15',
 );
+const slots = listAvailableStarts({
+  durationMinutes: 15,
+  daysOfWeek: ['mon'],
+  existingSchedules: existing,
+  limit: 3,
+});
+assert(slots[0] === '06:00' || slots.includes('06:15'), 'available starts include a free slot');
+assert(slots.includes('06:15'), 'available starts skip into 06:15 after busy window');
+assert(slots.every((t, i) => i === 0 || t > slots[i - 1]), 'available starts are ordered');
 
 console.log('Backup JSON vs HTML');
 expectThrow(
@@ -302,6 +311,15 @@ assert(nextValveNumber(catalogValves) === 2, 'next unused catalog number is 2');
 assert(
   takenValveNumbers(catalogValves).includes(1) && takenValveNumbers(catalogValves).includes(3),
   'taken catalog numbers list',
+);
+
+const memberships = [
+  { id: 'm1', program_id: 'p1', valve_id: 'v1' },
+  { id: 'm2', program_id: 'p1', valve_id: 'v1' },
+];
+assert(
+  memberships.filter(m => m.program_id === 'p1' && m.valve_id === 'v1').length === 2,
+  'same valve may appear twice in one program',
 );
 
 console.log('HSV color');

@@ -5,7 +5,7 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { savesRepository } from '../db/savesRepository';
 import { formatZoneName, getZoneNumber, getZoneShortName } from './scheduleUtils';
-import { programHasValve } from './valveRecords';
+import { hydrateMembershipById, loadProgramHydratedZones } from './valveRecords';
 import { attachValveToProgram, createValveCatalog } from '../hooks/useZones';
 
 function uniqueName(base, existing) {
@@ -102,7 +102,7 @@ async function findIdenticalProgram({ program, zones = [], schedules = [], media
       continue;
     }
 
-    const liveZones = await zonesRepository.getByProgramId(candidate.id);
+    const liveZones = await loadProgramHydratedZones(candidate.id);
     if (liveZones.length !== zones.length) continue;
 
     const used = new Set();
@@ -130,7 +130,7 @@ async function findIdenticalProgram({ program, zones = [], schedules = [], media
 }
 
 async function findIdenticalZone({ zone, schedules = [], media = [] }, programId) {
-  const liveZones = await zonesRepository.getByProgramId(programId);
+  const liveZones = await loadProgramHydratedZones(programId);
   for (const liveZone of liveZones) {
     if (await zoneFullyMatches(zone, schedules, media, liveZone)) return liveZone;
   }
@@ -152,7 +152,7 @@ export async function saveProgram(programId) {
   const program = await programsRepository.getById(programId);
   if (!program) throw new Error('Program not found.');
 
-  const zones = await zonesRepository.getByProgramId(programId);
+  const zones = await loadProgramHydratedZones(programId);
   const schedules = [];
   const media = [];
   const seen = new Set();
@@ -173,7 +173,7 @@ export async function saveProgram(programId) {
 }
 
 export async function saveZone(zoneId) {
-  const zone = await zonesRepository.getById(zoneId);
+  const zone = await hydrateMembershipById(zoneId);
   if (!zone) throw new Error('Valve not found.');
 
   const program = await programsRepository.getById(zone.program_id);
@@ -278,11 +278,6 @@ export async function restoreZoneSave(save, programId) {
     if (photoId) await valvesRepository.update(catalogValve.id, { profile_image_id: photoId });
   }
 
-  const memberships = await zonesRepository.getAll();
-  if (programHasValve(memberships, programId, catalogValve.id)) {
-    throw new Error('This valve is already in the program.');
-  }
-
   const membership = await attachValveToProgram(catalogValve.id, programId);
 
   for (const schedule of schedules) {
@@ -297,6 +292,14 @@ export async function restoreZoneSave(save, programId) {
     });
   }
 
-  const hydrated = { ...membership, ...catalogValve, valve_id: catalogValve.id, name: catalogValve.name, zone_number: catalogValve.zone_number, color: catalogValve.color, profile_image_id: catalogValve.profile_image_id };
+  const hydrated = {
+    ...membership,
+    ...catalogValve,
+    valve_id: catalogValve.id,
+    name: catalogValve.name,
+    zone_number: catalogValve.zone_number,
+    color: catalogValve.color,
+    profile_image_id: catalogValve.profile_image_id,
+  };
   return { zone: hydrated, identical: false };
 }

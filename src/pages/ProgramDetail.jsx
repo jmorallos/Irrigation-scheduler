@@ -416,7 +416,11 @@ export default function ProgramDetail() {
   const theme = getProgramTheme(program);
   const existingNumbers = takenValveNumbers(catalogValves);
   const suggestedNumber = nextValveNumber(catalogValves);
-  const programValveIds = new Set(zones.map(zone => zone.valve_id).filter(Boolean));
+  const programValveCounts = zones.reduce((counts, zone) => {
+    if (!zone.valve_id) return counts;
+    counts[zone.valve_id] = (counts[zone.valve_id] ?? 0) + 1;
+    return counts;
+  }, {});
   const editExcludeIds = editZone?.valve_id ? [editZone.valve_id] : [];
 
   return (
@@ -599,7 +603,7 @@ export default function ProgramDetail() {
         <Modal title="Add Valve" onClose={() => setAddZone(false)} size="sm">
           <AddValveToProgram
             catalogValves={catalogValves}
-            programValveIds={programValveIds}
+            programValveCounts={programValveCounts}
             onAddExisting={async (valveId) => {
               await addExistingValve(valveId);
               setAddZone(false);

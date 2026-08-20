@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
 import {
   getAllSchedulesForConflict,
   findScheduleConflict,
   findNextAvailableStart,
   defaultStartForNewCycle,
+  listAvailableStarts,
   conflictMessage,
 } from '../utils/scheduleConflict';
 
@@ -26,6 +27,19 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
     : '';
   const wrapsNextDay = Number.isFinite(durationMins) && durationMins > 0 && endsNextDay(startTime, durationMins);
   const hasConflict = Boolean(errors.conflict);
+
+  const availableStarts = useMemo(() => {
+    if (!existing) return [];
+    const mins = parseInt(duration, 10);
+    if (!Number.isFinite(mins) || mins <= 0 || mins > 480) return [];
+    return listAvailableStarts({
+      durationMinutes: mins,
+      daysOfWeek: days,
+      existingSchedules: existing,
+      excludeId: initial?.id,
+      limit: 8,
+    });
+  }, [existing, duration, days, initial?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +104,11 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
     setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
   };
 
+  const pickStart = (time) => {
+    startTouched.current = true;
+    setStartTime(time);
+  };
+
   const validate = () => {
     const errs = {};
     if (!startTime) errs.start_time = 'Start time is required.';
@@ -126,9 +145,51 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
       <div className="space-y-4">
         {errors.conflict && (
           <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {errors.conflict}
+            <p>{errors.conflict}</p>
+            {availableStarts[0] && availableStarts[0] !== startTime && (
+              <button
+                type="button"
+                onClick={() => pickStart(availableStarts[0])}
+                className="mt-2 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+              >
+                Use {formatTime(availableStarts[0])}
+              </button>
+            )}
           </div>
         )}
+        {availableStarts.length > 0 && (
+          <div>
+            <span className="block text-sm font-medium text-gray-700 mb-1.5">
+              Available starts
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {availableStarts.map(time => {
+                const selected = time === startTime;
+                return (
+                  <button
+                    key={time}
+                    type="button"
+                    onClick={() => pickStart(time)}
+                    aria-pressed={selected}
+                    className={`px-3 py-1.5 text-sm font-mono font-semibold rounded-lg border transition-colors ${
+                      selected
+                        ? 'bg-brand-600 border-brand-600 text-white'
+                        : 'bg-white border-slate-200 text-navy-900 hover:border-brand-400 hover:bg-blue-50'
+                    }`}
+                  >
+                    {formatTime(time)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              {days.length === 0
+                ? 'Tap a time to fill Start. Select days to refine free slots.'
+                : 'Tap a time to fill Start. Slots skip busy times for the selected days.'}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-time">
@@ -174,6 +235,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
             {errors.duration && <p className="mt-1 text-xs text-red-500">{errors.duration}</p>}
           </div>
         </div>
+
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1.5">
             Days of Week <span className="text-red-500">*</span>

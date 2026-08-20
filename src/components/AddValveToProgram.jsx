@@ -4,13 +4,12 @@ import ProgramLogo from './ProgramLogo';
 
 export default function AddValveToProgram({
   catalogValves,
-  programValveIds,
+  programValveCounts = {},
   onAddExisting,
   onCreateNew,
   onCancel,
 }) {
   const [creating, setCreating] = useState(false);
-  const available = catalogValves.filter(valve => !programValveIds.has(valve.id));
 
   if (creating) {
     return (
@@ -30,30 +29,40 @@ export default function AddValveToProgram({
   return (
     <div>
       <p className="text-sm text-slate-600 mb-4">
-        Choose a valve from your catalog, or create a new one.
+        Choose a valve from your catalog. You can add the same valve more than once for another set of cycles, as long as times do not overlap.
       </p>
-      {available.length === 0 ? (
-        <p className="text-sm text-slate-500 mb-4">Every catalog valve is already in this program.</p>
+      {catalogValves.length === 0 ? (
+        <p className="text-sm text-slate-500 mb-4">No catalog valves yet. Create one below.</p>
       ) : (
         <ul className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-          {available.map(valve => (
-            <li key={valve.id}>
-              <button
-                type="button"
-                onClick={() => onAddExisting(valve.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 hover:border-brand-400 hover:bg-blue-50/50 text-left transition-colors"
-              >
-                <ProgramLogo
-                  name={valve.name}
-                  profileImageId={valve.profile_image_id}
-                  size="md"
-                  square
-                />
-                <span className="font-mono font-semibold text-navy-900">{valve.zone_number}</span>
-                <span className="text-sm text-navy-900 truncate">{getZoneShortName(valve) || valve.name}</span>
-              </button>
-            </li>
-          ))}
+          {catalogValves.map(valve => {
+            const count = programValveCounts[valve.id] ?? 0;
+            return (
+              <li key={valve.id}>
+                <button
+                  type="button"
+                  onClick={() => onAddExisting(valve.id)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 hover:border-brand-400 hover:bg-blue-50/50 text-left transition-colors"
+                >
+                  <ProgramLogo
+                    name={valve.name}
+                    profileImageId={valve.profile_image_id}
+                    size="md"
+                    square
+                  />
+                  <span className="font-mono font-semibold text-navy-900">{valve.zone_number}</span>
+                  <span className="text-sm text-navy-900 truncate flex-1">
+                    {getZoneShortName(valve) || valve.name}
+                  </span>
+                  {count > 0 && (
+                    <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                      In program ×{count} · Add again
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">

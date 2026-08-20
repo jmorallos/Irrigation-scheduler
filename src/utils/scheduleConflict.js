@@ -107,6 +107,64 @@ export function defaultStartForNewCycle({
   return findNextAvailableStart(candidate, existingSchedules) ?? fallback;
 }
 
+/**
+ * Free start times for a given duration/days, packed after busy windows.
+ * Clickable suggestions for the Add Cycle form.
+ */
+export function listAvailableStarts({
+  durationMinutes = 15,
+  daysOfWeek,
+  existingSchedules,
+  excludeId,
+  limit = 8,
+  seed,
+} = {}) {
+  const duration = Number(durationMinutes);
+  const days = daysOfWeek?.length ? daysOfWeek : DAY_ORDER;
+  if (!Number.isFinite(duration) || duration <= 0) return [];
+
+  const active = (existingSchedules ?? []).filter(item => item.status !== 'inactive');
+  let minutes = timeToMinutes(seed ?? '04:00');
+  if (!seed && active.length > 0) {
+    let earliest = active[0].start_time;
+    for (const item of active) {
+      if (item.start_time < earliest) earliest = item.start_time;
+    }
+    minutes = timeToMinutes(earliest);
+  }
+
+  const results = [];
+  const seen = new Set();
+
+  for (let step = 0; step < 400 && results.length < limit; step += 1) {
+    if (minutes >= MINUTES_PER_DAY) break;
+    const start_time = minutesToTime(minutes);
+    if (seen.has(start_time)) break;
+    seen.add(start_time);
+
+    const probe = {
+      id: excludeId,
+      start_time,
+      duration_minutes: duration,
+      days_of_week: days,
+      status: 'active',
+    };
+    const conflict = findScheduleConflict(probe, existingSchedules);
+    if (!conflict) {
+      results.push(start_time);
+      minutes += duration;
+      continue;
+    }
+
+    const conflictEnd = timeToMinutes(conflict.start_time) + Number(conflict.duration_minutes);
+    let next = conflictEnd;
+    if (next <= minutes) next = minutes + 1;
+    minutes = next;
+  }
+
+  return results;
+}
+
 export function conflictMessage(conflict, programName, nextAvailable) {
   const end = getEndTime(conflict.start_time, conflict.duration_minutes);
   const otherProgram = conflict.program?.name ?? programName;
