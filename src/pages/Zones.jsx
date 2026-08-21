@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Pencil, Eye, Plus, Trash2 } from 'lucide-react';
+import { ToggleLeft, Pencil, Eye, Plus, Trash2 } from 'lucide-react';
 import { useAllZones } from '../hooks/useZones';
 import { usePrograms } from '../hooks/usePrograms';
 import Modal from '../components/Modal';
@@ -69,7 +69,7 @@ export default function Zones() {
       {groups.length === 0 ? (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
           <EmptyState
-            icon={MapPin}
+            icon={ToggleLeft}
             title="No valves yet"
             description="Create valves here first, then add them to programs from the program page."
             action={{ label: 'Add Valve', onClick: () => setCreating(true) }}
