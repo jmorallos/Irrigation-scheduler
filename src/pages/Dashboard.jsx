@@ -89,20 +89,6 @@ export default function Dashboard() {
       <>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
-          {STAT_COLUMNS.map(({ key, label }) => (
-            <div key={key} className="px-5 py-4 text-center sm:text-left">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Weekly Load</h2>
         </div>
         {chartsLoading ? (
@@ -132,6 +118,26 @@ export default function Dashboard() {
                 Duration × watering days for the week.
               </p>
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <ZoneMinutesChart
+              data={chartData.zoneTotals}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No valves scheduled ${scope.adjective}.`}
+            />
+            <p className="mt-3 text-[11px] text-slate-400">
+              {`Cycle minutes per valve for ${scope.short} only.`}
+            </p>
           </div>
         )}
       </div>
@@ -175,26 +181,6 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
-        </div>
-        {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
-        ) : (
-          <div className="p-5">
-            <ZoneMinutesChart
-              data={chartData.zoneTotals}
-              dayPhrase={scope.adjective}
-              emptyMessage={`No valves scheduled ${scope.adjective}.`}
-            />
-            <p className="mt-3 text-[11px] text-slate-400">
-              {`Cycle minutes per valve for ${scope.short} only.`}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Irrigation`}</h2>
           <Link to="/schedule" className="text-xs text-blue-200 hover:text-white font-medium flex items-center gap-1 transition-colors">
@@ -240,6 +226,20 @@ export default function Dashboard() {
             })}
           </div>
         )}
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
+          {STAT_COLUMNS.map(({ key, label }) => (
+            <div key={key} className="px-5 py-4 text-center sm:text-left">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
+            </div>
+          ))}
+        </div>
       </div>
       </>
       )}
