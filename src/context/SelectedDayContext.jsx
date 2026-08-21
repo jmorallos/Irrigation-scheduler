@@ -1,31 +1,22 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { DAY_ORDER, getTodayKey } from '../utils/dateUtils';
 
-const STORAGE_KEY = 'selected-weekday';
 const SelectedDayContext = createContext(null);
-
-function readStored() {
-  try {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (DAY_ORDER.includes(stored)) return stored;
-  } catch {
-    /* ignore quota / private mode */
-  }
-  return getTodayKey();
-}
 
 export function SelectedDayProvider({ children }) {
   const clockToday = getTodayKey();
-  const [selectedDay, setSelectedDayState] = useState(readStored);
+  const [selectedDay, setSelectedDayState] = useState(() => {
+    try {
+      sessionStorage.removeItem('selected-weekday');
+    } catch {
+      /* ignore */
+    }
+    return clockToday;
+  });
 
   const setSelectedDay = useCallback((day) => {
     if (!DAY_ORDER.includes(day)) return;
     setSelectedDayState(day);
-    try {
-      sessionStorage.setItem(STORAGE_KEY, day);
-    } catch {
-      /* ignore quota / private mode */
-    }
   }, []);
 
   const value = useMemo(() => ({
