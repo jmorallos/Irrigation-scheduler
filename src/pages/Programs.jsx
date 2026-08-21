@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProgramForm from '../components/ProgramForm';
 import ProgramLogo from '../components/ProgramLogo';
+import PhotoPreview from '../components/PhotoPreview';
 import ProgramBadge from '../components/ProgramBadge';
 import { getProgramTheme } from '../utils/programColors';
 import Badge from '../components/Badge';
@@ -43,6 +44,7 @@ export default function Programs() {
   const [deleting, setDeleting] = useState(null);
   const [deleteCounts, setDeleteCounts] = useState({ zones: 0, schedules: 0 });
   const [savedNotice, setSavedNotice] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const openDelete = async (program) => {
     const zones = await zonesRepository.getByProgramId(program.id);
@@ -147,14 +149,36 @@ export default function Programs() {
                     </td>
                     <td className={`px-4 py-4 ${cellClass('name')}`}>
                       <div className={`flex items-center gap-3 min-w-0 ${flexClass('name')}`}>
-                        <div className="w-10 h-10 flex-shrink-0">
-                          <ProgramLogo
-                            name={program.name}
-                            profileImageId={program.profile_image_id}
-                            size="fill"
-                            square
-                          />
-                        </div>
+                        {program.profile_image_id ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPhotoPreview({
+                                profileImageId: program.profile_image_id,
+                                name: program.name,
+                              });
+                            }}
+                            className="w-10 h-10 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                            aria-label={`View photo of ${program.name}`}
+                          >
+                            <ProgramLogo
+                              name={program.name}
+                              profileImageId={program.profile_image_id}
+                              size="fill"
+                              square
+                            />
+                          </button>
+                        ) : (
+                          <div className="w-10 h-10 flex-shrink-0">
+                            <ProgramLogo
+                              name={program.name}
+                              profileImageId={program.profile_image_id}
+                              size="fill"
+                              square
+                            />
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <p className="font-semibold text-navy-900 truncate">{program.name}</p>
                           {program.description ? (
@@ -230,6 +254,14 @@ export default function Programs() {
           confirmLabel="Delete"
           onConfirm={async () => { await deleteProgram(deleting.id); setDeleting(null); }}
           onCancel={() => setDeleting(null)}
+        />
+      )}
+
+      {photoPreview && (
+        <PhotoPreview
+          name={photoPreview.name}
+          profileImageId={photoPreview.profileImageId}
+          onClose={() => setPhotoPreview(null)}
         />
       )}
     </div>

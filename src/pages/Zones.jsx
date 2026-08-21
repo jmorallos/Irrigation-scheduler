@@ -7,6 +7,7 @@ import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ZoneForm from '../components/ZoneForm';
 import ProgramLogo from '../components/ProgramLogo';
+import PhotoPreview from '../components/PhotoPreview';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
@@ -34,6 +35,7 @@ export default function Zones() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const programsById = useMemo(
     () => new Map(programs.map(program => [program.id, program])),
@@ -109,14 +111,33 @@ export default function Zones() {
                       style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                     >
                       <td className="p-0 w-[4.5rem] min-w-[4.5rem] h-px">
-                        <div className="h-full min-h-[4.5rem] w-full">
-                          <ProgramLogo
-                            name={displayName}
-                            profileImageId={valve.profile_image_id}
-                            size="fill"
-                            square
-                          />
-                        </div>
+                        {valve.profile_image_id ? (
+                          <button
+                            type="button"
+                            onClick={() => setPhotoPreview({
+                              profileImageId: valve.profile_image_id,
+                              name: shortName,
+                            })}
+                            className="block h-full min-h-[4.5rem] w-full text-left [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600"
+                            aria-label={`View photo of ${shortName}`}
+                          >
+                            <ProgramLogo
+                              name={displayName}
+                              profileImageId={valve.profile_image_id}
+                              size="fill"
+                              square
+                            />
+                          </button>
+                        ) : (
+                          <div className="h-full min-h-[4.5rem] w-full">
+                            <ProgramLogo
+                              name={displayName}
+                              profileImageId={valve.profile_image_id}
+                              size="fill"
+                              square
+                            />
+                          </div>
+                        )}
                       </td>
                       <td className={`px-4 py-4 font-mono font-semibold text-navy-900 ${cellClass('number')}`}>
                         {group.number}
@@ -214,6 +235,14 @@ export default function Zones() {
             setDeleting(null);
           }}
           onCancel={() => setDeleting(null)}
+        />
+      )}
+
+      {photoPreview && (
+        <PhotoPreview
+          name={photoPreview.name}
+          profileImageId={photoPreview.profileImageId}
+          onClose={() => setPhotoPreview(null)}
         />
       )}
     </div>

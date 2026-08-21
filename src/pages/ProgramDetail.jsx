@@ -11,6 +11,7 @@ import ProgramForm from '../components/ProgramForm';
 import ZoneForm from '../components/ZoneForm';
 import ScheduleForm from '../components/ScheduleForm';
 import ProgramLogo from '../components/ProgramLogo';
+import PhotoPreview from '../components/PhotoPreview';
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
@@ -347,6 +348,7 @@ export default function ProgramDetail() {
   const { saveProgram, saveZone } = useSaves();
   const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [catalogValves, setCatalogValves] = useState([]);
   const { selectedDay, clockToday, isClockToday } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, clockToday);
@@ -434,14 +436,33 @@ export default function ProgramDetail() {
         style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
       >
         <div className="flex min-h-[6.5rem]">
-          <div className="w-[6.5rem] sm:w-28 flex-shrink-0">
-            <ProgramLogo
-              name={program.name}
-              profileImageId={program.profile_image_id}
-              size="fill"
-              square
-            />
-          </div>
+          {program.profile_image_id ? (
+            <button
+              type="button"
+              onClick={() => setPhotoPreview({
+                profileImageId: program.profile_image_id,
+                name: program.name,
+              })}
+              className="w-[6.5rem] sm:w-28 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600"
+              aria-label={`View photo of ${program.name}`}
+            >
+              <ProgramLogo
+                name={program.name}
+                profileImageId={program.profile_image_id}
+                size="fill"
+                square
+              />
+            </button>
+          ) : (
+            <div className="w-[6.5rem] sm:w-28 flex-shrink-0">
+              <ProgramLogo
+                name={program.name}
+                profileImageId={program.profile_image_id}
+                size="fill"
+                square
+              />
+            </div>
+          )}
           <div className="flex-1 min-w-0 px-4 py-4 sm:px-6 flex flex-col justify-center">
             <div className="flex items-center gap-2 flex-wrap">
               {program.controller_program && (
@@ -646,6 +667,14 @@ export default function ProgramDetail() {
           confirmLabel="Remove from Program"
           onConfirm={async () => { await removeZone(deleteZone.id); setDeleteZone(null); }}
           onCancel={() => setDeleteZone(null)}
+        />
+      )}
+
+      {photoPreview && (
+        <PhotoPreview
+          name={photoPreview.name}
+          profileImageId={photoPreview.profileImageId}
+          onClose={() => setPhotoPreview(null)}
         />
       )}
     </div>
