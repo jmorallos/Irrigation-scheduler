@@ -1,16 +1,19 @@
 import { sortProgramsByController } from '../db/programSort';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
+import { valvesRepository } from '../db/valvesRepository';
 
 export async function countOverviewStats(programsRepository) {
-  const programs = sortProgramsByController(await programsRepository.getAll());
-  let zones = 0;
+  const [programs, catalogValves] = await Promise.all([
+    programsRepository.getAll(),
+    valvesRepository.getAll(),
+  ]);
+  const sorted = sortProgramsByController(programs);
   let minutes = 0;
 
-  for (const program of programs) {
-    const programZones = await zonesRepository.getByProgramId(program.id);
-    zones += programZones.length;
+  for (const program of sorted) {
     if (program.status !== 'active') continue;
+    const programZones = await zonesRepository.getByProgramId(program.id);
 
     for (const zone of programZones) {
       if (zone.status !== 'active') continue;
@@ -24,9 +27,9 @@ export async function countOverviewStats(programsRepository) {
   }
 
   return {
-    total: programs.length,
-    active: programs.filter(p => p.status === 'active').length,
-    zones,
+    total: sorted.length,
+    active: sorted.filter(p => p.status === 'active').length,
+    zones: catalogValves.length,
     minutes,
   };
 }

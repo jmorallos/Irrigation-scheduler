@@ -52,7 +52,7 @@ export default function Zones() {
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Create numbered valves here, then add them to programs. Edit once — updates everywhere.
+            Create numbered valves here, then add them to programs.
           </p>
         </div>
         <button
