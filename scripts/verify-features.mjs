@@ -2,6 +2,7 @@ import { findScheduleConflict, findNextAvailableStart, defaultStartForNewCycle, 
 import { parseBackupFile, validateBackup } from '../src/utils/backupUtils.js';
 import { formatFileSize } from '../src/utils/imageUtils.js';
 import { formatMinutes } from '../src/utils/formatMinutes.js';
+import { withDailyRuntimeOnce, scheduleTableTotals } from '../src/utils/scheduleStats.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers } from '../src/utils/zoneIdentity.js';
@@ -274,6 +275,20 @@ assert(html.includes('print-color-adjust: exact'), 'print keeps row colors');
 assert(html.includes('&lt;b&gt;soak&lt;/b&gt;'), 'HTML notes cannot inject markup');
 assert(!html.includes('<b>soak</b>'), 'raw HTML notes are not kept');
 assert(html.includes('cannot restore') || html.includes('not a restore backup'), 'HTML labeled as non-restore');
+assert(html.includes('<strong>Total</strong>') || html.includes('>Total<'), 'schedule table has total row');
+
+console.log('Daily runtime once');
+const vineRows = withDailyRuntimeOnce([
+  { id: 'c1', zone: { id: 'z1' }, schedule: { duration_minutes: 10 }, dailyRuntime: 30 },
+  { id: 'c2', zone: { id: 'z1' }, schedule: { duration_minutes: 10 }, dailyRuntime: 30 },
+  { id: 'c3', zone: { id: 'z1' }, schedule: { duration_minutes: 10 }, dailyRuntime: 30 },
+]);
+assert(vineRows.filter(r => r.showDailyRuntime).length === 1, 'daily runtime shown once per valve');
+assert(vineRows[2].showDailyRuntime === true, 'daily runtime on last cycle of valve');
+const vineTotals = scheduleTableTotals(vineRows);
+assert(vineTotals.durationTotal === 30, 'duration total is 30 for three 10-min cycles');
+assert(vineTotals.dailyRuntimeTotal === 30, 'daily runtime total counts valve once');
+
 assert(html.includes('Runtime by valve'), 'valve runtime section');
 assert(html.includes('Daily min'), 'daily minutes per valve');
 assert(html.includes('Weekly min'), 'weekly minutes per valve');

@@ -5,7 +5,7 @@ import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { useMainSchedule } from '../hooks/useMainSchedule';
 import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
-import { soakMinutesFromHours } from '../utils/scheduleStats';
+import { soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from '../utils/scheduleStats';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
@@ -42,17 +42,22 @@ export default function WeeklySchedule() {
   const loading = weekLoading || tableLoading;
 
   const displayRows = useMemo(() => {
-    if (!sort.key) return rows;
-    const sorted = [...rows].sort((a, b) => {
-      let cmp = 0;
-      if (sort.key === 'program') cmp = programSortKey(a).localeCompare(programSortKey(b));
-      else if (sort.key === 'zoneName') cmp = valveNameSortKey(a).localeCompare(valveNameSortKey(b));
-      else if (sort.key === 'start') cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
-      if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
-      return cmp;
-    });
-    return sort.dir === 'desc' ? sorted.reverse() : sorted;
+    let list = rows;
+    if (sort.key) {
+      const sorted = [...rows].sort((a, b) => {
+        let cmp = 0;
+        if (sort.key === 'program') cmp = programSortKey(a).localeCompare(programSortKey(b));
+        else if (sort.key === 'zoneName') cmp = valveNameSortKey(a).localeCompare(valveNameSortKey(b));
+        else if (sort.key === 'start') cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+        if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+        return cmp;
+      });
+      list = sort.dir === 'desc' ? sorted.reverse() : sorted;
+    }
+    return withDailyRuntimeOnce(list);
   }, [rows, sort]);
+
+  const totals = useMemo(() => scheduleTableTotals(displayRows), [displayRows]);
 
   const toggleSort = (key) => {
     setSort(prev => (
@@ -150,7 +155,7 @@ export default function WeeklySchedule() {
                         {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {row.dailyRuntime == null ? '—' : row.dailyRuntime}
+                        {row.showDailyRuntime && row.dailyRuntime != null ? row.dailyRuntime : '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {formatDaysCompact(row.schedule.days_of_week)}
@@ -161,6 +166,23 @@ export default function WeeklySchedule() {
                     </tr>
                   ))}
                 </tbody>
+                {displayRows.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-navy-900 bg-slate-50">
+                      <td className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-navy-900" colSpan={5}>
+                        Total
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
+                        {totals.durationTotal}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
+                        {totals.dailyRuntimeTotal}
+                      </td>
+                      <td className="px-3 py-3" colSpan={2} />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
               </div>
             </div>

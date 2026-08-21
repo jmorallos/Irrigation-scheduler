@@ -44,3 +44,32 @@ export function decorateZoneSchedules(schedules) {
     };
   });
 }
+
+/** Show Daily runtime only on the last row for each valve membership. */
+export function withDailyRuntimeOnce(rows) {
+  const lastIndexByZone = new Map();
+  rows.forEach((row, index) => {
+    const key = row.zone?.id ?? row.id;
+    lastIndexByZone.set(key, index);
+  });
+  return rows.map((row, index) => ({
+    ...row,
+    showDailyRuntime: lastIndexByZone.get(row.zone?.id ?? row.id) === index,
+  }));
+}
+
+export function scheduleTableTotals(rows) {
+  const durationTotal = rows.reduce(
+    (sum, row) => sum + Number(row.schedule?.duration_minutes || 0),
+    0,
+  );
+  const seenZones = new Set();
+  let dailyRuntimeTotal = 0;
+  for (const row of rows) {
+    const key = row.zone?.id;
+    if (!key || seenZones.has(key)) continue;
+    seenZones.add(key);
+    dailyRuntimeTotal += Number(row.dailyRuntime || 0);
+  }
+  return { durationTotal, dailyRuntimeTotal };
+}

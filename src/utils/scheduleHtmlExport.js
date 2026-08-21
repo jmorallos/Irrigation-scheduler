@@ -2,7 +2,7 @@ import { loadMainScheduleRows } from './mainScheduleData';
 import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
 import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
-import { formatSoak, soakMinutesFromHours } from './scheduleStats';
+import { formatSoak, soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from './scheduleStats';
 import { getProgramTheme, getZoneTheme } from './programColors';
 
 export function escapeHtml(value) {
@@ -126,9 +126,11 @@ function renderOverview(summary) {
 }
 
 function renderMainTable(rows) {
-  const body = rows.length === 0
+  const displayRows = withDailyRuntimeOnce(rows);
+  const totals = scheduleTableTotals(displayRows);
+  const body = displayRows.length === 0
     ? '<tr><td colspan="10" class="empty">No active schedules.</td></tr>'
-    : rows.map(row => {
+    : displayRows.map(row => {
       const bg = row.theme?.rowHex || '#ffffff';
       const border = row.theme?.borderHex || '#e2e8f0';
       const badge = row.programTheme?.badgeHex || row.theme?.badgeHex || '#0a2540';
@@ -141,7 +143,7 @@ function renderMainTable(rows) {
       const duration = Number(row.schedule?.duration_minutes || 0);
       const end = escapeHtml(formatTime24(getEndTime(row.schedule?.start_time, duration)));
       const soakMin = row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours);
-      const runtime = row.dailyRuntime == null ? '—' : row.dailyRuntime;
+      const runtime = row.showDailyRuntime && row.dailyRuntime != null ? row.dailyRuntime : '—';
       const zoneNum = row.zoneNumber ?? '—';
       return `<tr style="background:${bg};border-bottom:1px solid ${border}">
           <td>${badgeHtml(code, badge)} ${name}</td>
@@ -156,6 +158,18 @@ function renderMainTable(rows) {
           <td>${notes}</td>
         </tr>`;
     }).join('');
+
+  const footer = displayRows.length === 0
+    ? ''
+    : `<tfoot>
+      <tr>
+        <td colspan="5"><strong>Total</strong></td>
+        <td class="mono"><strong>${escapeHtml(totals.durationTotal)}</strong></td>
+        <td class="mono">—</td>
+        <td class="mono"><strong>${escapeHtml(totals.dailyRuntimeTotal)}</strong></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>`;
 
   return `<table>
     <thead>
@@ -173,6 +187,7 @@ function renderMainTable(rows) {
       </tr>
     </thead>
     <tbody>${body}</tbody>
+    ${footer}
   </table>`;
 }
 
