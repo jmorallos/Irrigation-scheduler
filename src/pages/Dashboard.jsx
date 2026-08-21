@@ -215,24 +215,26 @@ export default function Dashboard() {
               return (
               <div
                 key={item.schedule.id}
-                className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
+                className={`flex items-start gap-3 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
                 style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
               >
-                <ProgramBadge code={item.program.controller_program} color={item.zone.color || item.program.color} size="sm" />
-                <div className="flex-shrink-0 w-16 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  {formatCycleLabel(item.schedule.cycle)}
+                <div className="flex-shrink-0 pt-0.5">
+                  <ProgramBadge code={item.program.controller_program} color={item.zone.color || item.program.color} size="sm" />
                 </div>
-                <div className="flex-shrink-0 min-w-[8.5rem]">
-                  <span className="font-mono text-sm font-semibold text-navy-900">
-                    {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
-                  <p className="text-xs text-slate-500">{getZoneDisplayName(item.zone, item.program.name)}</p>
-                </div>
-                <div className="text-xs font-mono text-slate-600 flex-shrink-0">
-                  {formatDuration(item.schedule.duration_minutes)}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                      {formatCycleLabel(item.schedule.cycle)}
+                    </span>
+                    <span className="font-mono text-sm font-semibold text-navy-900 whitespace-nowrap">
+                      {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
+                    </span>
+                    <span className="text-xs font-mono text-slate-600">
+                      {formatDuration(item.schedule.duration_minutes)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
+                  <p className="text-xs text-slate-500 truncate">{getZoneDisplayName(item.zone, item.program.name)}</p>
                 </div>
               </div>
               );
