@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Droplets, ArrowRight } from 'lucide-react';
 import { programsRepository } from '../db/programsRepository';
@@ -33,11 +33,18 @@ export default function Dashboard() {
     zoneTotals: [],
   });
   const [chartsLoading, setChartsLoading] = useState(true);
+  const [chartsRefreshing, setChartsRefreshing] = useState(false);
   const [pageError, setPageError] = useState(null);
+  const chartsReady = useRef(false);
   const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule(selectedDay);
 
   const loadDashboard = useCallback(async () => {
-    setChartsLoading(true);
+    const initial = !chartsReady.current;
+    if (initial) {
+      setChartsLoading(true);
+    } else {
+      setChartsRefreshing(true);
+    }
     setPageError(null);
     try {
       const overview = await countOverviewStats(programsRepository);
@@ -49,10 +56,12 @@ export default function Dashboard() {
       });
       setStats(overview);
       setChartData(charts);
+      chartsReady.current = true;
     } catch (err) {
       setPageError(err.message);
     } finally {
       setChartsLoading(false);
+      setChartsRefreshing(false);
     }
   }, [selectedDay]);
 
@@ -61,11 +70,15 @@ export default function Dashboard() {
   }, [loadDashboard]);
 
   const retryAll = () => {
+    chartsReady.current = false;
     loadDashboard();
     reloadToday();
   };
 
   const displayError = pageError || todayError;
+  const dayPanelsClass = `transition-opacity duration-200 ease-out ${
+    chartsRefreshing ? 'opacity-70' : 'opacity-100'
+  }`;
 
   return (
     <div>
@@ -122,7 +135,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
         </div>
@@ -142,7 +155,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Load`}</h2>
         </div>
@@ -180,7 +193,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="flex items-center justify-between px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Irrigation`}</h2>
           <Link to="/schedule" className="text-xs text-blue-200 hover:text-white font-medium flex items-center gap-1 transition-colors">

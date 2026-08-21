@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { programsRepository } from '../db/programsRepository';
 import { loadProgramHydratedZones } from '../utils/valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
@@ -10,9 +10,11 @@ export function useTodaySchedule(dayKey) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasLoaded = useRef(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const showSpinner = !hasLoaded.current;
+    if (showSpinner) setLoading(true);
     setError(null);
     try {
       const todayKey = dayKey || getTodayKey();
@@ -37,10 +39,11 @@ export function useTodaySchedule(dayKey) {
         return (a.schedule.cycle ?? 1) - (b.schedule.cycle ?? 1);
       });
       setItems(result);
+      hasLoaded.current = true;
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [dayKey]);
 

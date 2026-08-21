@@ -68,7 +68,7 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
               aria-label={`${item.name}: ${tooltipValue}`}
             >
               <div
-                className="h-full rounded-full min-w-0.5"
+                className="h-full rounded-full min-w-0.5 transition-[width] duration-200 ease-out"
                 style={{
                   width: `${(value / max) * 100}%`,
                   backgroundColor: item.color || '#2563eb',
@@ -114,34 +114,35 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
               {item.minutes ? formatMinutes(item.minutes) : ''}
             </span>
             <div
-              className={`w-full h-24 rounded-sm overflow-hidden flex items-end ${
+              className={`w-full h-24 rounded-sm overflow-hidden flex items-end transition-colors duration-200 ease-out ${
                 isClockToday ? 'bg-blue-100 ring-2 ring-brand-600 ring-offset-1' : 'bg-slate-100'
               }`}
             >
               <div
-                className="w-full rounded-sm"
+                className="w-full rounded-sm transition-[background-color,height] duration-200 ease-out"
                 style={{
                   height: `${height}%`,
                   backgroundColor: isSelected ? '#2563eb' : isClockToday ? '#3b82f6' : '#0a2540',
                 }}
               />
             </div>
-            <span className={`text-[11px] font-semibold uppercase tracking-wide ${
+            <span className={`text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 ease-out ${
               isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-slate-400'
             }`}>
               {item.label}
             </span>
-            {isClockToday ? (
-              <span className="text-[9px] font-bold uppercase tracking-wider text-brand-600 leading-none">
-                Today
-              </span>
-            ) : isSelected ? (
-              <span className="text-[9px] font-bold uppercase tracking-wider text-navy-700 leading-none">
-                Viewing
-              </span>
-            ) : (
-              <span className="text-[9px] leading-none invisible">Today</span>
-            )}
+            <span
+              className={`text-[9px] font-bold uppercase tracking-wider leading-none transition-opacity duration-200 ease-out ${
+                isClockToday
+                  ? 'text-brand-600 opacity-100'
+                  : isSelected
+                    ? 'text-navy-700 opacity-100'
+                    : 'opacity-0'
+              }`}
+              aria-hidden={!isClockToday && !isSelected}
+            >
+              {isClockToday ? 'Today' : 'Viewing'}
+            </span>
           </button>
         );
       })}
