@@ -28,6 +28,67 @@ function valveNameSortKey(row) {
   return (getZoneShortName(row.zone) || '').toLowerCase();
 }
 
+function endTimeSortKey(row) {
+  return getEndTime(row.schedule.start_time, row.schedule.duration_minutes);
+}
+
+function daysSortKey(row) {
+  const days = row.schedule.days_of_week ?? [];
+  return DAY_ORDER.map(day => (days.includes(day) ? '1' : '0')).join('');
+}
+
+function notesSortKey(row) {
+  return (row.schedule.notes || '').toLowerCase();
+}
+
+function compareNullableNumber(a, b) {
+  const aNull = a == null || Number.isNaN(a);
+  const bNull = b == null || Number.isNaN(b);
+  if (aNull && bNull) return 0;
+  if (aNull) return 1;
+  if (bNull) return -1;
+  return a - b;
+}
+
+function compareRows(a, b, key) {
+  switch (key) {
+    case 'program':
+      return programSortKey(a).localeCompare(programSortKey(b));
+    case 'valveNumber':
+      return compareNullableNumber(
+        a.zoneNumber == null ? null : Number(a.zoneNumber),
+        b.zoneNumber == null ? null : Number(b.zoneNumber),
+      );
+    case 'zoneName':
+      return valveNameSortKey(a).localeCompare(valveNameSortKey(b));
+    case 'start':
+      return a.schedule.start_time.localeCompare(b.schedule.start_time);
+    case 'end':
+      return endTimeSortKey(a).localeCompare(endTimeSortKey(b));
+    case 'duration':
+      return compareNullableNumber(
+        Number(a.schedule.duration_minutes),
+        Number(b.schedule.duration_minutes),
+      );
+    case 'soak':
+      return compareNullableNumber(
+        a.soakHours == null ? null : soakMinutesFromHours(a.soakHours),
+        b.soakHours == null ? null : soakMinutesFromHours(b.soakHours),
+      );
+    case 'dailyRuntime':
+      return compareNullableNumber(
+        a.dailyRuntime == null ? null : Number(a.dailyRuntime),
+        b.dailyRuntime == null ? null : Number(b.dailyRuntime),
+      );
+    case 'days':
+      return daysSortKey(a).localeCompare(daysSortKey(b));
+    case 'notes':
+      return notesSortKey(a).localeCompare(notesSortKey(b));
+    default:
+      return 0;
+  }
+}
+
 function sortMark(sort, key) {
   if (sort.key !== key) return '';
   return sort.dir === 'asc' ? ' ↑' : ' ↓';
@@ -45,14 +106,11 @@ export default function WeeklySchedule() {
     let list = rows;
     if (sort.key) {
       const sorted = [...rows].sort((a, b) => {
-        let cmp = 0;
-        if (sort.key === 'program') cmp = programSortKey(a).localeCompare(programSortKey(b));
-        else if (sort.key === 'zoneName') cmp = valveNameSortKey(a).localeCompare(valveNameSortKey(b));
-        else if (sort.key === 'start') cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+        let cmp = compareRows(a, b, sort.key);
         if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
-        return cmp;
+        return sort.dir === 'desc' ? -cmp : cmp;
       });
-      list = sort.dir === 'desc' ? sorted.reverse() : sorted;
+      list = sorted;
     }
     return withDailyRuntimeOnce(list);
   }, [rows, sort]);
@@ -104,19 +162,33 @@ export default function WeeklySchedule() {
                     <th onClick={() => toggleSort('program')} className={TH_SORT}>
                       Program{sortMark(sort, 'program')}
                     </th>
-                    <th className={TH_MAIN}>Valve #</th>
+                    <th onClick={() => toggleSort('valveNumber')} className={TH_SORT}>
+                      Valve #{sortMark(sort, 'valveNumber')}
+                    </th>
                     <th onClick={() => toggleSort('zoneName')} className={TH_SORT}>
                       Valve Name{sortMark(sort, 'zoneName')}
                     </th>
                     <th onClick={() => toggleSort('start')} className={TH_SORT}>
                       Start{sortMark(sort, 'start')}
                     </th>
-                    <th className={TH_MAIN}>End</th>
-                    <th className={TH_MAIN}>Duration (Min)</th>
-                    <th className={TH_MAIN}>Soak (Min)</th>
-                    <th className={TH_MAIN}>Daily runtime (Min)</th>
-                    <th className={TH_MAIN}>Days</th>
-                    <th className={TH_MAIN}>Notes</th>
+                    <th onClick={() => toggleSort('end')} className={TH_SORT}>
+                      End{sortMark(sort, 'end')}
+                    </th>
+                    <th onClick={() => toggleSort('duration')} className={TH_SORT}>
+                      Duration (Min){sortMark(sort, 'duration')}
+                    </th>
+                    <th onClick={() => toggleSort('soak')} className={TH_SORT}>
+                      Soak (Min){sortMark(sort, 'soak')}
+                    </th>
+                    <th onClick={() => toggleSort('dailyRuntime')} className={TH_SORT}>
+                      Daily runtime (Min){sortMark(sort, 'dailyRuntime')}
+                    </th>
+                    <th onClick={() => toggleSort('days')} className={TH_SORT}>
+                      Days{sortMark(sort, 'days')}
+                    </th>
+                    <th onClick={() => toggleSort('notes')} className={TH_SORT}>
+                      Notes{sortMark(sort, 'notes')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
