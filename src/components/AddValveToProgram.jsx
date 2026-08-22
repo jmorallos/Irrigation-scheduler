@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getZoneShortName } from '../utils/scheduleUtils';
 import ProgramLogo from './ProgramLogo';
 
@@ -10,6 +10,10 @@ export default function AddValveToProgram({
   onCancel,
 }) {
   const [creating, setCreating] = useState(false);
+  const sortedValves = useMemo(
+    () => [...catalogValves].sort((a, b) => Number(a.zone_number) - Number(b.zone_number)),
+    [catalogValves],
+  );
 
   if (creating) {
     return (
@@ -31,11 +35,11 @@ export default function AddValveToProgram({
       <p className="text-sm text-slate-600 mb-4">
         Choose a valve from your catalog. You can add the same valve more than once for another set of cycles, as long as times do not overlap.
       </p>
-      {catalogValves.length === 0 ? (
+      {sortedValves.length === 0 ? (
         <p className="text-sm text-slate-500 mb-4">No catalog valves yet. Create one below.</p>
       ) : (
         <ul className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-          {catalogValves.map(valve => {
+          {sortedValves.map(valve => {
             const count = programValveCounts[valve.id] ?? 0;
             return (
               <li key={valve.id}>
