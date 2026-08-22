@@ -81,7 +81,7 @@ export default function Dashboard() {
   }`;
 
   return (
-    <div>
+    <div className="min-w-0 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Summary</h1>
         <p className="mt-1 text-sm text-slate-500">{scope.heading}</p>
@@ -107,8 +107,8 @@ export default function Dashboard() {
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
         ) : (
-          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            <div className="p-5">
+          <div className="grid min-w-0 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            <div className="min-w-0 p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
                 Minutes by Day
               </h3>
@@ -118,11 +118,11 @@ export default function Dashboard() {
                 clockToday={clockToday}
                 onSelectDay={setSelectedDay}
               />
-              <p className="mt-3 text-[11px] text-slate-400">
+              <p className="mt-3 text-[11px] text-slate-400 break-words">
                 Scheduled cycle minutes on each weekday. <span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
               </p>
             </div>
-            <div className="p-5">
+            <div className="min-w-0 p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
                 Minutes by Week
               </h3>
@@ -215,26 +215,31 @@ export default function Dashboard() {
               return (
               <div
                 key={item.schedule.id}
-                className={`flex items-start gap-3 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
+                className={`flex items-start sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
                 style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
               >
-                <div className="flex-shrink-0 pt-0.5">
+                <div className="flex-shrink-0 sm:pt-0 pt-0.5">
                   <ProgramBadge code={item.program.controller_program} color={item.zone.color || item.program.color} size="sm" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <div className="min-w-0 flex-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:contents">
+                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 sm:w-16 sm:flex-shrink-0">
                       {formatCycleLabel(item.schedule.cycle)}
                     </span>
-                    <span className="font-mono text-sm font-semibold text-navy-900 whitespace-nowrap">
+                    <span className="font-mono text-sm font-semibold text-navy-900 whitespace-nowrap sm:flex-shrink-0">
                       {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
                     </span>
-                    <span className="text-xs font-mono text-slate-600">
+                    <span className="text-xs font-mono text-slate-600 sm:hidden">
                       {formatDuration(item.schedule.duration_minutes)}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
-                  <p className="text-xs text-slate-500 truncate">{getZoneDisplayName(item.zone, item.program.name)}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{getZoneDisplayName(item.zone, item.program.name)}</p>
+                  </div>
+                  <div className="hidden sm:block text-xs font-mono text-slate-600 flex-shrink-0">
+                    {formatDuration(item.schedule.duration_minutes)}
+                  </div>
                 </div>
               </div>
               );
