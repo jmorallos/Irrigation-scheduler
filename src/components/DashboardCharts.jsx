@@ -1,5 +1,6 @@
 import { maxValue } from '../utils/chartData';
 import { formatMinutes } from '../utils/formatMinutes';
+import ProgramBadge from './ProgramBadge';
 
 function ChartEmpty({ message }) {
   return (
@@ -45,18 +46,26 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
         const tooltipValue = isMinutes
           ? minuteLabel(value, period, dayPhrase)
           : `${value} cycle${value !== 1 ? 's' : ''} ${dayPhrase}`;
+        const tooltipLabel = item.prefix
+          ? `${item.prefix} · ${item.name}`
+          : item.name;
 
         return (
           <div key={item.id} className="group relative">
             <ChartTooltip
-              label={item.name}
+              label={tooltipLabel}
               value={tooltipValue}
               className="bottom-full left-0 mb-1"
             />
             <div className="flex items-center justify-between gap-3 mb-1.5">
-              <span className="text-sm font-medium text-navy-900 truncate group-hover:text-brand-700 transition-colors">
-                {item.name}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                {item.prefix && (
+                  <ProgramBadge code={item.prefix} color={item.programColor || item.color} size="sm" />
+                )}
+                <span className="text-sm font-medium text-navy-900 truncate group-hover:text-brand-700 transition-colors">
+                  {item.name}
+                </span>
+              </div>
               <span className="text-xs font-mono text-slate-500 flex-shrink-0 tabular-nums">
                 {displayValue}
               </span>
@@ -65,7 +74,7 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
               className="w-full h-2 rounded-full overflow-hidden"
               style={{ backgroundColor: item.track || '#e2e8f0' }}
               role="img"
-              aria-label={`${item.name}: ${tooltipValue}`}
+              aria-label={`${tooltipLabel}: ${tooltipValue}`}
             >
               <div
                 className="h-full rounded-full min-w-0.5 transition-[width] duration-200 ease-out"

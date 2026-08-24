@@ -70,6 +70,8 @@ export async function buildScheduleChartData({
           zoneNumber,
           name: zoneNumber != null ? `${zoneNumber} · ${name}` : name,
           program: program.controller_program || program.name,
+          prefix: program.controller_program || null,
+          programColor: program.color,
           minutes: zoneTodayMinutes,
           hours: Math.round((zoneTodayMinutes / 60) * 100) / 100,
           runs: zoneTodayRuns,
@@ -91,6 +93,8 @@ export async function buildScheduleChartData({
       byProgramWeek.push({
         id: program.id,
         name: program.name,
+        prefix: program.controller_program || null,
+        programColor: program.color,
         minutes: weekMinutes,
         ...colors,
       });
@@ -100,6 +104,8 @@ export async function buildScheduleChartData({
       byProgramToday.push({
         id: program.id,
         name: program.name,
+        prefix: program.controller_program || null,
+        programColor: program.color,
         minutes: todayMinutes,
         starts: todayStarts,
         ...colors,
