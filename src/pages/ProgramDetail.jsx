@@ -631,6 +631,7 @@ export default function ProgramDetail() {
           <ProgramForm
             initial={program}
             existingNames={allPrograms.filter(p => p.id !== program.id).map(p => p.name)}
+            existingPrefixes={allPrograms.filter(p => p.id !== program.id).map(p => p.controller_program).filter(Boolean)}
             onSubmit={handleUpdateProgram}
             onCancel={() => setEditProg(false)}
           />

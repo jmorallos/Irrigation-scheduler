@@ -229,6 +229,7 @@ export default function Programs() {
         <Modal title="Create Program" onClose={() => setShowCreate(false)}>
           <ProgramForm
             existingNames={programs.map(p => p.name)}
+            existingPrefixes={programs.map(p => p.controller_program).filter(Boolean)}
             onSubmit={async data => { await createProgram(data); setShowCreate(false); }}
             onCancel={() => setShowCreate(false)}
           />
@@ -240,6 +241,7 @@ export default function Programs() {
           <ProgramForm
             initial={editing}
             existingNames={programs.filter(p => p.id !== editing.id).map(p => p.name)}
+            existingPrefixes={programs.filter(p => p.id !== editing.id).map(p => p.controller_program).filter(Boolean)}
             onSubmit={async data => { await updateProgram(editing.id, data); setEditing(null); }}
             onCancel={() => setEditing(null)}
           />

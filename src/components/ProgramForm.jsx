@@ -3,7 +3,7 @@ import ProfileImagePicker from './ProfileImagePicker';
 import ColorPresetPicker from './ColorPresetPicker';
 import { colorFromLetter } from '../utils/programColors';
 
-export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [] }) {
+export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [], existingPrefixes = [] }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [controllerProgram, setControllerProgram] = useState(initial?.controller_program ?? '');
   const [color, setColor] = useState(initial?.color ?? colorFromLetter(initial?.controller_program) ?? 'emerald');
@@ -19,6 +19,11 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
     else if (existingNames.map(n => n.toLowerCase()).includes(name.trim().toLowerCase())) {
       errs.name = 'A program with this name already exists.';
     }
+    const prefix = controllerProgram.trim().toUpperCase();
+    if (!prefix) errs.controllerProgram = 'Program prefix is required.';
+    else if (existingPrefixes.map(p => String(p).toUpperCase()).includes(prefix)) {
+      errs.controllerProgram = 'Another program already uses this prefix.';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -30,7 +35,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
     try {
       await onSubmit({
         name: name.trim(),
-        controller_program: controllerProgram.trim().toUpperCase() || null,
+        controller_program: controllerProgram.trim().toUpperCase(),
         color,
         description: description.trim(),
         status,
@@ -67,7 +72,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-controller">
-            Controller Program <span className="text-gray-400 font-normal">(optional)</span>
+            Program Prefix <span className="text-red-500">*</span>
           </label>
           <input
             id="prog-controller"
@@ -80,8 +85,15 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
               if (mapped) setColor(mapped);
             }}
             placeholder="e.g. A"
-            className="w-24 px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-brand-600 transition-colors font-mono uppercase"
+            required
+            aria-required="true"
+            className={`w-24 px-3.5 py-2.5 text-sm border rounded-lg outline-none transition-colors font-mono uppercase ${
+              errors.controllerProgram ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-brand-600'
+            }`}
           />
+          {errors.controllerProgram && (
+            <p className="mt-1.5 text-xs text-red-500">{errors.controllerProgram}</p>
+          )}
         </div>
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
