@@ -91,31 +91,39 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
   const max = maxValue(data, 'minutes');
 
   return (
-    <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x pb-1 [-webkit-overflow-scrolling:touch]">
-      <div className="flex w-full min-w-[32rem] items-end gap-2">
+    <div className="min-w-0 w-full px-0.5">
+      <div className="flex w-full items-end gap-1 sm:gap-2">
         {data.map(item => {
           const isSelected = item.key === selectedDay;
           const isClockToday = item.key === clockToday;
           const height = Math.max(item.minutes > 0 ? 6 : 0, (item.minutes / max) * 100);
+          const minutesLabel = item.minutes ? formatMinutes(item.minutes) : '';
           return (
             <button
               key={item.key}
               type="button"
               onClick={() => onSelectDay?.(item.key)}
-              className="group relative flex min-w-[3.5rem] flex-1 flex-col items-center gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
+              className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
               aria-pressed={isSelected}
-              aria-label={`${item.label}: ${formatMinutes(item.minutes)}. Show ${item.label} schedule.`}
+              aria-label={`${item.label}: ${minutesLabel || '0 Min'}. Show ${item.label} schedule.`}
             >
               <ChartTooltip
                 label={item.label}
-                value={formatMinutes(item.minutes)}
+                value={minutesLabel || '0 Min'}
                 className="bottom-full left-1/2 -translate-x-1/2 mb-1"
               />
-              <span className="text-[10px] font-mono tabular-nums leading-none whitespace-nowrap text-slate-500 sm:text-[11px]">
-                {item.minutes ? formatMinutes(item.minutes) : '\u00a0'}
+              <span className="h-3 max-w-full truncate text-[9px] sm:text-[11px] font-mono tabular-nums leading-none text-slate-500">
+                {item.minutes ? (
+                  <>
+                    <span className="sm:hidden">{item.minutes}</span>
+                    <span className="hidden sm:inline">{minutesLabel}</span>
+                  </>
+                ) : (
+                  '\u00a0'
+                )}
               </span>
               <div
-                className={`flex h-24 w-full items-end overflow-hidden rounded-sm transition-colors duration-200 ease-out ${
+                className={`flex h-20 sm:h-24 w-full items-end overflow-hidden rounded-sm transition-colors duration-200 ease-out ${
                   isClockToday ? 'bg-blue-100 ring-2 ring-brand-600 ring-offset-1' : 'bg-slate-100'
                 }`}
               >
@@ -127,13 +135,13 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
                   }}
                 />
               </div>
-              <span className={`text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 ease-out ${
+              <span className={`text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 ease-out ${
                 isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-slate-400'
               }`}>
                 {item.label}
               </span>
               <span
-                className={`text-[9px] font-bold uppercase tracking-wider leading-none transition-opacity duration-200 ease-out ${
+                className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none transition-opacity duration-200 ease-out ${
                   isClockToday
                     ? 'text-brand-600 opacity-100'
                     : isSelected

@@ -443,7 +443,7 @@ export default function ProgramDetail() {
                 profileImageId: program.profile_image_id,
                 name: program.name,
               })}
-              className="w-[6.5rem] sm:w-28 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600"
+              className="w-[6.5rem] sm:w-28 self-stretch flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600"
               aria-label={`View photo of ${program.name}`}
             >
               <ProgramLogo
@@ -454,7 +454,7 @@ export default function ProgramDetail() {
               />
             </button>
           ) : (
-            <div className="w-[6.5rem] sm:w-28 flex-shrink-0">
+            <div className="w-[6.5rem] sm:w-28 self-stretch flex-shrink-0">
               <ProgramLogo
                 name={program.name}
                 profileImageId={program.profile_image_id}
@@ -463,36 +463,46 @@ export default function ProgramDetail() {
               />
             </div>
           )}
-          <div className="flex-1 min-w-0 px-4 py-4 sm:px-6 flex flex-col justify-center">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0 px-4 py-3.5 sm:px-5 sm:py-4 flex flex-col justify-center gap-1.5">
+            <div className="flex items-center gap-2">
               {program.controller_program && (
                 <ProgramBadge code={program.controller_program} color={program.color} size="md" />
               )}
-              <h1 className="text-xl font-bold text-navy-900">{program.name}</h1>
+              <div className="flex-1 min-w-0" />
+              <div className="flex items-center gap-0.5 flex-shrink-0 -mr-1.5">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await saveProgram(program.id);
+                    showSaved(`Saved "${program.name}" with its valves and cycles.`);
+                  }}
+                  className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+                  title="Save program"
+                >
+                  <Bookmark className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditProg(true)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+                  title="Edit program"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <h1 className="text-xl font-bold text-navy-900 leading-tight truncate">{program.name}</h1>
+            <div>
               <Badge status={program.status} />
             </div>
-            {program.description && <p className="text-sm text-slate-500 mt-1">{program.description}</p>}
-            <p className="text-xs text-slate-400 mt-1">{zones.length} valve{zones.length !== 1 ? 's' : ''}</p>
-          </div>
-          <div className="flex items-start m-3 sm:m-4 gap-1 flex-shrink-0">
-            <button
-              type="button"
-              onClick={async () => {
-                await saveProgram(program.id);
-                showSaved(`Saved "${program.name}" with its valves and cycles.`);
-              }}
-              className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
-              title="Save program"
-            >
-              <Bookmark className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setEditProg(true)}
-              className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
-              title="Edit program"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
+            {program.description && (
+              <p className="text-sm text-slate-500 leading-snug line-clamp-2" title={program.description}>
+                {program.description}
+              </p>
+            )}
+            <p className="text-xs text-slate-400">
+              {zones.length} valve{zones.length !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
       </div>
@@ -518,15 +528,22 @@ export default function ProgramDetail() {
           )}
           <div className="space-y-2">
             {todayForProgram.map(item => (
-              <div key={item.schedule.id} className="flex items-center gap-3">
-                <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 w-16">
+              <div
+                key={item.schedule.id}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:flex-nowrap sm:items-center"
+              >
+                <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 w-16 flex-shrink-0">
                   {formatCycleLabel(item.schedule.cycle)}
                 </span>
-                <span className="font-mono text-base font-semibold text-navy-900">
+                <span className="font-mono text-sm sm:text-base font-semibold text-navy-900 whitespace-nowrap flex-shrink-0">
                   {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
                 </span>
-                <span className="text-base text-slate-700">{getZoneDisplayName(item.zone, program.name)}</span>
-                <span className="text-sm font-mono text-slate-600 ml-auto">{formatDuration(item.schedule.duration_minutes)}</span>
+                <span className="text-sm sm:text-base text-slate-700 min-w-0 flex-1 basis-[12rem] truncate">
+                  {getZoneDisplayName(item.zone, program.name)}
+                </span>
+                <span className="text-sm font-mono text-slate-600 flex-shrink-0 sm:ml-auto">
+                  {formatDuration(item.schedule.duration_minutes)}
+                </span>
               </div>
             ))}
           </div>

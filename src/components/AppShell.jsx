@@ -4,15 +4,15 @@ import { LayoutDashboard, List, CalendarDays, Settings, Droplets, Menu, X, Bookm
 import usePhoneLandscape from '../hooks/usePhoneLandscape';
 
 const NAV = [
-  { to: '/programs', label: 'Programs', icon: List, exact: false },
-  { to: '/valves', label: 'Valves', icon: ToggleLeft, exact: true },
-  { to: '/schedule', label: 'Schedule', icon: CalendarDays, exact: true },
-  { to: '/summary', label: 'Summary', icon: LayoutDashboard, exact: true },
-  { to: '/saves', label: 'Saves', icon: Bookmark, exact: true },
+  { to: '/programs', label: 'Programs', shortLabel: 'Prog', icon: List, exact: false },
+  { to: '/valves', label: 'Valves', shortLabel: 'Valves', icon: ToggleLeft, exact: true },
+  { to: '/schedule', label: 'Schedule', shortLabel: 'Sched', icon: CalendarDays, exact: true },
+  { to: '/summary', label: 'Summary', shortLabel: 'Sum', icon: LayoutDashboard, exact: true },
+  { to: '/saves', label: 'Saves', shortLabel: 'Saves', icon: Bookmark, exact: true },
 ];
 
 const SYSTEM_NAV = [
-  { to: '/settings', label: 'Settings', icon: Settings, exact: true },
+  { to: '/settings', label: 'Settings', shortLabel: 'Set', icon: Settings, exact: true },
 ];
 
 const ALL_NAV = [...NAV, ...SYSTEM_NAV];
@@ -88,7 +88,7 @@ export default function AppShell({ children }) {
         </nav>
       </aside>
 
-      <div className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 items-center gap-2 px-4 py-3.5`}>
+      <div className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed top-0 left-0 right-0 z-30 bg-white border-b border-slate-200 items-center gap-2 px-4 pb-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]`}>
         <div className="w-8 h-8 bg-navy-900 rounded-lg flex items-center justify-center flex-shrink-0">
           <Droplets className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
@@ -96,7 +96,9 @@ export default function AppShell({ children }) {
       </div>
 
       <main className={`flex-1 min-w-0 w-full min-h-screen overflow-x-hidden ${
-        phoneLand ? 'ml-0 pt-0 pb-24' : 'md:ml-60 pt-14 md:pt-0 pb-20 md:pb-0'
+        phoneLand
+          ? 'ml-0 pt-0 pb-[calc(6rem+env(safe-area-inset-bottom))]'
+          : 'md:ml-60 pt-[calc(3.5rem+env(safe-area-inset-top))] md:pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0'
       }`}>
         <div className={`max-w-6xl mx-auto w-full min-w-0 ${
           phoneLand ? 'px-3 py-3' : 'px-4 py-5 sm:px-6 sm:py-6 md:p-8'
@@ -105,19 +107,21 @@ export default function AppShell({ children }) {
         </div>
       </main>
 
-      <nav className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200`}>
+      <nav className={`${phoneLand ? 'hidden' : 'flex md:hidden'} fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]`}>
         {ALL_NAV.map(item => {
           const active = isActive(item.to, item.exact, pathname);
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              className={`flex-1 flex flex-col items-center justify-center py-2.5 text-[10px] font-medium gap-1 transition-colors ${
+              aria-label={item.label}
+              title={item.label}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 text-[9px] font-medium gap-0.5 transition-colors ${
                 active ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              {item.label}
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate max-w-full px-0.5">{item.shortLabel || item.label}</span>
             </NavLink>
           );
         })}
@@ -134,7 +138,7 @@ export default function AppShell({ children }) {
         )}
 
         {menuOpen && (
-          <div className="fixed z-50 bottom-20 right-4 w-56 bg-white rounded-xl border border-slate-200 shadow-xl p-2">
+          <div className="fixed z-50 bottom-[calc(5rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] w-56 bg-white rounded-xl border border-slate-200 shadow-xl p-2">
             <p className="px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Menu</p>
             {ALL_NAV.map(item => (
               <NavItem
@@ -150,7 +154,7 @@ export default function AppShell({ children }) {
         <button
           type="button"
           onClick={() => setMenuOpen(open => !open)}
-          className="fixed z-50 bottom-4 right-4 w-12 h-12 rounded-full bg-navy-900 text-white shadow-lg flex items-center justify-center hover:bg-navy-800 transition-colors"
+          className="fixed z-50 bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] w-12 h-12 rounded-full bg-navy-900 text-white shadow-lg flex items-center justify-center hover:bg-navy-800 transition-colors"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
         >
