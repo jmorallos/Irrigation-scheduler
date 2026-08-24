@@ -277,6 +277,43 @@ assert(!html.includes('<b>soak</b>'), 'raw HTML notes are not kept');
 assert(html.includes('cannot restore') || html.includes('not a restore backup'), 'HTML labeled as non-restore');
 assert(html.includes('<strong>Total</strong>') || html.includes('>Total<'), 'schedule table has total row');
 
+const multiMembershipHtml = buildScheduleHtml([
+  {
+    id: 'r1',
+    program: { id: 'p1', name: 'Front', controller_program: 'B' },
+    zone: { id: 'm1', valve_id: 'v1', name: 'Front' },
+    schedule: { start_time: '06:00', duration_minutes: 10, days_of_week: ['mon'] },
+    dailyRuntime: 10,
+    zoneNumber: 1,
+  },
+  {
+    id: 'r2',
+    program: { id: 'p2', name: 'Extra', controller_program: 'C' },
+    zone: { id: 'm2', valve_id: 'v1', name: 'Front' },
+    schedule: { start_time: '07:00', duration_minutes: 10, days_of_week: ['tue'] },
+    dailyRuntime: 10,
+    zoneNumber: 1,
+  },
+  {
+    id: 'r3',
+    program: { id: 'p1', name: 'Front', controller_program: 'B' },
+    zone: { id: 'm3', valve_id: 'v2', name: 'Back' },
+    schedule: { start_time: '08:00', duration_minutes: 10, days_of_week: ['wed'] },
+    dailyRuntime: 10,
+    zoneNumber: 2,
+  },
+]);
+assert(
+  /<div class="label">Valves<\/div>\s*<div class="value mono">2<\/div>/.test(multiMembershipHtml),
+  'export valves counts catalog once',
+);
+assert(
+  /<div class="label">Valves<\/div>\s*<div class="value mono">6<\/div>/.test(
+    buildScheduleHtml([], { catalogValveCount: 6 }),
+  ),
+  'catalogValveCount overrides overview valves',
+);
+
 console.log('Daily runtime once');
 const vineRows = withDailyRuntimeOnce([
   { id: 'c1', zone: { id: 'z1' }, schedule: { duration_minutes: 10 }, dailyRuntime: 30 },

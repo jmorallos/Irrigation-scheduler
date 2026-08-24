@@ -4,6 +4,7 @@ import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } fr
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
 import { formatSoak, soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from './scheduleStats';
 import { getProgramTheme, getZoneTheme } from './programColors';
+import { valvesRepository } from '../db/valvesRepository';
 
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -38,25 +39,38 @@ function normalizeExportData(rowsOrData, options = {}) {
       rows: rowsOrData,
       groups: options.groups ?? [],
       exportedAt: options.exportedAt ?? new Date(),
+      catalogValveCount: options.catalogValveCount,
     };
   }
   return {
     rows: rowsOrData?.rows ?? [],
     groups: rowsOrData?.groups ?? [],
     exportedAt: rowsOrData?.exportedAt ?? options.exportedAt ?? new Date(),
+    catalogValveCount: rowsOrData?.catalogValveCount ?? options.catalogValveCount,
   };
+}
+
+function catalogValveKey(row) {
+  return row.zone?.valve_id
+    ?? row.zoneNumber
+    ?? row.zone?.zone_number
+    ?? row.zone?.id
+    ?? null;
 }
 
 function summarizeRows(rows) {
   const programs = new Map();
   const zones = new Map();
+  const catalogValves = new Set();
   const minutesByDay = Object.fromEntries(DAY_ORDER.map(day => [day, 0]));
   let weekMinutes = 0;
 
   for (const row of rows) {
     const programId = row.program?.id ?? row.program?.controller_program ?? row.program?.name;
     const zoneId = row.zone?.id ?? `${programId}-${row.zoneNumber}-${row.zone?.name}`;
+    const valveKey = catalogValveKey(row);
     if (programId != null && !programs.has(programId)) programs.set(programId, row.program);
+    if (valveKey != null) catalogValves.add(String(valveKey));
     if (zoneId != null && !zones.has(zoneId)) {
       const wateringDays = new Set();
       zones.set(zoneId, {
@@ -99,7 +113,7 @@ function summarizeRows(rows) {
 
   return {
     programCount: programs.size,
-    zoneCount: zoneRows.length,
+    zoneCount: catalogValves.size || zoneRows.length,
     cycleCount: rows.length,
     dailyMinutes,
     weekMinutes,
@@ -313,7 +327,7 @@ function renderWeeklyGrid(groups, todayKey) {
 }
 
 export function buildScheduleHtml(rowsOrData, options = {}) {
-  const { rows, groups, exportedAt } = normalizeExportData(rowsOrData, options);
+  const { rows, groups, exportedAt, catalogValveCount } = normalizeExportData(rowsOrData, options);
   const dateLabel = exportedAt.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -322,6 +336,7 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
   });
   const todayKey = dayKeyFromDate(exportedAt);
   const summary = summarizeRows(rows);
+  if (catalogValveCount != null) summary.zoneCount = catalogValveCount;
   const count = rows.length;
 
   return `<!DOCTYPE html>
@@ -451,11 +466,16 @@ export function openScheduleHtml(html, previewWindow) {
 }
 
 export async function exportPrintableSchedule({ open = false, previewWindow = null } = {}) {
-  const [rows, groups] = await Promise.all([
+  const [rows, groups, catalogValves] = await Promise.all([
     loadMainScheduleRows(),
     loadWeeklyScheduleGroups(),
+    valvesRepository.getAll(),
   ]);
-  const html = buildScheduleHtml({ rows, groups });
+  const html = buildScheduleHtml({
+    rows,
+    groups,
+    catalogValveCount: catalogValves.length,
+  });
   if (open) openScheduleHtml(html, previewWindow);
   else downloadScheduleHtml(html);
   return rows.length;
