@@ -14,6 +14,7 @@ export default function ProgramBadge({ code, color, size = 'md' }) {
       style={{
         backgroundColor: theme.badgeHex,
         color: theme.badgeTextHex || undefined,
+        boxShadow: theme.badgeEdgeHex ? `inset 0 0 0 1px ${theme.badgeEdgeHex}` : undefined,
       }}
       aria-hidden="true"
     >

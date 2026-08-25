@@ -5,7 +5,7 @@ import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { withDailyRuntimeOnce, scheduleTableTotals } from '../src/utils/scheduleStats.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
-import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix } from '../src/utils/programColors.js';
+import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 
@@ -435,6 +435,12 @@ assert(pale.badgeTextHex === '#0a2540', 'pale badge uses navy letter');
 assert(contrastBadgeText('#0a2540') === '#ffffff', 'dark badge uses white text');
 assert(contrastBadgeText('#fef3c7') === '#0a2540', 'light badge uses navy text');
 assert(relativeLuminance('#f5e6a3') > 0.45, 'pale yellow is treated as light for letter contrast');
+const whiteBadge = getThemeByColor('#ffffff', 'A');
+assert(whiteBadge.badgeHex === '#ffffff', 'white badge keeps white fill');
+assert(whiteBadge.badgeTextHex === '#0a2540', 'white badge uses navy letter');
+assert(whiteBadge.badgeEdgeHex === '#94a3b8', 'white badge gets hairline edge');
+assert(badgeEdgeColor('#059669') == null, 'dark badge has no edge');
+assert(badgeEdgeColor('#f5e6a3') == null, 'mid pale badge has no edge');
 
 console.log('Prefix color suggest');
 assert(suggestColorForPrefix('B', { isEditing: false, currentColor: 'emerald' }) === 'amber', 'new program maps B to amber');

@@ -218,6 +218,12 @@ export function contrastBadgeText(badgeHex) {
   return relativeLuminance(badgeHex) > 0.45 ? '#0a2540' : '#ffffff';
 }
 
+/** Hairline edge so near-white fills stay visible on pale rows. */
+export function badgeEdgeColor(badgeHex, minLuminance = 0.85) {
+  if (!badgeHex || relativeLuminance(badgeHex) <= minLuminance) return null;
+  return '#94a3b8';
+}
+
 function withBadgeContrast(theme) {
   const badgeHex = theme.badgeHex ?? theme.swatch;
   return {
@@ -225,6 +231,7 @@ function withBadgeContrast(theme) {
     badgeHex,
     badgeTextHex: contrastBadgeText(badgeHex),
     badgeText: relativeLuminance(badgeHex) > 0.45 ? 'text-navy-900' : 'text-white',
+    badgeEdgeHex: badgeEdgeColor(badgeHex),
   };
 }
 

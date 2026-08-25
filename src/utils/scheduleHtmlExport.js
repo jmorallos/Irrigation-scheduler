@@ -3,7 +3,7 @@ import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
 import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
 import { formatSoak, soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from './scheduleStats';
-import { getProgramTheme, getZoneTheme, contrastBadgeText } from './programColors';
+import { getProgramTheme, getZoneTheme, contrastBadgeText, badgeEdgeColor } from './programColors';
 import { valvesRepository } from '../db/valvesRepository';
 
 export function escapeHtml(value) {
@@ -32,7 +32,9 @@ function dayKeyFromDate(date) {
 function badgeHtml(code, color) {
   const bg = color || '#0a2540';
   const text = contrastBadgeText(bg);
-  return `<span class="badge" style="background:${bg};color:${text}">${escapeHtml(code || '—')}</span>`;
+  const edge = badgeEdgeColor(bg);
+  const edgeStyle = edge ? `;box-shadow:inset 0 0 0 1px ${edge}` : '';
+  return `<span class="badge" style="background:${bg};color:${text}${edgeStyle}">${escapeHtml(code || '—')}</span>`;
 }
 
 /** Prefix badge fill from program only — never from valve/zone theme. */
