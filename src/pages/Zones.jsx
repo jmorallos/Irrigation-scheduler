@@ -13,7 +13,7 @@ import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
-import { groupValvesCatalog, nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
+import { groupValvesCatalog, nextValveNumber, takenValveNumbers, programsForMemberships } from '../utils/zoneIdentity';
 import { getZoneTheme } from '../utils/programColors';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
@@ -95,14 +95,9 @@ export default function Zones() {
                   const theme = getZoneTheme(valve, null);
                   const displayName = getZoneDisplayName(valve);
                   const shortName = getZoneShortName(valve) || displayName;
-                  const programNames = [...new Set(
-                    group.memberships
-                      .map(member => programsById.get(member.program_id)?.name)
-                      .filter(Boolean),
-                  )];
-                  const firstProgram = group.memberships[0]
-                    ? programsById.get(group.memberships[0].program_id)
-                    : null;
+                  const memberPrograms = programsForMemberships(group.memberships, programsById);
+                  const programNames = memberPrograms.map(program => program.name);
+                  const firstProgram = memberPrograms[0] ?? null;
 
                   return (
                     <tr
@@ -155,12 +150,17 @@ export default function Zones() {
                       </td>
                       <td className={`px-4 py-4 ${cellClass('program')}`}>
                         <div className={`flex items-center gap-2 min-w-0 ${flexClass('program')}`}>
-                          {firstProgram && (
-                            <ProgramBadge
-                              code={firstProgram.controller_program}
-                              color={firstProgram.color}
-                              size="sm"
-                            />
+                          {memberPrograms.length > 0 && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {memberPrograms.map(program => (
+                                <ProgramBadge
+                                  key={program.id}
+                                  code={program.controller_program}
+                                  color={program.color}
+                                  size="sm"
+                                />
+                              ))}
+                            </div>
                           )}
                           <span className="truncate text-slate-700">{programNames.join(', ') || '—'}</span>
                         </div>

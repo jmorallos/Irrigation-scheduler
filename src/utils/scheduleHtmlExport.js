@@ -3,7 +3,7 @@ import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
 import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } from './dateUtils';
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
 import { formatSoak, soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from './scheduleStats';
-import { getProgramTheme, getZoneTheme } from './programColors';
+import { getProgramTheme, getZoneTheme, contrastBadgeText } from './programColors';
 import { valvesRepository } from '../db/valvesRepository';
 
 export function escapeHtml(value) {
@@ -30,7 +30,15 @@ function dayKeyFromDate(date) {
 }
 
 function badgeHtml(code, color) {
-  return `<span class="badge" style="background:${color}">${escapeHtml(code || '—')}</span>`;
+  const bg = color || '#0a2540';
+  const text = contrastBadgeText(bg);
+  return `<span class="badge" style="background:${bg};color:${text}">${escapeHtml(code || '—')}</span>`;
+}
+
+/** Prefix badge fill from program only — never from valve/zone theme. */
+function programBadgeHex(program, programTheme) {
+  if (programTheme?.badgeHex) return programTheme.badgeHex;
+  return getProgramTheme(program).badgeHex;
 }
 
 function normalizeExportData(rowsOrData, options = {}) {
@@ -147,7 +155,7 @@ function renderMainTable(rows) {
     : displayRows.map(row => {
       const bg = row.theme?.rowHex || '#ffffff';
       const border = row.theme?.borderHex || '#e2e8f0';
-      const badge = row.programTheme?.badgeHex || row.theme?.badgeHex || '#0a2540';
+      const badge = programBadgeHex(row.program, row.programTheme);
       const code = row.program?.controller_program || '';
       const name = escapeHtml(row.program?.name || '');
       const notes = escapeHtml(row.schedule?.notes || '—');
@@ -210,7 +218,7 @@ function renderZoneRuntime(zoneRows) {
   const body = zoneRows.map(item => {
     const bg = item.theme?.rowHex || '#ffffff';
     const border = item.theme?.borderHex || '#e2e8f0';
-    const badge = item.programTheme?.badgeHex || item.theme?.badgeHex || '#0a2540';
+    const badge = programBadgeHex(item.program, item.programTheme);
     const days = formatDaysCompact([...item.days]);
     return `<tr style="background:${bg};border-bottom:1px solid ${border}">
       <td>${badgeHtml(item.program?.controller_program || '', badge)} ${escapeHtml(item.program?.name || '')}</td>
@@ -402,7 +410,6 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
       padding: 2px 7px;
       margin-right: 6px;
       border-radius: 6px;
-      color: #fff;
       font-weight: 700;
       font-size: 12px;
       text-align: center;

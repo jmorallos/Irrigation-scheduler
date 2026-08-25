@@ -1,4 +1,5 @@
 import { getZoneNumber } from './scheduleUtils';
+import { sortProgramsByController } from '../db/programSort';
 
 export function isValveNumberTaken(valves, number, excludeIds = []) {
   const num = Number(number);
@@ -43,6 +44,19 @@ export function groupValvesCatalog(valves, memberships = []) {
       number: valve.zone_number,
       memberships: programsByValve.get(valve.id) ?? [],
     }));
+}
+
+/** Unique programs for a valve's memberships, sorted by prefix then name. */
+export function programsForMemberships(memberships, programsById) {
+  const seen = new Set();
+  const programs = [];
+  for (const membership of memberships ?? []) {
+    const program = programsById.get(membership.program_id);
+    if (!program || seen.has(program.id)) continue;
+    seen.add(program.id);
+    programs.push(program);
+  }
+  return sortProgramsByController(programs);
 }
 
 /** @deprecated use isValveNumberTaken on catalog valves */

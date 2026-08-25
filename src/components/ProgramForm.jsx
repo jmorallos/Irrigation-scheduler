@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ProfileImagePicker from './ProfileImagePicker';
 import ColorPresetPicker from './ColorPresetPicker';
-import { colorFromLetter } from '../utils/programColors';
+import { colorFromLetter, suggestColorForPrefix } from '../utils/programColors';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [], existingPrefixes = [] }) {
   const [name, setName] = useState(initial?.name ?? '');
@@ -81,8 +81,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
             onChange={e => {
               const next = e.target.value.toUpperCase().slice(0, 2);
               setControllerProgram(next);
-              const mapped = colorFromLetter(next);
-              if (mapped) setColor(mapped);
+              setColor(prev => suggestColorForPrefix(next, { isEditing: Boolean(initial), currentColor: prev }));
             }}
             placeholder="e.g. A"
             required

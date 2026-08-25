@@ -271,6 +271,12 @@ export function colorFromLetter(controllerProgram) {
   return LETTER_TO_COLOR[letter] ?? null;
 }
 
+/** Letter-based color suggestion for new programs only; edits keep the current color. */
+export function suggestColorForPrefix(prefix, { isEditing = false, currentColor } = {}) {
+  if (isEditing) return currentColor;
+  return colorFromLetter(prefix) ?? currentColor;
+}
+
 export function getThemeByColor(colorId, letter = '') {
   const code = (letter ?? '').toString().trim().toUpperCase().slice(0, 2);
   if (isHexColor(colorId)) return themeFromHex(colorId, code);

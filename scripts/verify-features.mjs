@@ -5,8 +5,8 @@ import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { withDailyRuntimeOnce, scheduleTableTotals } from '../src/utils/scheduleStats.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
-import { getThemeByColor, contrastBadgeText, relativeLuminance } from '../src/utils/programColors.js';
-import { isValveNumberTaken, nextValveNumber, takenValveNumbers } from '../src/utils/zoneIdentity.js';
+import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix } from '../src/utils/programColors.js';
+import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 
 let passed = 0;
@@ -255,8 +255,42 @@ const html = buildScheduleHtml([{
   programTheme: { badgeHex: '#059669' },
   zoneNumber: 5,
 }], { exportedAt: new Date('2026-08-15T00:00:00') });
-assert(html.includes('06:00'), '24-hour start time');
-assert(html.includes('06:15'), '24-hour end time');
+assert(html.includes('background:#059669;color:#ffffff'), 'dark export badge uses white letter');
+const paleExport = buildScheduleHtml([{
+  id: 'pale1',
+  program: { name: 'Pale', controller_program: 'B', color: '#f5e6a3' },
+  zone: { name: 'Valve 1' },
+  schedule: {
+    start_time: '07:00',
+    duration_minutes: 10,
+    days_of_week: ['mon'],
+    notes: '',
+  },
+  soakHours: null,
+  dailyRuntime: 10,
+  theme: { rowHex: '#fff', borderHex: '#eee', badgeHex: '#ea580c' },
+  programTheme: { badgeHex: '#f5e6a3' },
+  zoneNumber: 1,
+}], { exportedAt: new Date('2026-08-15T00:00:00') });
+assert(paleExport.includes('background:#f5e6a3;color:#0a2540'), 'pale export badge uses navy letter');
+assert(!/\.badge\s*\{[^}]*color:\s*#fff/.test(paleExport), 'export CSS does not force white badge text');
+const valveLeakExport = buildScheduleHtml([{
+  id: 'leak1',
+  program: { name: 'Front', controller_program: 'B', color: 'violet' },
+  zone: { name: 'Valve 2', color: 'orange' },
+  schedule: {
+    start_time: '08:00',
+    duration_minutes: 10,
+    days_of_week: ['tue'],
+    notes: '',
+  },
+  soakHours: null,
+  dailyRuntime: 10,
+  theme: { rowHex: '#fff7ed', borderHex: '#fed7aa', badgeHex: '#ea580c' },
+  zoneNumber: 2,
+}], { exportedAt: new Date('2026-08-15T00:00:00') });
+assert(valveLeakExport.includes('background:#7c3aed'), 'export badge uses program color when programTheme missing');
+assert(!valveLeakExport.includes('background:#ea580c'), 'export badge does not use valve color');
 assert(html.includes('<th>Duration (Min)</th>'), 'duration unit is in the header');
 assert(html.includes('<th>Daily runtime (Min)</th>'), 'daily runtime unit is in the header');
 assert(!html.includes('15 Min'), 'cells do not repeat Min');
@@ -375,6 +409,19 @@ assert(
   'same valve may appear twice in one program',
 );
 
+console.log('Valve program badges');
+const progA = { id: 'pa', name: 'Bay', controller_program: 'A', color: 'emerald' };
+const progB = { id: 'pb', name: 'Front', controller_program: 'B', color: 'violet' };
+const progE = { id: 'pe', name: 'Extra', controller_program: 'E', color: 'teal' };
+const byId = new Map([['pa', progA], ['pb', progB], ['pe', progE]]);
+const multi = programsForMemberships(
+  [{ program_id: 'pb' }, { program_id: 'pe' }, { program_id: 'pa' }, { program_id: 'pb' }],
+  byId,
+);
+assert(multi.map(p => p.controller_program).join('') === 'ABE', 'badges sorted A then B then E');
+assert(multi.length === 3, 'duplicate membership does not duplicate badge');
+assert(programsForMemberships([], byId).length === 0, 'no memberships means no badges');
+
 console.log('HSV color');
 const roundtrip = hsvToHex(hexToHsv('#2563eb'));
 assert(roundtrip === '#2563eb', `hex roundtrip (got ${roundtrip})`);
@@ -388,6 +435,12 @@ assert(pale.badgeTextHex === '#0a2540', 'pale badge uses navy letter');
 assert(contrastBadgeText('#0a2540') === '#ffffff', 'dark badge uses white text');
 assert(contrastBadgeText('#fef3c7') === '#0a2540', 'light badge uses navy text');
 assert(relativeLuminance('#f5e6a3') > 0.45, 'pale yellow is treated as light for letter contrast');
+
+console.log('Prefix color suggest');
+assert(suggestColorForPrefix('B', { isEditing: false, currentColor: 'emerald' }) === 'amber', 'new program maps B to amber');
+assert(suggestColorForPrefix('B', { isEditing: true, currentColor: 'violet' }) === 'violet', 'edit keeps custom color');
+assert(suggestColorForPrefix('C', { isEditing: true, currentColor: '#aabbcc' }) === '#aabbcc', 'edit keeps custom hex');
+assert(suggestColorForPrefix('Z', { isEditing: false, currentColor: 'emerald' }) === 'emerald', 'unknown letter keeps current');
 
 console.log('Selected weekday');
 const wed = new Date(2026, 7, 19);
