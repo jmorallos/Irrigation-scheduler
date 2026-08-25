@@ -60,7 +60,7 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
             <div className="flex items-center justify-between gap-3 mb-1.5">
               <div className="flex items-center gap-2 min-w-0">
                 {item.prefix && (
-                  <ProgramBadge code={item.prefix} color={item.programColor || item.color} size="sm" />
+                  <ProgramBadge code={item.prefix} color={item.programColor} size="sm" />
                 )}
                 <span className="text-sm font-medium text-navy-900 truncate group-hover:text-brand-700 transition-colors">
                   {item.name}

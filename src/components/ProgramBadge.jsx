@@ -10,8 +10,11 @@ export default function ProgramBadge({ code, color, size = 'md' }) {
 
   return (
     <span
-      className={`${sizeClass} ${theme.badge} ${theme.badgeText} rounded font-bold flex items-center justify-center flex-shrink-0 select-none`}
-      style={{ backgroundColor: theme.badgeHex }}
+      className={`${sizeClass} ${theme.badge} rounded font-bold flex items-center justify-center flex-shrink-0 select-none`}
+      style={{
+        backgroundColor: theme.badgeHex,
+        color: theme.badgeTextHex || undefined,
+      }}
       aria-hidden="true"
     >
       {theme.letter || '—'}

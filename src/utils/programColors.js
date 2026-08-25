@@ -203,9 +203,34 @@ function mix(hex, other, amount) {
   });
 }
 
+function channelLuminance(value) {
+  const s = value / 255;
+  return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+export function relativeLuminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  return 0.2126 * channelLuminance(r) + 0.7152 * channelLuminance(g) + 0.0722 * channelLuminance(b);
+}
+
+/** White on dark badges, navy on light badges. Badge fill stays the chosen color. */
+export function contrastBadgeText(badgeHex) {
+  return relativeLuminance(badgeHex) > 0.45 ? '#0a2540' : '#ffffff';
+}
+
+function withBadgeContrast(theme) {
+  const badgeHex = theme.badgeHex ?? theme.swatch;
+  return {
+    ...theme,
+    badgeHex,
+    badgeTextHex: contrastBadgeText(badgeHex),
+    badgeText: relativeLuminance(badgeHex) > 0.45 ? 'text-navy-900' : 'text-white',
+  };
+}
+
 function themeFromHex(hex, letter = '') {
   const color = normalizeHex(hex);
-  return {
+  return withBadgeContrast({
     id: color,
     isCustom: true,
     label: 'Custom',
@@ -227,18 +252,18 @@ function themeFromHex(hex, letter = '') {
     borderHex: mix(color, '#ffffff', 0.62),
     badgeHex: color,
     letter,
-  };
+  });
 }
 
 function withSurfaceHexes(preset, letter = '') {
-  return {
+  return withBadgeContrast({
     ...preset,
     letter,
     badgeHex: preset.badgeHex ?? preset.swatch,
     borderHex: preset.borderHex ?? mix(preset.swatch, '#ffffff', 0.72),
     todayHex: preset.todayHex ?? preset.headerHex,
     todayAltHex: preset.todayAltHex ?? mix(preset.swatch, '#ffffff', 0.62),
-  };
+  });
 }
 
 export function colorFromLetter(controllerProgram) {

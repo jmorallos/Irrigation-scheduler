@@ -5,6 +5,7 @@ import { formatMinutes } from '../src/utils/formatMinutes.js';
 import { withDailyRuntimeOnce, scheduleTableTotals } from '../src/utils/scheduleStats.js';
 import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.js';
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
+import { getThemeByColor, contrastBadgeText, relativeLuminance } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 
@@ -379,6 +380,14 @@ const roundtrip = hsvToHex(hexToHsv('#2563eb'));
 assert(roundtrip === '#2563eb', `hex roundtrip (got ${roundtrip})`);
 assert(hsvToHex({ h: 0, s: 0, v: 1 }) === '#ffffff', 'white');
 assert(hsvToHex({ h: 0, s: 0, v: 0 }) === '#000000', 'black');
+
+console.log('Badge contrast');
+const pale = getThemeByColor('#f5e6a3', 'B');
+assert(pale.badgeHex === '#f5e6a3', 'custom badge keeps chosen color');
+assert(pale.badgeTextHex === '#0a2540', 'pale badge uses navy letter');
+assert(contrastBadgeText('#0a2540') === '#ffffff', 'dark badge uses white text');
+assert(contrastBadgeText('#fef3c7') === '#0a2540', 'light badge uses navy text');
+assert(relativeLuminance('#f5e6a3') > 0.45, 'pale yellow is treated as light for letter contrast');
 
 console.log('Selected weekday');
 const wed = new Date(2026, 7, 19);

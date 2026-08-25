@@ -219,7 +219,7 @@ export default function Dashboard() {
                 style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
               >
                 <div className="flex-shrink-0 sm:pt-0 pt-0.5">
-                  <ProgramBadge code={item.program.controller_program} color={item.zone.color || item.program.color} size="sm" />
+                  <ProgramBadge code={item.program.controller_program} color={item.program.color} size="sm" />
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:contents">
