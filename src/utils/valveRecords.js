@@ -11,6 +11,7 @@ export function hydrateZone(membership, valve) {
     zone_number: valve.zone_number,
     name: valve.name,
     color: valve.color,
+    gph: valve.gph ?? null,
     profile_image_id: valve.profile_image_id ?? null,
   };
 }

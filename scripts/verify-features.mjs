@@ -9,6 +9,7 @@ import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForP
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
+import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph } from '../src/utils/waterUsage.js';
 
 let passed = 0;
 let failed = 0;
@@ -242,6 +243,17 @@ assert(
   'summary valve subtitle uses hyphen',
 );
 
+console.log('Water usage');
+assert(normalizeGph('') === null, 'empty GPH is null');
+assert(normalizeGph(210) === 210, 'numeric GPH kept');
+assert(gallonsForRun(210, 45) === 157.5, '210 GPH for 45 min');
+assert(gallonsForRun(200, 45) === 150, '200 GPH for 45 min');
+assert(gallonsForRun(210, 60) === 210, '210 GPH for 60 min');
+assert(gallonsForRun(null, 60) === null, 'missing GPH returns null');
+assert(formatGallons(150) === '150 gal', 'whole gallons');
+assert(formatGallons(157.5) === '157.5 gal', 'fractional gallons');
+assert(formatRunGallons(210, 60) === '210 gal', 'formatted run gallons');
+
 console.log('HTML export');
 assert(escapeHtml('<script>') === '&lt;script&gt;', 'notes are escaped');
 const html = buildScheduleHtml([{
@@ -461,7 +473,7 @@ assert(getDateForDayKey('sun', wed).getDate() === 23, 'Sunday is end of Mon-Sun 
 assert(dayScopeLabel('wed', 'wed').possessive === "Today's", 'clock today uses Today');
 assert(dayScopeLabel('fri', 'wed').possessive === "Friday's", 'other day uses weekday name');
 assert(
-  formatDayHeading('fri', new Date(2026, 7, 19)).startsWith('Viewing Friday'),
+  formatDayHeading('mon', new Date(2026, 7, 19)).startsWith('Viewing Monday'),
   'other day heading says Viewing',
 );
 

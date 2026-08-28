@@ -4,6 +4,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
+import { normalizeGph } from '../utils/waterUsage';
 import {
   isValveNumberTaken,
   valveNumberConflictMessage,
@@ -30,6 +31,7 @@ export async function updateValveCatalog(valveId, data) {
 
   return valvesRepository.update(valveId, {
     ...valveData,
+    gph: normalizeGph(valveData.gph),
     profile_image_id: imageId,
   });
 }
@@ -41,7 +43,11 @@ export async function createValveCatalog(data) {
     throw new Error(valveNumberConflictMessage(valveData.zone_number));
   }
 
-  const valve = await valvesRepository.create({ ...valveData, profile_image_id: null });
+  const valve = await valvesRepository.create({
+    ...valveData,
+    gph: normalizeGph(valveData.gph),
+    profile_image_id: null,
+  });
   const imageId = await applyProfileImageChange('valve', valve.id, profileImageChange, null);
   if (imageId !== valve.profile_image_id) {
     await valvesRepository.update(valve.id, { profile_image_id: imageId });

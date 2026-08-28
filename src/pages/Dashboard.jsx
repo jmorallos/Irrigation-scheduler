@@ -11,6 +11,7 @@ import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, P
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
+import { formatRunGallons } from '../utils/waterUsage';
 import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
@@ -213,6 +214,7 @@ export default function Dashboard() {
           <div>
             {items.map(item => {
               const theme = getZoneTheme(item.zone, item.program);
+              const runGallons = formatRunGallons(item.zone.gph, item.schedule.duration_minutes);
               return (
               <div
                 key={item.schedule.id}
@@ -228,6 +230,9 @@ export default function Dashboard() {
                   <p className="text-sm font-mono text-navy-900 tabular-nums">
                     {formatMinutes(item.schedule.duration_minutes)}
                   </p>
+                  {runGallons && (
+                    <p className="text-sm font-mono text-navy-900 tabular-nums">{runGallons}</p>
+                  )}
                   <p className="text-sm text-navy-900">
                     {formatCycleLabel(item.schedule.cycle)}
                     {' - '}

@@ -18,6 +18,7 @@ export default function ZoneForm({
   );
   const [name, setName] = useState(parsed.number != null ? parsed.label : (initial?.name ?? ''));
   const [color, setColor] = useState(initial?.color ?? defaultColor);
+  const [gph, setGph] = useState(initial?.gph != null ? String(initial.gph) : '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
@@ -32,6 +33,10 @@ export default function ZoneForm({
     else if (num > 99) errs.zoneNumber = 'Valve number cannot exceed 99.';
     else if (existingNumbers.includes(num)) errs.zoneNumber = `Valve ${num} already exists.`;
     if (!name.trim()) errs.name = 'Valve name is required.';
+    if (gph.trim()) {
+      const rate = Number(gph);
+      if (!Number.isFinite(rate) || rate < 0) errs.gph = 'Enter a valid flow rate (0 or higher).';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -46,6 +51,7 @@ export default function ZoneForm({
         zone_number: num,
         name: formatZoneName(num, name),
         color,
+        gph: gph.trim() ? Number(gph) : null,
         status,
         profileImageChange,
       });
@@ -99,6 +105,29 @@ export default function ZoneForm({
           <p className="text-xs text-red-500 -mt-2">{errors.zoneNumber || errors.name}</p>
         )}
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-gph">
+            Flow rate (GPH) <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            id="zone-gph"
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            value={gph}
+            onChange={e => setGph(e.target.value)}
+            placeholder="e.g. 210"
+            className={`w-full max-w-xs px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.gph ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-brand-600'}`}
+          />
+          {errors.gph ? (
+            <p className="mt-1.5 text-xs text-red-500">{errors.gph}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-slate-500">
+              Gallons per hour for this valve.
+            </p>
+          )}
+        </div>
         {showStatus && (
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>

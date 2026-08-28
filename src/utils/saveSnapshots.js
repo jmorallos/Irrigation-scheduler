@@ -227,6 +227,7 @@ export async function restoreProgramSave(save) {
         zone_number: number,
         name: zone.name ?? formatZoneName(number, getZoneShortName(zone)),
         color: zone.color,
+        gph: zone.gph ?? null,
         profileImageChange: { action: 'none' },
       });
       const photoId = await restorePhoto(zone.profile_image_id, media, 'valve', catalogValve.id);
@@ -272,6 +273,7 @@ export async function restoreZoneSave(save, programId) {
       zone_number: number,
       name: zone.name ?? formatZoneName(number, getZoneShortName(zone) || zone.name),
       color: zone.color,
+      gph: zone.gph ?? null,
       profileImageChange: { action: 'none' },
     });
     const photoId = await restorePhoto(zone.profile_image_id, media, 'valve', catalogValve.id);
