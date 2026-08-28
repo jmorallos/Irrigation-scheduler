@@ -8,6 +8,7 @@ import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
+import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
 
 let passed = 0;
 let failed = 0;
@@ -236,6 +237,10 @@ assert(formatFileSize(1.5 * 1024 * 1024) === '1.5 MB', 'MB label');
 console.log('Labels');
 assert(formatMinutes(1) === '1 Min', '1 Min');
 assert(formatMinutes(15) === '15 Min', '15 Min');
+assert(
+  formatValveSubtitle({ zone_number: 3, name: 'Valve 3 · Lauris Nobilis' }) === 'Valve 3 - Lauris Nobilis',
+  'summary valve subtitle uses hyphen',
+);
 
 console.log('HTML export');
 assert(escapeHtml('<script>') === '&lt;script&gt;', 'notes are escaped');

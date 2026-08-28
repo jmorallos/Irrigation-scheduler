@@ -9,8 +9,9 @@ import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
 import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
-import { formatDuration, formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
-import { formatCycleLabel, getZoneDisplayName } from '../utils/scheduleUtils';
+import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
+import { formatMinutes } from '../utils/formatMinutes';
+import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useSelectedDay } from '../context/SelectedDayContext';
@@ -215,31 +216,23 @@ export default function Dashboard() {
               return (
               <div
                 key={item.schedule.id}
-                className={`flex items-start sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
+                className={`flex items-start gap-3 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
                 style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
               >
-                <div className="flex-shrink-0 sm:pt-0 pt-0.5">
+                <div className="flex-shrink-0 pt-0.5">
                   <ProgramBadge code={item.program.controller_program} color={item.program.color} size="sm" />
                 </div>
-                <div className="min-w-0 flex-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:contents">
-                    <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 sm:w-16 sm:flex-shrink-0">
-                      {formatCycleLabel(item.schedule.cycle)}
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-navy-900 whitespace-nowrap sm:flex-shrink-0">
-                      {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
-                    </span>
-                    <span className="text-xs font-mono text-slate-600 sm:hidden">
-                      {formatDuration(item.schedule.duration_minutes)}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{getZoneDisplayName(item.zone, item.program.name)}</p>
-                  </div>
-                  <div className="hidden sm:block text-xs font-mono text-slate-600 flex-shrink-0">
-                    {formatDuration(item.schedule.duration_minutes)}
-                  </div>
+                <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                  <p className="text-sm font-semibold text-navy-900 truncate">{item.program.name}</p>
+                  <p className="text-sm text-navy-900 truncate">{formatValveSubtitle(item.zone)}</p>
+                  <p className="text-sm font-mono text-navy-900 tabular-nums">
+                    {formatMinutes(item.schedule.duration_minutes)}
+                  </p>
+                  <p className="text-sm text-navy-900">
+                    {formatCycleLabel(item.schedule.cycle)}
+                    {' - '}
+                    {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
+                  </p>
                 </div>
               </div>
               );

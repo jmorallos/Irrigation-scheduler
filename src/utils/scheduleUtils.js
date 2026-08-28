@@ -40,6 +40,14 @@ export function getZoneDisplayName(zone, programName) {
   return formatZoneName(parsed.number, parsed.label);
 }
 
+/** Summary irrigation rows: "Valve 3 - Lauris Nobilis" */
+export function formatValveSubtitle(zone) {
+  const number = getZoneNumber(zone);
+  const label = getZoneShortName(zone);
+  if (number == null) return zone?.name ?? '';
+  return label ? `Valve ${number} - ${label}` : `Valve ${number}`;
+}
+
 export function dedupeProgramsByName(programs) {
   const seen = new Map();
   for (const program of programs) {
