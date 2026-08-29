@@ -107,7 +107,7 @@ export default function ZoneForm({
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-gph">
-            Flow rate (GPH) <span className="text-gray-400 font-normal">(optional)</span>
+            Emitter Total G.P.H. <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             id="zone-gph"
