@@ -33,20 +33,25 @@ export default function AddValveToProgram({
   return (
     <div>
       <p className="text-sm text-slate-600 mb-4">
-        Choose a valve from your catalog. You can add the same valve more than once for another set of cycles, as long as times do not overlap.
+        Choose a valve from your catalog. Each valve can only be added once per program.
       </p>
       {sortedValves.length === 0 ? (
         <p className="text-sm text-slate-500 mb-4">No catalog valves yet. Create one below.</p>
       ) : (
         <ul className="space-y-2 mb-4 max-h-64 overflow-y-auto">
           {sortedValves.map(valve => {
-            const count = programValveCounts[valve.id] ?? 0;
+            const inProgram = (programValveCounts[valve.id] ?? 0) > 0;
             return (
               <li key={valve.id}>
                 <button
                   type="button"
-                  onClick={() => onAddExisting(valve.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 hover:border-brand-400 hover:bg-blue-50/50 text-left transition-colors"
+                  onClick={() => !inProgram && onAddExisting(valve.id)}
+                  disabled={inProgram}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${
+                    inProgram
+                      ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
+                      : 'border-slate-200 hover:border-brand-400 hover:bg-blue-50/50'
+                  }`}
                 >
                   <ProgramLogo
                     name={valve.name}
@@ -58,9 +63,9 @@ export default function AddValveToProgram({
                   <span className="text-sm text-navy-900 truncate flex-1">
                     {getZoneShortName(valve) || valve.name}
                   </span>
-                  {count > 0 && (
+                  {inProgram && (
                     <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
-                      In program ×{count} · Add again
+                      Already in program
                     </span>
                   )}
                 </button>

@@ -7,6 +7,7 @@ import { buildScheduleHtml, escapeHtml } from '../src/utils/scheduleHtmlExport.j
 import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
+import { programHasValve } from '../src/utils/valveRecords.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
 import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
@@ -431,10 +432,8 @@ const memberships = [
   { id: 'm1', program_id: 'p1', valve_id: 'v1' },
   { id: 'm2', program_id: 'p1', valve_id: 'v1' },
 ];
-assert(
-  memberships.filter(m => m.program_id === 'p1' && m.valve_id === 'v1').length === 2,
-  'same valve may appear twice in one program',
-);
+assert(programHasValve(memberships, 'p1', 'v1'), 'program already has valve');
+assert(!programHasValve(memberships, 'p1', 'v2'), 'valve not in program yet');
 
 console.log('Valve program badges');
 const progA = { id: 'pa', name: 'Bay', controller_program: 'A', color: 'emerald' };

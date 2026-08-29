@@ -68,6 +68,10 @@ export async function deleteValveCatalog(valveId) {
 }
 
 export async function attachValveToProgram(valveId, programId) {
+  const existing = await zonesRepository.getByProgramId(programId);
+  if (existing.some(membership => membership.valve_id === valveId)) {
+    throw new Error('This valve is already in the program.');
+  }
   return zonesRepository.create({
     program_id: programId,
     valve_id: valveId,
