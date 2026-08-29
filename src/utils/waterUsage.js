@@ -24,3 +24,29 @@ export function formatGallons(gallons) {
 export function formatRunGallons(gph, durationMinutes) {
   return formatGallons(gallonsForRun(gph, durationMinutes));
 }
+
+export function sumGallons(values) {
+  let total = 0;
+  let count = 0;
+  for (const value of values) {
+    if (value == null || !Number.isFinite(value)) continue;
+    total += value;
+    count += 1;
+  }
+  return count > 0 ? total : null;
+}
+
+/** Gallons for one cycle across each scheduled weekday in the week. */
+export function gallonsForWeek(gph, durationMinutes, daysOfWeek = []) {
+  const perRun = gallonsForRun(gph, durationMinutes);
+  if (perRun == null || daysOfWeek.length === 0) return null;
+  return perRun * daysOfWeek.length;
+}
+
+export function gallonLabel(value, period = 'day', dayPhrase = 'today') {
+  const formatted = formatGallons(value);
+  if (!formatted) return null;
+  if (period === 'week') return `${formatted} / week`;
+  if (dayPhrase && dayPhrase !== 'today') return `${formatted} ${dayPhrase}`;
+  return `${formatted} today`;
+}

@@ -9,7 +9,7 @@ import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForP
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
-import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph } from '../src/utils/waterUsage.js';
+import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
 
 let passed = 0;
 let failed = 0;
@@ -253,6 +253,11 @@ assert(gallonsForRun(null, 60) === null, 'missing GPH returns null');
 assert(formatGallons(150) === '150 gal', 'whole gallons');
 assert(formatGallons(157.5) === '157.5 gal', 'fractional gallons');
 assert(formatRunGallons(210, 60) === '210 gal', 'formatted run gallons');
+assert(gallonsForWeek(210, 60, ['mon', 'wed', 'fri']) === 630, 'weekly gallons count each run day');
+assert(sumGallons([210, 157.5]) === 367.5, 'sum gallons');
+assert(sumGallons([null, undefined]) === null, 'empty gallon sum');
+assert(gallonLabel(210, 'day', 'today') === '210 gal today', 'day gallon label');
+assert(gallonLabel(630, 'week') === '630 gal / week', 'week gallon label');
 
 console.log('HTML export');
 assert(escapeHtml('<script>') === '&lt;script&gt;', 'notes are escaped');

@@ -11,7 +11,7 @@ import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, P
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
-import { formatRunGallons } from '../utils/waterUsage';
+import { formatRunGallons, formatGallons, sumGallons, gallonsForRun } from '../utils/waterUsage';
 import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
@@ -33,6 +33,8 @@ export default function Dashboard() {
     byProgramToday: [],
     byProgramWeek: [],
     zoneTotals: [],
+    dayGallonsTotal: null,
+    weekGallonsTotal: null,
   });
   const [chartsLoading, setChartsLoading] = useState(true);
   const [chartsRefreshing, setChartsRefreshing] = useState(false);
@@ -81,6 +83,8 @@ export default function Dashboard() {
   const dayPanelsClass = `transition-opacity duration-200 ease-out ${
     chartsRefreshing ? 'opacity-70' : 'opacity-100'
   }`;
+  const irrigationDayGallons = chartData.dayGallonsTotal
+    ?? sumGallons(items.map(item => gallonsForRun(item.zone.gph, item.schedule.duration_minutes)));
 
   return (
     <div className="min-w-0 w-full">
@@ -121,7 +125,9 @@ export default function Dashboard() {
                 onSelectDay={setSelectedDay}
               />
               <p className="mt-3 text-[11px] text-slate-400 break-words">
-                Scheduled cycle minutes on each weekday. <span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
+                Scheduled cycle minutes on each weekday
+                {chartData.weekGallonsTotal ? ` · ${formatGallons(chartData.weekGallonsTotal)} / week total` : ''}.
+                {' '}<span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
               </p>
             </div>
             <div className="min-w-0 p-5">
@@ -130,7 +136,7 @@ export default function Dashboard() {
               </h3>
               <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
               <p className="mt-3 text-[11px] text-slate-400">
-                Duration × watering days for the week.
+                Duration × watering days for the week. Gallons shown when emitter G.P.H. is set.
               </p>
             </div>
           </div>
@@ -151,7 +157,7 @@ export default function Dashboard() {
               emptyMessage={`No valves scheduled ${scope.adjective}.`}
             />
             <p className="mt-3 text-[11px] text-slate-400">
-              {`Cycle minutes per valve for ${scope.short} only.`}
+              {`Cycle minutes and gallons per valve for ${scope.short} and the week.`}
             </p>
           </div>
         )}
@@ -175,7 +181,7 @@ export default function Dashboard() {
                 emptyMessage={`No programs scheduled ${scope.adjective}.`}
               />
               <p className="mt-3 text-[11px] text-slate-400">
-                {`Total cycle minutes for programs running ${scope.adjective}.`}
+                {`Total cycle minutes and gallons for programs running ${scope.adjective}.`}
               </p>
             </div>
             <div className="p-5">
@@ -218,7 +224,7 @@ export default function Dashboard() {
               return (
               <div
                 key={item.schedule.id}
-                className={`flex items-start gap-3 px-4 sm:px-5 py-4 border-b last:border-0 ${theme.row} ${theme.border}`}
+                className={`flex items-start gap-3 px-4 sm:px-5 py-4 border-b ${theme.row} ${theme.border}`}
                 style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
               >
                 <div className="flex-shrink-0 pt-0.5">
@@ -242,6 +248,16 @@ export default function Dashboard() {
               </div>
               );
             })}
+            {(irrigationDayGallons != null) && (
+              <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3.5 border-t border-slate-200 bg-white/80">
+                <span className="text-sm font-semibold text-navy-900">
+                  {`${scope.possessive} water total`}
+                </span>
+                <span className="text-sm font-mono font-semibold text-navy-900 tabular-nums">
+                  {formatGallons(irrigationDayGallons)}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

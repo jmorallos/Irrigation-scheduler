@@ -1,5 +1,6 @@
 import { maxValue } from '../utils/chartData';
 import { formatMinutes } from '../utils/formatMinutes';
+import { formatGallons, gallonLabel } from '../utils/waterUsage';
 import ProgramBadge from './ProgramBadge';
 
 function ChartEmpty({ message }) {
@@ -30,25 +31,47 @@ function minuteLabel(value, period, dayPhrase) {
   return `${unit} today`;
 }
 
-function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayPhrase = 'today' }) {
+function metricDisplayValue(item, metric, period, dayPhrase) {
+  const value = item[metric];
+  const isMinutes = metric === 'minutes';
+  const primary = isMinutes ? formatMinutes(value) : `${value} cycle${value !== 1 ? 's' : ''}`;
+  const gallons = period === 'week' ? item.weekGallons ?? item.gallons : item.gallons;
+  const gallonsText = gallonLabel(gallons, period, dayPhrase);
+  if (!gallonsText) return primary;
+  return `${primary} · ${gallonsText}`;
+}
+
+function metricTooltipValue(item, metric, period, dayPhrase) {
+  const value = item[metric];
+  const isMinutes = metric === 'minutes';
+  const primary = isMinutes
+    ? minuteLabel(value, period, dayPhrase)
+    : `${value} cycle${value !== 1 ? 's' : ''} ${dayPhrase}`;
+  const gallons = period === 'week' ? item.weekGallons ?? item.gallons : item.gallons;
+  const gallonsText = gallonLabel(gallons, period, dayPhrase);
+  if (!gallonsText) return primary;
+  return `${primary} · ${gallonsText}`;
+}
+
+function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayPhrase = 'today', showWeekGallons = false }) {
   if (data.length === 0) {
     return <ChartEmpty message={emptyMessage} />;
   }
 
   const max = maxValue(data, metric);
-  const isMinutes = metric === 'minutes';
 
   return (
     <div className="space-y-3.5">
       {data.map(item => {
         const value = item[metric];
-        const displayValue = isMinutes ? formatMinutes(value) : `${value} cycle${value !== 1 ? 's' : ''}`;
-        const tooltipValue = isMinutes
-          ? minuteLabel(value, period, dayPhrase)
-          : `${value} cycle${value !== 1 ? 's' : ''} ${dayPhrase}`;
+        const displayValue = metricDisplayValue(item, metric, period, dayPhrase);
+        const tooltipValue = metricTooltipValue(item, metric, period, dayPhrase);
         const tooltipLabel = item.prefix
           ? `${item.prefix} · ${item.name}`
           : item.name;
+        const weekGallonsText = showWeekGallons && item.weekGallons
+          ? gallonLabel(item.weekGallons, 'week')
+          : null;
 
         return (
           <div key={item.id} className="group relative">
@@ -57,7 +80,7 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
               value={tooltipValue}
               className="bottom-full left-0 mb-1"
             />
-            <div className="flex items-center justify-between gap-3 mb-1.5">
+            <div className="flex items-start justify-between gap-3 mb-1.5">
               <div className="flex items-center gap-2 min-w-0">
                 {item.prefix && (
                   <ProgramBadge code={item.prefix} color={item.programColor} size="sm" />
@@ -66,9 +89,16 @@ function ProgramMetricChart({ data, metric, emptyMessage, period = 'today', dayP
                   {item.name}
                 </span>
               </div>
-              <span className="text-xs font-mono text-slate-500 flex-shrink-0 tabular-nums">
-                {displayValue}
-              </span>
+              <div className="flex-shrink-0 text-right">
+                <span className="text-xs font-mono text-slate-500 tabular-nums block">
+                  {displayValue}
+                </span>
+                {weekGallonsText && !displayValue.includes('/ week') && (
+                  <span className="text-[11px] font-mono text-slate-400 tabular-nums block mt-0.5">
+                    {weekGallonsText}
+                  </span>
+                )}
+              </div>
             </div>
             <div
               className="w-full h-2 rounded-full overflow-hidden"
@@ -107,6 +137,10 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
           const isClockToday = item.key === clockToday;
           const height = Math.max(item.minutes > 0 ? 6 : 0, (item.minutes / max) * 100);
           const minutesLabel = item.minutes ? formatMinutes(item.minutes) : '';
+          const gallonsLabel = item.gallons ? formatGallons(item.gallons) : '';
+          const tooltipValue = gallonsLabel
+            ? `${minutesLabel || '0 Min'} · ${gallonsLabel}`
+            : (minutesLabel || '0 Min');
           return (
             <button
               key={item.key}
@@ -114,11 +148,11 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
               onClick={() => onSelectDay?.(item.key)}
               className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
               aria-pressed={isSelected}
-              aria-label={`${item.label}: ${minutesLabel || '0 Min'}. Show ${item.label} schedule.`}
+              aria-label={`${item.label}: ${tooltipValue}. Show ${item.label} schedule.`}
             >
               <ChartTooltip
                 label={item.label}
-                value={minutesLabel || '0 Min'}
+                value={tooltipValue}
                 className="bottom-full left-1/2 -translate-x-1/2 mb-1"
               />
               <span className="h-3 max-w-full truncate text-[9px] sm:text-[11px] font-mono tabular-nums leading-none text-slate-500">
@@ -209,6 +243,7 @@ export function ZoneMinutesChart({ data, emptyMessage, dayPhrase }) {
       metric="minutes"
       emptyMessage={emptyMessage ?? 'No valves scheduled today.'}
       dayPhrase={dayPhrase}
+      showWeekGallons
     />
   );
 }

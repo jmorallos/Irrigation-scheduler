@@ -3,12 +3,14 @@ import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
 import { loadProgramHydratedZones } from './valveRecords';
+import { gallonsForRun, gallonsForWeek } from './waterUsage';
 
 /**
  * Minutes by day = sum of active cycle durations on that weekday.
  * Weekly program minutes = duration × run days.
  * Today minutes/starts = cycles that run on the selected weekday.
  * Zone minutes = that zone's cycle total for the selected weekday only.
+ * Gallons use each valve's GPH when set (same day/week rules as minutes).
  */
 export async function buildScheduleChartData({
   programsRepository,
@@ -22,6 +24,7 @@ export async function buildScheduleChartData({
     key: day,
     label: DAY_LABELS[day],
     minutes: 0,
+    gallons: 0,
   }));
   const dayIndex = Object.fromEntries(minutesByDay.map((item, index) => [item.key, index]));
   const byProgramToday = [];
@@ -33,7 +36,9 @@ export async function buildScheduleChartData({
 
     let todayMinutes = 0;
     let todayStarts = 0;
+    let todayGallons = 0;
     let weekMinutes = 0;
+    let weekGallons = 0;
     const zones = await loadProgramHydratedZones(program.id);
 
     for (const zone of zones) {
@@ -41,16 +46,26 @@ export async function buildScheduleChartData({
       const schedules = await schedulesRepository.getByZoneId(zone.id);
       let zoneTodayMinutes = 0;
       let zoneTodayRuns = 0;
+      let zoneTodayGallons = 0;
+      let zoneWeekGallons = 0;
 
       for (const schedule of schedules) {
         if (schedule.status !== 'active') continue;
         const duration = Number(schedule.duration_minutes) || 0;
         const days = schedule.days_of_week ?? [];
+        const runGallons = gallonsForRun(zone.gph, duration);
+        const scheduleWeekGallons = gallonsForWeek(zone.gph, duration, days);
+
         weekMinutes += duration * days.length;
+        if (scheduleWeekGallons != null) weekGallons += scheduleWeekGallons;
+        if (scheduleWeekGallons != null) zoneWeekGallons += scheduleWeekGallons;
 
         for (const day of days) {
           const index = dayIndex[day];
-          if (index != null) minutesByDay[index].minutes += duration;
+          if (index != null) {
+            minutesByDay[index].minutes += duration;
+            if (runGallons != null) minutesByDay[index].gallons += runGallons;
+          }
         }
 
         if (days.includes(todayKey)) {
@@ -58,6 +73,10 @@ export async function buildScheduleChartData({
           todayStarts += 1;
           zoneTodayMinutes += duration;
           zoneTodayRuns += 1;
+          if (runGallons != null) {
+            todayGallons += runGallons;
+            zoneTodayGallons += runGallons;
+          }
         }
       }
 
@@ -73,6 +92,8 @@ export async function buildScheduleChartData({
           prefix: program.controller_program || null,
           programColor: program.color,
           minutes: zoneTodayMinutes,
+          gallons: zoneTodayGallons > 0 ? zoneTodayGallons : null,
+          weekGallons: zoneWeekGallons > 0 ? zoneWeekGallons : null,
           hours: Math.round((zoneTodayMinutes / 60) * 100) / 100,
           runs: zoneTodayRuns,
           color: theme.badgeHex,
@@ -96,6 +117,7 @@ export async function buildScheduleChartData({
         prefix: program.controller_program || null,
         programColor: program.color,
         minutes: weekMinutes,
+        gallons: weekGallons > 0 ? weekGallons : null,
         ...colors,
       });
     }
@@ -107,17 +129,24 @@ export async function buildScheduleChartData({
         prefix: program.controller_program || null,
         programColor: program.color,
         minutes: todayMinutes,
+        gallons: todayGallons > 0 ? todayGallons : null,
         starts: todayStarts,
         ...colors,
       });
     }
   }
 
+  const selectedDayIndex = dayIndex[todayKey];
+  const dayGallonsTotal = selectedDayIndex != null ? minutesByDay[selectedDayIndex].gallons : 0;
+  const weekGallonsTotal = minutesByDay.reduce((sum, day) => sum + day.gallons, 0);
+
   return {
     minutesByDay,
     byProgramToday: byProgramToday.sort((a, b) => b.minutes - a.minutes),
     byProgramWeek: byProgramWeek.sort((a, b) => b.minutes - a.minutes),
     zoneTotals: zoneTotals.sort((a, b) => (a.zoneNumber ?? 999) - (b.zoneNumber ?? 999)),
+    dayGallonsTotal: dayGallonsTotal > 0 ? dayGallonsTotal : null,
+    weekGallonsTotal: weekGallonsTotal > 0 ? weekGallonsTotal : null,
   };
 }
 
