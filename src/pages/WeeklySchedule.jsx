@@ -6,6 +6,7 @@ import { useMainSchedule } from '../hooks/useMainSchedule';
 import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from '../utils/scheduleStats';
+import { formatScheduleRowGallons, formatScheduleRowWeekGallons, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
@@ -69,6 +70,16 @@ function compareRows(a, b, key) {
       return compareNullableNumber(
         Number(a.schedule.duration_minutes),
         Number(b.schedule.duration_minutes),
+      );
+    case 'gallons':
+      return compareNullableNumber(
+        scheduleRowGallons(a.zone, a.schedule),
+        scheduleRowGallons(b.zone, b.schedule),
+      );
+    case 'weekGallons':
+      return compareNullableNumber(
+        scheduleRowWeekGallons(a.zone, a.schedule),
+        scheduleRowWeekGallons(b.zone, b.schedule),
       );
     case 'soak':
       return compareNullableNumber(
@@ -177,6 +188,12 @@ export default function WeeklySchedule() {
                     <th onClick={() => toggleSort('duration')} className={TH_SORT}>
                       Duration (Min){sortMark(sort, 'duration')}
                     </th>
+                    <th onClick={() => toggleSort('gallons')} className={TH_SORT}>
+                      Gallons{sortMark(sort, 'gallons')}
+                    </th>
+                    <th onClick={() => toggleSort('weekGallons')} className={TH_SORT}>
+                      Gal / Week{sortMark(sort, 'weekGallons')}
+                    </th>
                     <th onClick={() => toggleSort('soak')} className={TH_SORT}>
                       Soak (Min){sortMark(sort, 'soak')}
                     </th>
@@ -224,6 +241,12 @@ export default function WeeklySchedule() {
                         {row.schedule.duration_minutes}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
+                        {formatScheduleRowGallons(row.zone, row.schedule) ?? '—'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
+                        {formatScheduleRowWeekGallons(row.zone, row.schedule) ?? '—'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
@@ -246,6 +269,10 @@ export default function WeeklySchedule() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {totals.durationTotal}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
+                        {totals.weekGallonsTotal ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">

@@ -7,7 +7,7 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
 import { countOverviewStats } from '../utils/overviewStats';
-import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart } from '../components/DashboardCharts';
+import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
@@ -85,6 +85,10 @@ export default function Dashboard() {
   }`;
   const irrigationDayGallons = chartData.dayGallonsTotal
     ?? sumGallons(items.map(item => gallonsForRun(item.zone.gph, item.schedule.duration_minutes)));
+  const programWaterData = chartData.byProgramToday.map(item => ({
+    ...item,
+    weekGallons: chartData.byProgramWeek.find(row => row.id === item.id)?.gallons ?? null,
+  }));
 
   return (
     <div className="min-w-0 w-full">
@@ -136,7 +140,7 @@ export default function Dashboard() {
               </h3>
               <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
               <p className="mt-3 text-[11px] text-slate-400">
-                Duration × watering days for the week. Gallons shown when emitter G.P.H. is set.
+                Duration × watering days for the week.
               </p>
             </div>
           </div>
@@ -157,7 +161,7 @@ export default function Dashboard() {
               emptyMessage={`No valves scheduled ${scope.adjective}.`}
             />
             <p className="mt-3 text-[11px] text-slate-400">
-              {`Cycle minutes and gallons per valve for ${scope.short} and the week.`}
+              {`Cycle minutes per valve for ${scope.short} only.`}
             </p>
           </div>
         )}
@@ -165,38 +169,80 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{`${scope.possessive} Load`}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Valve</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
         ) : (
-          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            <div className="p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                Run Time by Program
-              </h3>
-              <ProgramTodayMinutesChart
-                data={chartData.byProgramToday}
-                dayPhrase={scope.adjective}
-                emptyMessage={`No programs scheduled ${scope.adjective}.`}
-              />
-              <p className="mt-3 text-[11px] text-slate-400">
-                {`Total cycle minutes and gallons for programs running ${scope.adjective}.`}
-              </p>
-            </div>
-            <div className="p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                Cycles by Program
-              </h3>
-              <ProgramTodayStartsChart
-                data={chartData.byProgramToday}
-                dayPhrase={scope.adjective}
-                emptyMessage={`No programs scheduled ${scope.adjective}.`}
-              />
-              <p className="mt-3 text-[11px] text-slate-400">
-                {`Number of cycles for programs running ${scope.adjective}.`}
-              </p>
-            </div>
+          <div className="p-5">
+            <ZoneWaterChart
+              data={chartData.zoneTotals}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No water estimates for valves running ${scope.adjective}. Set Emitter Total G.P.H. on valves.`}
+            />
+            <p className="mt-3 text-[11px] text-slate-400">
+              {`Estimated gallons per valve for ${scope.short} and the week.`}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Run Time by Program</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <ProgramTodayMinutesChart
+              data={chartData.byProgramToday}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No programs scheduled ${scope.adjective}.`}
+            />
+            <p className="mt-3 text-[11px] text-slate-400">
+              {`Total cycle minutes for programs running ${scope.adjective}.`}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Cycles by Program</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <ProgramTodayStartsChart
+              data={chartData.byProgramToday}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No programs scheduled ${scope.adjective}.`}
+            />
+            <p className="mt-3 text-[11px] text-slate-400">
+              {`Number of cycles for programs running ${scope.adjective}.`}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Program</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <ProgramWaterChart
+              data={programWaterData}
+              dayPhrase={scope.adjective}
+              emptyMessage={`No water estimates for programs running ${scope.adjective}. Set Emitter Total G.P.H. on valves.`}
+            />
+            <p className="mt-3 text-[11px] text-slate-400">
+              {`Estimated gallons per program for ${scope.short} and the week.`}
+            </p>
           </div>
         )}
       </div>

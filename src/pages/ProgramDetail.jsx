@@ -16,7 +16,9 @@ import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
-import { formatCycleLabel, getZoneDisplayName, getZoneNumber } from '../utils/scheduleUtils';
+import { formatMinutes } from '../utils/formatMinutes';
+import { formatCycleLabel, getZoneDisplayName, getZoneNumber, formatValveSubtitle } from '../utils/scheduleUtils';
+import { formatRunGallons, formatGallons, sumGallons, gallonsForRun, formatScheduleRowGallons, formatScheduleRowWeekGallons } from '../utils/waterUsage';
 import AddValveToProgram from '../components/AddValveToProgram';
 import { valvesRepository } from '../db/valvesRepository';
 import { nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
@@ -203,6 +205,12 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
                         {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
                       </span>
                       <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+                      {formatScheduleRowGallons(zone, schedule) && (
+                        <span className="font-mono text-sm text-navy-900">{formatScheduleRowGallons(zone, schedule)}</span>
+                      )}
+                      {formatScheduleRowWeekGallons(zone, schedule) && (
+                        <span className="font-mono text-sm text-navy-900">{formatScheduleRowWeekGallons(zone, schedule)} / week</span>
+                      )}
                     </div>
                     <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
                     {schedule.notes && (
@@ -526,26 +534,36 @@ export default function ProgramDetail() {
               {formatClockTodayLine()}
             </p>
           )}
-          <div className="space-y-2">
-            {todayForProgram.map(item => (
-              <div
-                key={item.schedule.id}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:flex-nowrap sm:items-center"
-              >
-                <span className="text-sm font-semibold uppercase tracking-wide text-slate-500 w-16 flex-shrink-0">
-                  {formatCycleLabel(item.schedule.cycle)}
-                </span>
-                <span className="font-mono text-sm sm:text-base font-semibold text-navy-900 whitespace-nowrap flex-shrink-0">
-                  {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
-                </span>
-                <span className="text-sm sm:text-base text-slate-700 min-w-0 flex-1 basis-[12rem] truncate">
-                  {getZoneDisplayName(item.zone, program.name)}
-                </span>
-                <span className="text-sm font-mono text-slate-600 flex-shrink-0 sm:ml-auto">
-                  {formatDuration(item.schedule.duration_minutes)}
+          <div className="space-y-3">
+            {todayForProgram.map(item => {
+              const runGallons = formatRunGallons(item.zone.gph, item.schedule.duration_minutes);
+              return (
+                <div key={item.schedule.id} className="flex flex-col gap-0.5">
+                  <p className="text-sm font-semibold text-navy-900 truncate">
+                    {formatValveSubtitle(item.zone)}
+                  </p>
+                  <p className="text-sm font-mono text-navy-900 tabular-nums">
+                    {formatMinutes(item.schedule.duration_minutes)}
+                  </p>
+                  {runGallons && (
+                    <p className="text-sm font-mono text-navy-900 tabular-nums">{runGallons}</p>
+                  )}
+                  <p className="text-sm text-navy-900">
+                    {formatCycleLabel(item.schedule.cycle)}
+                    {' - '}
+                    {formatTimeRange(item.schedule.start_time, item.schedule.duration_minutes)}
+                  </p>
+                </div>
+              );
+            })}
+            {sumGallons(todayForProgram.map(item => gallonsForRun(item.zone.gph, item.schedule.duration_minutes))) != null && (
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-black/10">
+                <span className="text-sm font-semibold text-navy-900">{`${scope.possessive} water total`}</span>
+                <span className="text-sm font-mono font-semibold text-navy-900 tabular-nums">
+                  {formatGallons(sumGallons(todayForProgram.map(item => gallonsForRun(item.zone.gph, item.schedule.duration_minutes))))}
                 </span>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

@@ -382,6 +382,11 @@ assert(vineRows[2].showDailyRuntime === true, 'daily runtime on last cycle of va
 const vineTotals = scheduleTableTotals(vineRows);
 assert(vineTotals.durationTotal === 30, 'duration total is 30 for three 10-min cycles');
 assert(vineTotals.dailyRuntimeTotal === 30, 'daily runtime total counts valve once');
+const gallonTotals = scheduleTableTotals([
+  { zone: { gph: 210 }, schedule: { duration_minutes: 60, days_of_week: ['mon', 'wed', 'fri'] } },
+  { zone: { gph: 200 }, schedule: { duration_minutes: 45, days_of_week: ['tue'] } },
+]);
+assert(gallonTotals.weekGallonsTotal === 780, 'schedule week gallons total');
 
 assert(html.includes('Runtime by valve'), 'valve runtime section');
 assert(html.includes('Daily min'), 'daily minutes per valve');

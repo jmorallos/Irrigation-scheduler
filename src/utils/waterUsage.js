@@ -50,3 +50,19 @@ export function gallonLabel(value, period = 'day', dayPhrase = 'today') {
   if (dayPhrase && dayPhrase !== 'today') return `${formatted} ${dayPhrase}`;
   return `${formatted} today`;
 }
+
+export function scheduleRowGallons(zone, schedule) {
+  return gallonsForRun(zone?.gph, schedule?.duration_minutes);
+}
+
+export function scheduleRowWeekGallons(zone, schedule) {
+  return gallonsForWeek(zone?.gph, schedule?.duration_minutes, schedule?.days_of_week);
+}
+
+export function formatScheduleRowGallons(zone, schedule) {
+  return formatGallons(scheduleRowGallons(zone, schedule));
+}
+
+export function formatScheduleRowWeekGallons(zone, schedule) {
+  return formatGallons(scheduleRowWeekGallons(zone, schedule));
+}
