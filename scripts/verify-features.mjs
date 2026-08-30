@@ -11,6 +11,10 @@ import { programHasValve } from '../src/utils/valveRecords.js';
 import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
 import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
 import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
+import ExcelJS from 'exceljs';
+import { buildScheduleWorkbookForTest } from '../src/utils/scheduleXlsxExport.js';
+import { summarizeRows } from '../src/utils/scheduleExportData.js';
+import { hexToArgb } from '../src/utils/xlsxTheme.js';
 
 let passed = 0;
 let failed = 0;
@@ -259,6 +263,50 @@ assert(sumGallons([210, 157.5]) === 367.5, 'sum gallons');
 assert(sumGallons([null, undefined]) === null, 'empty gallon sum');
 assert(gallonLabel(210, 'day', 'today') === '210 gal today', 'day gallon label');
 assert(gallonLabel(630, 'week') === '630 gal / week', 'week gallon label');
+
+console.log('XLSX export');
+const xlsxRows = [{
+  id: 'sch-x1',
+  program: { name: 'Bay', controller_program: 'C', color: 'sky' },
+  zone: { name: 'Bay Laurel', gph: 200 },
+  schedule: {
+    id: 'sch-x1',
+    start_time: '04:00',
+    duration_minutes: 60,
+    days_of_week: ['mon', 'wed', 'fri'],
+    notes: '',
+  },
+  soakHours: null,
+  dailyRuntime: 60,
+  theme: { rowHex: '#f0f9ff', borderHex: '#bae6fd' },
+  programTheme: { badgeHex: '#0284c7' },
+  zoneNumber: 3,
+}];
+const xlsxSummary = summarizeRows(xlsxRows);
+const xlsxWorkbook = buildScheduleWorkbookForTest(ExcelJS, {
+  rows: xlsxRows,
+  groups: [],
+  exportedAt: new Date('2026-08-15T00:00:00'),
+  todayKey: 'sat',
+  summary: xlsxSummary,
+});
+const sheetNames = xlsxWorkbook.worksheets.map(sheet => sheet.name);
+assert(sheetNames.includes('Schedule'), 'xlsx schedule sheet');
+assert(sheetNames.includes('Runtime by valve'), 'xlsx runtime sheet');
+assert(sheetNames.includes('Minutes by day'), 'xlsx minutes sheet');
+assert(sheetNames.includes('By week'), 'xlsx week sheet');
+const scheduleSheet = xlsxWorkbook.getWorksheet('Schedule');
+const endFormula = scheduleSheet.getCell('H2').value;
+assert(typeof endFormula === 'object' && endFormula.formula.includes('MOD'), 'xlsx end time formula');
+const gallonsFormula = scheduleSheet.getCell('I2').value;
+assert(typeof gallonsFormula === 'object' && gallonsFormula.formula.includes('/60*'), 'xlsx gallons formula');
+const weekGallonsFormula = scheduleSheet.getCell('R2').value;
+assert(typeof weekGallonsFormula === 'object' && weekGallonsFormula.formula.includes('SUM(J2:P2)'), 'xlsx week gallons formula');
+assert(hexToArgb('#0284c7') === 'FF0284C7', 'xlsx hex to argb');
+const badgeFill = scheduleSheet.getCell('A2').fill?.fgColor?.argb;
+assert(badgeFill === 'FF0284C7', 'xlsx badge fill color');
+const footerDuration = scheduleSheet.getCell('G3').value;
+assert(typeof footerDuration === 'object' && footerDuration.formula.includes('SUM(G2:G2)'), 'xlsx footer duration total');
 
 console.log('HTML export');
 assert(escapeHtml('<script>') === '&lt;script&gt;', 'notes are escaped');

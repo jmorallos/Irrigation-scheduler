@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Upload, Trash2, Sprout, X, FileText, ExternalLink } from 'lucide-react';
+import { Download, Upload, Trash2, Sprout, X, FileText, ExternalLink, Sheet } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { programsRepository } from '../db/programsRepository';
 import { valvesRepository } from '../db/valvesRepository';
@@ -39,6 +39,8 @@ export default function Settings() {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [htmlSuccess, setHtmlSuccess] = useState(null);
   const [htmlError, setHtmlError] = useState(null);
+  const [xlsxSuccess, setXlsxSuccess] = useState(null);
+  const [xlsxError, setXlsxError] = useState(null);
   const [sampleError, setSampleError] = useState(null);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [importNotice, setImportNotice] = useState(null);
@@ -162,6 +164,19 @@ export default function Settings() {
     }
   };
 
+  const handleXlsxExport = async () => {
+    setXlsxError(null);
+    setXlsxSuccess(null);
+    try {
+      const { exportScheduleXlsx } = await import('../utils/scheduleXlsxExport');
+      await exportScheduleXlsx();
+      setXlsxSuccess('Excel schedule downloaded.');
+      setTimeout(() => setXlsxSuccess(null), 3000);
+    } catch (err) {
+      setXlsxError(err.message);
+    }
+  };
+
   const handleHtmlExport = async (open) => {
     setHtmlError(null);
     setHtmlSuccess(null);
@@ -222,13 +237,23 @@ export default function Settings() {
               {htmlError}
             </div>
           )}
+          {xlsxSuccess && (
+            <div className="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+              {xlsxSuccess}
+            </div>
+          )}
+          {xlsxError && (
+            <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {xlsxError}
+            </div>
+          )}
           {importError && (
             <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               Import failed: {importError}
             </div>
           )}
           <p className="text-sm text-slate-500">
-            How to use: Export Data → file in Downloads → Import that file later. HTML is a printable sheet only and cannot restore the app.
+            How to use: Export Data → file in Downloads → Import that file later. HTML and Excel are printable schedules only and cannot restore the app.
           </p>
           <button
             onClick={exportData}
@@ -253,6 +278,14 @@ export default function Settings() {
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
           />
+          <button
+            onClick={handleXlsxExport}
+            className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
+          >
+            <Sheet className="w-4 h-4 text-slate-500" />
+            Export Excel
+            <span className="ml-auto text-xs text-slate-400">.xlsx</span>
+          </button>
           <button
             onClick={() => handleHtmlExport(false)}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
