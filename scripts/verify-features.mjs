@@ -388,6 +388,7 @@ const gallonTotals = scheduleTableTotals([
   { zone: { gph: 200 }, schedule: { duration_minutes: 45, days_of_week: ['tue'] } },
 ]);
 assert(gallonTotals.weekGallonsTotal === 780, 'schedule week gallons total');
+assert(gallonTotals.gallonsTotal === 360, 'schedule run gallons total');
 
 assert(html.includes('Runtime by valve'), 'valve runtime section');
 assert(html.includes('Daily min'), 'daily minutes per valve');

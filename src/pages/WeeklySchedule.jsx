@@ -6,7 +6,7 @@ import { useMainSchedule } from '../hooks/useMainSchedule';
 import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from '../utils/scheduleStats';
-import { formatScheduleRowGallons, formatScheduleRowWeekGallons, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
+import { formatGallonsNumber, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
@@ -241,10 +241,10 @@ export default function WeeklySchedule() {
                         {row.schedule.duration_minutes}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {formatScheduleRowGallons(row.zone, row.schedule) ?? '—'}
+                        {formatGallonsNumber(scheduleRowGallons(row.zone, row.schedule)) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {formatScheduleRowWeekGallons(row.zone, row.schedule) ?? '—'}
+                        {formatGallonsNumber(scheduleRowWeekGallons(row.zone, row.schedule)) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
@@ -270,9 +270,11 @@ export default function WeeklySchedule() {
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {totals.durationTotal}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
-                        {totals.weekGallonsTotal ?? '—'}
+                        {formatGallonsNumber(totals.gallonsTotal) ?? '—'}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
+                        {formatGallonsNumber(totals.weekGallonsTotal) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">

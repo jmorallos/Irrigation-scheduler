@@ -1,6 +1,6 @@
 import { timeToMinutes, getEndTime } from './dateUtils';
 import { withCycleNumbers } from './scheduleUtils';
-import { scheduleRowWeekGallons } from './waterUsage';
+import { scheduleRowGallons, scheduleRowWeekGallons } from './waterUsage';
 
 function daysOverlap(a, b) {
   const daysA = a.days_of_week ?? [];
@@ -74,7 +74,14 @@ export function scheduleTableTotals(rows) {
   }
   let weekGallonsTotal = 0;
   let hasWeekGallons = false;
+  let gallonsTotal = 0;
+  let hasGallons = false;
   for (const row of rows) {
+    const runGallons = scheduleRowGallons(row.zone, row.schedule);
+    if (runGallons != null) {
+      gallonsTotal += runGallons;
+      hasGallons = true;
+    }
     const weekGallons = scheduleRowWeekGallons(row.zone, row.schedule);
     if (weekGallons != null) {
       weekGallonsTotal += weekGallons;
@@ -84,6 +91,7 @@ export function scheduleTableTotals(rows) {
   return {
     durationTotal,
     dailyRuntimeTotal,
+    gallonsTotal: hasGallons ? gallonsTotal : null,
     weekGallonsTotal: hasWeekGallons ? weekGallonsTotal : null,
   };
 }

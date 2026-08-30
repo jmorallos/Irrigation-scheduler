@@ -14,11 +14,16 @@ export function gallonsForRun(gph, durationMinutes) {
   return (rate / 60) * minutes;
 }
 
-export function formatGallons(gallons) {
+export function formatGallonsNumber(gallons) {
   if (gallons == null || !Number.isFinite(gallons)) return null;
   const rounded = Math.round(gallons * 10) / 10;
-  if (Number.isInteger(rounded)) return `${rounded} gal`;
-  return `${rounded.toFixed(1)} gal`;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(1);
+}
+
+export function formatGallons(gallons) {
+  const value = formatGallonsNumber(gallons);
+  return value == null ? null : `${value} gal`;
 }
 
 export function formatRunGallons(gph, durationMinutes) {
