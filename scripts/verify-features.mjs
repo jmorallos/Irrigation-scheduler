@@ -24,6 +24,8 @@ import {
   formatIntervalSummary,
   WATERING_MODE_WEEKDAY,
   WATERING_MODE_INTERVAL,
+  slideIntervalDate,
+  formatNeverOnSummary,
 } from '../src/utils/programSchedule.js';
 
 let passed = 0;
@@ -333,6 +335,29 @@ const weekdayPayload = programSchedulePayload({
   program_end_mode: 'never',
 });
 assert(weekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'weekday payload clears interval fields');
+assert(weekdayPayload.never_on_days.length === 0, 'weekday payload clears never-on days');
+
+const sundaySlideProgram = {
+  watering_mode: WATERING_MODE_INTERVAL,
+  interval_days: 3,
+  program_start_date: '2026-08-27',
+  program_end_date: null,
+  never_on_days: ['sun'],
+};
+assert(
+  slideIntervalDate(new Date(2026, 7, 30), ['sun']).getDate() === 31
+  && slideIntervalDate(new Date(2026, 7, 30), ['sun']).getMonth() === 7,
+  'never-on Sunday slides to Monday',
+);
+assert(
+  !isIntervalWateringDay(sundaySlideProgram, new Date(2026, 7, 30)),
+  'interval does not water on blocked Sunday',
+);
+assert(
+  isIntervalWateringDay(sundaySlideProgram, new Date(2026, 7, 31)),
+  'interval waters on slid Monday',
+);
+assert(formatNeverOnSummary(sundaySlideProgram) === 'Sun', 'never-on summary text');
 
 console.log('XLSX export');
 const xlsxRows = [{

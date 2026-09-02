@@ -34,6 +34,7 @@ import {
   formatWateringModeLabel,
   formatIntervalSummary,
   formatProgramDateRange,
+  formatNeverOnSummary,
 } from '../utils/programSchedule';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
@@ -545,6 +546,10 @@ export default function ProgramDetail() {
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">End date</p>
                 <p className="mt-1 text-sm font-semibold text-navy-900">{dateRange?.end ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Never on</p>
+                <p className="mt-1 text-sm font-semibold text-navy-900">{formatNeverOnSummary(program)}</p>
               </div>
             </>
           ) : null}

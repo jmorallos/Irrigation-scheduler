@@ -8,6 +8,8 @@ import {
   validateProgramScheduleFields,
   programSchedulePayload,
   initialProgramScheduleFields,
+  DAY_ORDER,
+  DAY_LABELS,
 } from '../utils/programSchedule';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [], existingPrefixes = [] }) {
@@ -22,6 +24,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
   const [programStartDate, setProgramStartDate] = useState(scheduleDefaults.program_start_date);
   const [programEndMode, setProgramEndMode] = useState(scheduleDefaults.program_end_mode);
   const [programEndDate, setProgramEndDate] = useState(scheduleDefaults.program_end_date);
+  const [neverOnDays, setNeverOnDays] = useState(scheduleDefaults.never_on_days);
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
           program_start_date: programStartDate,
           program_end_mode: programEndMode,
           program_end_date: programEndDate,
+          never_on_days: neverOnDays,
         }),
       });
     } finally {
@@ -75,6 +79,12 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
 
   const adjustInterval = (delta) => {
     setIntervalDays(prev => Math.min(365, Math.max(1, Number(prev || 1) + delta)));
+  };
+
+  const toggleNeverOnDay = (day) => {
+    setNeverOnDays(prev => (
+      prev.includes(day) ? prev.filter(item => item !== day) : [...prev, day]
+    ));
   };
 
   return (
@@ -277,6 +287,27 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                     )}
                   </>
                 )}
+              </div>
+
+              <div>
+                <span className="block text-sm font-medium text-gray-700 mb-1.5">Never on</span>
+                <div className="flex flex-wrap gap-2">
+                  {DAY_ORDER.map(day => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleNeverOnDay(day)}
+                      className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
+                        neverOnDays.includes(day)
+                          ? 'bg-brand-600 border-brand-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
+                      }`}
+                      aria-pressed={neverOnDays.includes(day)}
+                    >
+                      {DAY_LABELS[day]}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
