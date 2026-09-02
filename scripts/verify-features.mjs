@@ -15,6 +15,16 @@ import ExcelJS from 'exceljs';
 import { buildScheduleWorkbookForTest } from '../src/utils/scheduleXlsxExport.js';
 import { summarizeRows } from '../src/utils/scheduleExportData.js';
 import { hexToArgb } from '../src/utils/xlsxTheme.js';
+import {
+  normalizeProgramSchedule,
+  isIntervalWateringDay,
+  isWithinProgramDateRange,
+  validateProgramScheduleFields,
+  programSchedulePayload,
+  formatIntervalSummary,
+  WATERING_MODE_WEEKDAY,
+  WATERING_MODE_INTERVAL,
+} from '../src/utils/programSchedule.js';
 
 let passed = 0;
 let failed = 0;
@@ -263,6 +273,66 @@ assert(sumGallons([210, 157.5]) === 367.5, 'sum gallons');
 assert(sumGallons([null, undefined]) === null, 'empty gallon sum');
 assert(gallonLabel(210, 'day', 'today') === '210 gal today', 'day gallon label');
 assert(gallonLabel(630, 'week') === '630 gal / week', 'week gallon label');
+
+console.log('Program interval schedule');
+const legacyProgram = normalizeProgramSchedule({ name: 'Legacy' });
+assert(legacyProgram.watering_mode === WATERING_MODE_WEEKDAY, 'legacy program defaults to weekdays');
+assert(legacyProgram.interval_days === null, 'legacy program has no interval');
+
+const intervalProgram = {
+  watering_mode: WATERING_MODE_INTERVAL,
+  interval_days: 3,
+  program_start_date: '2026-09-02',
+  program_end_date: null,
+};
+assert(formatIntervalSummary(intervalProgram) === 'Every 3 days', 'interval summary text');
+assert(
+  isIntervalWateringDay(intervalProgram, new Date(2026, 8, 2)),
+  'interval waters on start date',
+);
+assert(
+  !isIntervalWateringDay(intervalProgram, new Date(2026, 8, 3)),
+  'interval skips between runs',
+);
+assert(
+  isIntervalWateringDay(intervalProgram, new Date(2026, 8, 5)),
+  'interval waters every third day',
+);
+const boundedProgram = {
+  ...intervalProgram,
+  program_end_date: '2026-09-08',
+};
+assert(
+  !isIntervalWateringDay(boundedProgram, new Date(2026, 8, 11)),
+  'interval stops after end date',
+);
+assert(
+  isWithinProgramDateRange(boundedProgram, new Date(2026, 8, 8)),
+  'interval active on end date',
+);
+const intervalErrors = validateProgramScheduleFields({
+  watering_mode: WATERING_MODE_INTERVAL,
+  interval_days: 0,
+  program_start_date: '',
+  program_end_mode: 'date',
+  program_end_date: '',
+});
+assert(intervalErrors.interval_days && intervalErrors.program_start_date, 'interval validation catches missing fields');
+const payload = programSchedulePayload({
+  watering_mode: WATERING_MODE_INTERVAL,
+  interval_days: 3,
+  program_start_date: '2026-09-02',
+  program_end_mode: 'never',
+  program_end_date: '',
+});
+assert(payload.program_end_date === null && payload.interval_days === 3, 'interval payload stores never end');
+const weekdayPayload = programSchedulePayload({
+  watering_mode: WATERING_MODE_WEEKDAY,
+  interval_days: 3,
+  program_start_date: '2026-09-02',
+  program_end_mode: 'never',
+});
+assert(weekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'weekday payload clears interval fields');
 
 console.log('XLSX export');
 const xlsxRows = [{

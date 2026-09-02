@@ -2,13 +2,26 @@ import { useState } from 'react';
 import ProfileImagePicker from './ProfileImagePicker';
 import ColorPresetPicker from './ColorPresetPicker';
 import { colorFromLetter, suggestColorForPrefix } from '../utils/programColors';
+import {
+  WATERING_MODE_WEEKDAY,
+  WATERING_MODE_INTERVAL,
+  validateProgramScheduleFields,
+  programSchedulePayload,
+  initialProgramScheduleFields,
+} from '../utils/programSchedule';
 
 export default function ProgramForm({ initial, onSubmit, onCancel, existingNames = [], existingPrefixes = [] }) {
+  const scheduleDefaults = initialProgramScheduleFields(initial);
   const [name, setName] = useState(initial?.name ?? '');
   const [controllerProgram, setControllerProgram] = useState(initial?.controller_program ?? '');
   const [color, setColor] = useState(initial?.color ?? colorFromLetter(initial?.controller_program) ?? 'emerald');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [status, setStatus] = useState(initial?.status ?? 'active');
+  const [wateringMode, setWateringMode] = useState(scheduleDefaults.watering_mode);
+  const [intervalDays, setIntervalDays] = useState(scheduleDefaults.interval_days);
+  const [programStartDate, setProgramStartDate] = useState(scheduleDefaults.program_start_date);
+  const [programEndMode, setProgramEndMode] = useState(scheduleDefaults.program_end_mode);
+  const [programEndDate, setProgramEndDate] = useState(scheduleDefaults.program_end_date);
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -24,6 +37,13 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
     else if (existingPrefixes.map(p => String(p).toUpperCase()).includes(prefix)) {
       errs.controllerProgram = 'Another program already uses this prefix.';
     }
+    Object.assign(errs, validateProgramScheduleFields({
+      watering_mode: wateringMode,
+      interval_days: intervalDays,
+      program_start_date: programStartDate,
+      program_end_mode: programEndMode,
+      program_end_date: programEndDate,
+    }));
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -40,10 +60,21 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         description: description.trim(),
         status,
         profileImageChange,
+        ...programSchedulePayload({
+          watering_mode: wateringMode,
+          interval_days: intervalDays,
+          program_start_date: programStartDate,
+          program_end_mode: programEndMode,
+          program_end_date: programEndDate,
+        }),
       });
     } finally {
       setSaving(false);
     }
+  };
+
+  const adjustInterval = (delta) => {
+    setIntervalDays(prev => Math.min(365, Math.max(1, Number(prev || 1) + delta)));
   };
 
   return (
@@ -128,6 +159,127 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100">
+          <span className="block text-sm font-medium text-gray-700 mb-3">Watering schedule</span>
+          <div className="flex gap-2 mb-4">
+            {[
+              { id: WATERING_MODE_WEEKDAY, label: 'Weekdays' },
+              { id: WATERING_MODE_INTERVAL, label: 'Interval' },
+            ].map(option => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setWateringMode(option.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  wateringMode === option.id
+                    ? 'bg-brand-600 border-brand-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {wateringMode === WATERING_MODE_INTERVAL && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-interval">
+                  Every
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => adjustInterval(-1)}
+                    className="w-10 h-10 rounded-lg border border-slate-200 bg-white text-lg font-semibold text-navy-900 hover:bg-slate-50"
+                    aria-label="Decrease interval days"
+                  >
+                    −
+                  </button>
+                  <input
+                    id="prog-interval"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={intervalDays}
+                    onChange={e => setIntervalDays(Number(e.target.value))}
+                    className={`w-20 px-3 py-2 text-sm text-center border rounded-lg outline-none font-mono ${
+                      errors.interval_days ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => adjustInterval(1)}
+                    className="w-10 h-10 rounded-lg border border-slate-200 bg-white text-lg font-semibold text-navy-900 hover:bg-slate-50"
+                    aria-label="Increase interval days"
+                  >
+                    +
+                  </button>
+                  <span className="text-sm text-slate-600">days</span>
+                </div>
+                {errors.interval_days && <p className="mt-1.5 text-xs text-red-500">{errors.interval_days}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-start-date">
+                  Start date
+                </label>
+                <input
+                  id="prog-start-date"
+                  type="date"
+                  value={programStartDate}
+                  onChange={e => setProgramStartDate(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none ${
+                    errors.program_start_date ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'
+                  }`}
+                />
+                {errors.program_start_date && (
+                  <p className="mt-1.5 text-xs text-red-500">{errors.program_start_date}</p>
+                )}
+              </div>
+
+              <div>
+                <span className="block text-sm font-medium text-gray-700 mb-1.5">End date</span>
+                <div className="flex gap-2 mb-3">
+                  {[
+                    { id: 'never', label: 'Never' },
+                    { id: 'date', label: 'On date' },
+                  ].map(option => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setProgramEndMode(option.id)}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        programEndMode === option.id
+                          ? 'bg-brand-600 border-brand-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {programEndMode === 'date' && (
+                  <>
+                    <input
+                      id="prog-end-date"
+                      type="date"
+                      value={programEndDate}
+                      onChange={e => setProgramEndDate(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none ${
+                        errors.program_end_date ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'
+                      }`}
+                    />
+                    {errors.program_end_date && (
+                      <p className="mt-1.5 text-xs text-red-500">{errors.program_end_date}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex gap-3 mt-6 justify-end">

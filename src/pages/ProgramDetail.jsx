@@ -29,6 +29,12 @@ import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 import { useSelectedDay } from '../context/SelectedDayContext';
+import {
+  WATERING_MODE_INTERVAL,
+  formatWateringModeLabel,
+  formatIntervalSummary,
+  formatProgramDateRange,
+} from '../utils/programSchedule';
 
 function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
   const displayName = getZoneDisplayName(zone, programName);
@@ -432,6 +438,8 @@ export default function ProgramDetail() {
     return counts;
   }, {});
   const editExcludeIds = editZone?.valve_id ? [editZone.valve_id] : [];
+  const intervalSummary = formatIntervalSummary(program);
+  const dateRange = formatProgramDateRange(program);
 
   return (
     <div>
@@ -512,6 +520,34 @@ export default function ProgramDetail() {
               {zones.length} valve{zones.length !== 1 ? 's' : ''}
             </p>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Program schedule</h2>
+        </div>
+        <div className="px-5 py-4 grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mode</p>
+            <p className="mt-1 text-sm font-semibold text-navy-900">{formatWateringModeLabel(program)}</p>
+          </div>
+          {program.watering_mode === WATERING_MODE_INTERVAL ? (
+            <>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Interval</p>
+                <p className="mt-1 text-sm font-semibold text-navy-900">{intervalSummary}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</p>
+                <p className="mt-1 text-sm font-semibold text-navy-900">{dateRange?.start ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">End date</p>
+                <p className="mt-1 text-sm font-semibold text-navy-900">{dateRange?.end ?? '—'}</p>
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
 
