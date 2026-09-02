@@ -27,6 +27,12 @@ import {
   slideIntervalDate,
   formatNeverOnSummary,
 } from '../src/utils/programSchedule.js';
+import {
+  formatLastWater,
+  lastWaterPayload,
+  normalizeLastWaterRecord,
+  validateLastWaterFields,
+} from '../src/utils/lastWater.js';
 
 let passed = 0;
 let failed = 0;
@@ -358,6 +364,35 @@ assert(
   'interval waters on slid Monday',
 );
 assert(formatNeverOnSummary(sundaySlideProgram) === 'Sun', 'never-on summary text');
+
+console.log('Last water');
+const lastWaterValve = {
+  last_water_date: '2026-08-30',
+  last_water_time: '08:30',
+  last_water_duration_minutes: 60,
+};
+assert(formatLastWater(lastWaterValve)?.includes('Aug 30'), 'last water formats date');
+assert(formatLastWater(lastWaterValve)?.includes('8:30 AM'), 'last water formats time');
+assert(formatLastWater(lastWaterValve)?.includes('1h'), 'last water formats duration');
+assert(formatLastWater({}) == null, 'empty last water returns null');
+const lastWaterErrors = validateLastWaterFields({
+  last_water_date: '',
+  last_water_time: '08:00',
+  last_water_duration_minutes: '',
+});
+assert(lastWaterErrors.last_water_date, 'last water requires date with time');
+const storedLastWater = lastWaterPayload({
+  last_water_date: '2026-08-30',
+  last_water_time: '8:30',
+  last_water_duration_minutes: '45',
+});
+assert(storedLastWater.last_water_date === '2026-08-30', 'last water stores date');
+assert(storedLastWater.last_water_time === '08:30', 'last water normalizes time');
+assert(storedLastWater.last_water_duration_minutes === 45, 'last water stores duration');
+assert(
+  normalizeLastWaterRecord({ last_water_date: '', last_water_time: '08:00' }).last_water_time === null,
+  'last water clears time without date',
+);
 
 console.log('XLSX export');
 const xlsxRows = [{

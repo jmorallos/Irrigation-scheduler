@@ -2,6 +2,11 @@ import { useState } from 'react';
 import ProfileImagePicker from './ProfileImagePicker';
 import { parseZoneName, formatZoneName } from '../utils/scheduleUtils';
 import ColorPresetPicker from './ColorPresetPicker';
+import {
+  validateLastWaterFields,
+  lastWaterPayload,
+  initialLastWaterFields,
+} from '../utils/lastWater';
 
 export default function ZoneForm({
   initial,
@@ -13,12 +18,20 @@ export default function ZoneForm({
   showStatus = true,
 }) {
   const parsed = parseZoneName(initial?.name);
+  const lastWaterDefaults = initialLastWaterFields(initial);
   const [zoneNumber, setZoneNumber] = useState(
     String(initial?.zone_number ?? parsed.number ?? suggestedNumber),
   );
   const [name, setName] = useState(parsed.number != null ? parsed.label : (initial?.name ?? ''));
   const [color, setColor] = useState(initial?.color ?? defaultColor);
   const [gph, setGph] = useState(initial?.gph != null ? String(initial.gph) : '');
+  const [lastWaterDate, setLastWaterDate] = useState(lastWaterDefaults.last_water_date);
+  const [lastWaterTime, setLastWaterTime] = useState(lastWaterDefaults.last_water_time);
+  const [lastWaterDuration, setLastWaterDuration] = useState(
+    lastWaterDefaults.last_water_duration_minutes === '' || lastWaterDefaults.last_water_duration_minutes == null
+      ? ''
+      : String(lastWaterDefaults.last_water_duration_minutes),
+  );
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [profileImageChange, setProfileImageChange] = useState({ action: 'none' });
   const [errors, setErrors] = useState({});
@@ -37,6 +50,11 @@ export default function ZoneForm({
       const rate = Number(gph);
       if (!Number.isFinite(rate) || rate < 0) errs.gph = 'Enter a valid flow rate (0 or higher).';
     }
+    Object.assign(errs, validateLastWaterFields({
+      last_water_date: lastWaterDate,
+      last_water_time: lastWaterTime,
+      last_water_duration_minutes: lastWaterDuration,
+    }));
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -54,6 +72,11 @@ export default function ZoneForm({
         gph: gph.trim() ? Number(gph) : null,
         status,
         profileImageChange,
+        ...lastWaterPayload({
+          last_water_date: lastWaterDate,
+          last_water_time: lastWaterTime,
+          last_water_duration_minutes: lastWaterDuration,
+        }),
       });
     } catch (err) {
       setErrors({ zoneNumber: err.message });
@@ -127,6 +150,69 @@ export default function ZoneForm({
               Gallons per hour for this valve.
             </p>
           )}
+        </div>
+        <div className="pt-2 border-t border-slate-100">
+          <span className="block text-sm font-medium text-gray-700 mb-3">
+            Last water <span className="text-gray-400 font-normal">(optional)</span>
+          </span>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-date">
+                Date
+              </label>
+              <input
+                id="zone-last-water-date"
+                type="date"
+                value={lastWaterDate}
+                onChange={e => setLastWaterDate(e.target.value)}
+                className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none ${
+                  errors.last_water_date ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'
+                }`}
+              />
+              {errors.last_water_date && (
+                <p className="mt-1.5 text-xs text-red-500">{errors.last_water_date}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-time">
+                  Time
+                </label>
+                <input
+                  id="zone-last-water-time"
+                  type="time"
+                  value={lastWaterTime}
+                  onChange={e => setLastWaterTime(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono ${
+                    errors.last_water_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'
+                  }`}
+                />
+                {errors.last_water_time && (
+                  <p className="mt-1.5 text-xs text-red-500">{errors.last_water_time}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-duration">
+                  Duration (Min)
+                </label>
+                <input
+                  id="zone-last-water-duration"
+                  type="number"
+                  min="0"
+                  value={lastWaterDuration}
+                  onChange={e => setLastWaterDuration(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono ${
+                    errors.last_water_duration_minutes
+                      ? 'border-red-400'
+                      : 'border-slate-200 focus:border-brand-600'
+                  }`}
+                />
+                {errors.last_water_duration_minutes && (
+                  <p className="mt-1.5 text-xs text-red-500">{errors.last_water_duration_minutes}</p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         {showStatus && (
         <div>

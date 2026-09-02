@@ -18,6 +18,7 @@ import ActionMenu from '../components/ActionMenu';
 import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber, formatValveSubtitle } from '../utils/scheduleUtils';
+import { formatLastWater } from '../utils/lastWater';
 import { formatRunGallons, formatGallons, sumGallons, gallonsForRun, formatScheduleRowGallons, formatScheduleRowWeekGallons } from '../utils/waterUsage';
 import AddValveToProgram from '../components/AddValveToProgram';
 import { valvesRepository } from '../db/valvesRepository';
@@ -163,6 +164,9 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
             <p className="text-sm text-slate-500 mt-0.5">
               {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
             </p>
+            {formatLastWater(zone) && (
+              <p className="text-sm text-slate-600 mt-0.5">{formatLastWater(zone)}</p>
+            )}
             {zone.status === 'inactive' && (
               <div className="mt-1">
                 <Badge status="inactive" size="sm" />

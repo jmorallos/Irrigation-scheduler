@@ -12,6 +12,9 @@ export function hydrateZone(membership, valve) {
     name: valve.name,
     color: valve.color,
     gph: valve.gph ?? null,
+    last_water_date: valve.last_water_date ?? null,
+    last_water_time: valve.last_water_time ?? null,
+    last_water_duration_minutes: valve.last_water_duration_minutes ?? null,
     profile_image_id: valve.profile_image_id ?? null,
   };
 }

@@ -15,6 +15,7 @@ import ActionMenu from '../components/ActionMenu';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { groupValvesCatalog, nextValveNumber, takenValveNumbers, programsForMemberships } from '../utils/zoneIdentity';
 import { getZoneTheme } from '../utils/programColors';
+import { formatLastWater } from '../utils/lastWater';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
 const ZONES_ALIGN = {
@@ -22,6 +23,7 @@ const ZONES_ALIGN = {
   name: 'left',
   color: 'left',
   program: 'left',
+  lastWater: 'left',
 };
 
 const TH_ZONES =
@@ -86,6 +88,7 @@ export default function Zones() {
                   <th onClick={() => cycle('name')} className={TH_ZONES}>Valve Name</th>
                   <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
                   <th onClick={() => cycle('program')} className={TH_ZONES}>Programs</th>
+                  <th onClick={() => cycle('lastWater')} className={`${TH_ZONES} hidden lg:table-cell`}>Last water</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
@@ -165,6 +168,9 @@ export default function Zones() {
                           <span className="truncate text-slate-700">{programNames.join(', ') || '—'}</span>
                         </div>
                       </td>
+                      <td className={`px-4 py-4 hidden lg:table-cell text-sm text-slate-600 ${cellClass('lastWater')}`}>
+                        {formatLastWater(valve) ?? '—'}
+                      </td>
                       <td className="px-4 py-4 text-right">
                         <ActionMenu
                           items={[
@@ -196,7 +202,7 @@ export default function Zones() {
       )}
 
       {creating && (
-        <Modal title="Add Valve" onClose={() => setCreating(false)} size="sm">
+        <Modal title="Add Valve" onClose={() => setCreating(false)}>
           <ZoneForm
             suggestedNumber={suggestedNumber}
             existingNumbers={takenValveNumbers(valves)}
@@ -211,7 +217,7 @@ export default function Zones() {
       )}
 
       {editing && (
-        <Modal title="Edit Valve" onClose={() => setEditing(null)} size="sm">
+        <Modal title="Edit Valve" onClose={() => setEditing(null)}>
           <ZoneForm
             initial={editing}
             existingNumbers={takenValveNumbers(valves, editing.id)}
