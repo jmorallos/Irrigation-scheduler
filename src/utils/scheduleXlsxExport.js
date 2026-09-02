@@ -2,6 +2,7 @@ import { DAY_ORDER, DAY_LABELS, formatDaysCompact, getEndTime } from './dateUtil
 import { getZoneDisplayName, getZoneShortName, getZoneNumber } from './scheduleUtils';
 import { loadScheduleExportData, programBadgeHex } from './scheduleExportData';
 import { getProgramTheme, getZoneTheme } from './programColors';
+import { effectiveScheduleDays } from './wateringCalendar';
 import {
   SC,
   SCHEDULE_SHEET,
@@ -108,7 +109,7 @@ function buildScheduleSheet(workbook, rows) {
 
   rows.forEach((row, index) => {
     const excelRow = index + 2;
-    const days = row.schedule?.days_of_week ?? [];
+    const days = effectiveScheduleDays(row.program, row.schedule);
     const valveKey = `${row.program?.controller_program ?? ''}|${row.zoneNumber ?? ''}`;
     scheduleRowIndex.set(row.id ?? row.schedule?.id ?? `row-${excelRow}`, excelRow);
 
@@ -279,7 +280,8 @@ function buildByWeekSheet(workbook, groups, scheduleRowIndex, rows, todayKey) {
     const excelRow = scheduleRowIndex.get(row.id ?? row.schedule?.id ?? '');
     if (!excelRow) continue;
     const valveKey = `${row.program?.controller_program ?? ''}|${row.zoneNumber ?? ''}`;
-    for (const day of row.schedule?.days_of_week ?? []) {
+    const days = effectiveScheduleDays(row.program, row.schedule);
+    for (const day of days) {
       const key = `${valveKey}|${day}`;
       if (!rowsByValveDay.has(key)) rowsByValveDay.set(key, []);
       rowsByValveDay.get(key).push(excelRow);

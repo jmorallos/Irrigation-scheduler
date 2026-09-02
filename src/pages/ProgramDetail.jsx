@@ -19,6 +19,7 @@ import { formatTime, formatDuration, formatDays, formatTimeRange, getEndTime, da
 import { formatMinutes } from '../utils/formatMinutes';
 import { formatCycleLabel, getZoneDisplayName, getZoneNumber, formatValveSubtitle } from '../utils/scheduleUtils';
 import { formatLastWater } from '../utils/lastWater';
+import { formatNextWater, isIntervalProgram } from '../utils/wateringCalendar';
 import { formatRunGallons, formatGallons, sumGallons, gallonsForRun, formatScheduleRowGallons, formatScheduleRowWeekGallons } from '../utils/waterUsage';
 import AddValveToProgram from '../components/AddValveToProgram';
 import { valvesRepository } from '../db/valvesRepository';
@@ -165,7 +166,10 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
               {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
             </p>
             {formatLastWater(zone) && (
-              <p className="text-sm text-slate-600 mt-0.5">{formatLastWater(zone)}</p>
+              <p className="text-sm text-slate-600 mt-0.5">Last: {formatLastWater(zone)}</p>
+            )}
+            {formatNextWater(zone, program, schedules) && (
+              <p className="text-sm text-brand-700 mt-0.5">Next: {formatNextWater(zone, program, schedules)}</p>
             )}
             {zone.status === 'inactive' && (
               <div className="mt-1">
@@ -219,11 +223,13 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
                       {formatScheduleRowGallons(zone, schedule) && (
                         <span className="font-mono text-sm text-navy-900">{formatScheduleRowGallons(zone, schedule)}</span>
                       )}
-                      {formatScheduleRowWeekGallons(zone, schedule) && (
-                        <span className="font-mono text-sm text-navy-900">{formatScheduleRowWeekGallons(zone, schedule)} / week</span>
+                      {formatScheduleRowWeekGallons(zone, schedule, program) && (
+                        <span className="font-mono text-sm text-navy-900">{formatScheduleRowWeekGallons(zone, schedule, program)} / week</span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-600 mt-1">{formatDays(schedule.days_of_week)}</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      {isIntervalProgram(program) ? formatIntervalSummary(program) : formatDays(schedule.days_of_week)}
+                    </p>
                     {schedule.notes && (
                       <p className="text-sm text-slate-500 mt-1">{schedule.notes}</p>
                     )}
@@ -313,7 +319,9 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
               <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
             </td>
             <td className={`px-4 py-3 ${cellClass('days')}`}>
-              <span className="text-sm text-slate-600">{formatDays(schedule.days_of_week)}</span>
+              <span className="text-sm text-slate-600">
+                {isIntervalProgram(program) ? formatIntervalSummary(program) : formatDays(schedule.days_of_week)}
+              </span>
             </td>
             <td className={`px-4 py-3 ${cellClass('notes')}`}>
               <span className="text-sm text-slate-500">{schedule.notes || '—'}</span>

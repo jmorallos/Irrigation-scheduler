@@ -3,6 +3,7 @@ import { DAY_ORDER, DAY_LABELS, formatDaysCompact, formatTime24, getEndTime } fr
 import { getZoneDisplayName, getZoneShortName } from './scheduleUtils';
 import { formatSoak, soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from './scheduleStats';
 import { getProgramTheme, getZoneTheme, contrastBadgeText, badgeEdgeColor } from './programColors';
+import { effectiveScheduleDays, isIntervalProgram } from './wateringCalendar';
 
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -59,7 +60,11 @@ function renderMainTable(rows) {
       const code = row.program?.controller_program || '';
       const name = escapeHtml(row.program?.name || '');
       const notes = escapeHtml(row.schedule?.notes || '—');
-      const days = escapeHtml(formatDaysCompact(row.schedule?.days_of_week ?? []));
+      const days = escapeHtml(formatDaysCompact(
+        isIntervalProgram(row.program)
+          ? effectiveScheduleDays(row.program, row.schedule)
+          : (row.schedule?.days_of_week ?? []),
+      ));
       const zoneName = escapeHtml(getZoneShortName(row.zone) || '—');
       const start = escapeHtml(formatTime24(row.schedule?.start_time));
       const duration = Number(row.schedule?.duration_minutes || 0);

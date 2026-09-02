@@ -33,6 +33,13 @@ import {
   normalizeLastWaterRecord,
   validateLastWaterFields,
 } from '../src/utils/lastWater.js';
+import {
+  scheduleRunsOnDate,
+  computeNextWater,
+  formatNextWater,
+  wateringDaysInWeek,
+  findNextIntervalWaterDate,
+} from '../src/utils/wateringCalendar.js';
 
 let passed = 0;
 let failed = 0;
@@ -393,6 +400,40 @@ assert(
   normalizeLastWaterRecord({ last_water_date: '', last_water_time: '08:00' }).last_water_time === null,
   'last water clears time without date',
 );
+
+console.log('Next water and interval wiring');
+const intervalSchedules = [
+  { status: 'active', start_time: '08:30', duration_minutes: 30, days_of_week: ['mon'] },
+  { status: 'active', start_time: '13:00', duration_minutes: 30, days_of_week: ['mon'] },
+];
+const valveWithLastWater = {
+  last_water_date: '2026-08-30',
+  last_water_time: '08:00',
+  last_water_duration_minutes: 60,
+};
+const nextFromLast = findNextIntervalWaterDate(
+  sundaySlideProgram,
+  valveWithLastWater,
+  new Date(2026, 8, 1),
+);
+assert(nextFromLast?.getDate() === 2, 'next water after last water uses interval + slide');
+assert(
+  scheduleRunsOnDate(sundaySlideProgram, intervalSchedules[0], new Date(2026, 7, 31)),
+  'interval schedule runs on slid watering day',
+);
+assert(
+  !scheduleRunsOnDate(sundaySlideProgram, intervalSchedules[0], new Date(2026, 7, 30)),
+  'interval schedule skips blocked raw Sunday',
+);
+assert(
+  wateringDaysInWeek(sundaySlideProgram, new Date(2026, 7, 31))?.includes('mon'),
+  'interval week days include slid Monday',
+);
+const nextFormatted = formatNextWater(valveWithLastWater, sundaySlideProgram, intervalSchedules, new Date(2026, 8, 1));
+assert(nextFormatted?.includes('8:30 AM'), 'next water includes earliest cycle time');
+assert(nextFormatted?.includes('1h'), 'next water includes total daily runtime');
+const nextPayload = computeNextWater(valveWithLastWater, sundaySlideProgram, intervalSchedules, new Date(2026, 8, 1));
+assert(nextPayload?.durationMinutes === 60, 'next water duration sums active cycles');
 
 console.log('XLSX export');
 const xlsxRows = [{

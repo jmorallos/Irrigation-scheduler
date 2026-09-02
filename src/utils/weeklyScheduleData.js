@@ -1,13 +1,15 @@
 import { programsRepository } from '../db/programsRepository';
 import { loadProgramHydratedZones } from './valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
-import { DAY_ORDER } from './dateUtils';
+import { DAY_ORDER, getDateForDayKey } from './dateUtils';
 import { withCycleNumbers, getZoneNumber } from './scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
+import { isIntervalProgram, scheduleRunsOnDate } from './wateringCalendar';
 
 export async function loadWeeklyScheduleGroups() {
   const programs = sortProgramsByController(await programsRepository.getAll());
   const result = [];
+  const referenceDate = new Date();
 
   for (const program of programs) {
     const zones = await loadProgramHydratedZones(program.id);
@@ -24,8 +26,17 @@ export async function loadWeeklyScheduleGroups() {
       const dayMap = Object.fromEntries(DAY_ORDER.map(day => [day, []]));
 
       for (const schedule of schedules.filter(s => s.status === 'active')) {
-        for (const day of schedule.days_of_week) {
-          dayMap[day].push(schedule);
+        if (isIntervalProgram(program)) {
+          for (const day of DAY_ORDER) {
+            const date = getDateForDayKey(day, referenceDate);
+            if (scheduleRunsOnDate(program, schedule, date)) {
+              dayMap[day].push(schedule);
+            }
+          }
+        } else {
+          for (const day of schedule.days_of_week) {
+            dayMap[day].push(schedule);
+          }
         }
       }
 

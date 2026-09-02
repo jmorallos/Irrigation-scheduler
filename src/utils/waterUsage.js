@@ -1,3 +1,5 @@
+import { effectiveScheduleDays, isIntervalProgram } from './wateringCalendar';
+
 /** Optional catalog valve flow rate (gallons per hour). */
 export function normalizeGph(value) {
   if (value == null || value === '') return null;
@@ -60,14 +62,17 @@ export function scheduleRowGallons(zone, schedule) {
   return gallonsForRun(zone?.gph, schedule?.duration_minutes);
 }
 
-export function scheduleRowWeekGallons(zone, schedule) {
-  return gallonsForWeek(zone?.gph, schedule?.duration_minutes, schedule?.days_of_week);
+export function scheduleRowWeekGallons(zone, schedule, program = null, referenceDate = new Date()) {
+  const days = program && isIntervalProgram(program)
+    ? effectiveScheduleDays(program, schedule, referenceDate)
+    : (schedule?.days_of_week ?? []);
+  return gallonsForWeek(zone?.gph, schedule?.duration_minutes, days);
 }
 
 export function formatScheduleRowGallons(zone, schedule) {
   return formatGallons(scheduleRowGallons(zone, schedule));
 }
 
-export function formatScheduleRowWeekGallons(zone, schedule) {
-  return formatGallons(scheduleRowWeekGallons(zone, schedule));
+export function formatScheduleRowWeekGallons(zone, schedule, program = null, referenceDate = new Date()) {
+  return formatGallons(scheduleRowWeekGallons(zone, schedule, program, referenceDate));
 }

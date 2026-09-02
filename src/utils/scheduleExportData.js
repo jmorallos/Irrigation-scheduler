@@ -3,6 +3,7 @@ import { loadWeeklyScheduleGroups } from './weeklyScheduleData';
 import { DAY_ORDER } from './dateUtils';
 import { getProgramTheme } from './programColors';
 import { valvesRepository } from '../db/valvesRepository';
+import { effectiveScheduleDays, isIntervalProgram, weekDates, scheduleRunsOnDate } from './wateringCalendar';
 
 export function dayKeyFromDate(date) {
   const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -45,6 +46,8 @@ export function summarizeRows(rows) {
   const catalogValves = new Set();
   const minutesByDay = Object.fromEntries(DAY_ORDER.map(day => [day, 0]));
   let weekMinutes = 0;
+  const referenceDate = new Date();
+  const calendarWeek = weekDates(referenceDate);
 
   for (const row of rows) {
     const programId = row.program?.id ?? row.program?.controller_program ?? row.program?.name;
@@ -72,14 +75,24 @@ export function summarizeRows(rows) {
 
     const zone = zones.get(zoneId);
     const duration = Number(row.schedule?.duration_minutes || 0);
-    const days = row.schedule?.days_of_week ?? [];
+    const days = effectiveScheduleDays(row.program, row.schedule, referenceDate);
     zone.cycles += 1;
     zone.weekMinutes += duration * days.length;
     zone.dailyRuntime = row.dailyRuntime ?? zone.dailyRuntime;
     if (row.soakHours != null) zone.soakHours = row.soakHours;
-    for (const day of days) {
-      zone.days.add(day);
-      if (minutesByDay[day] != null) minutesByDay[day] += duration;
+    if (isIntervalProgram(row.program)) {
+      calendarWeek.forEach((date, index) => {
+        if (scheduleRunsOnDate(row.program, row.schedule, date)) {
+          const day = DAY_ORDER[index];
+          zone.days.add(day);
+          if (minutesByDay[day] != null) minutesByDay[day] += duration;
+        }
+      });
+    } else {
+      for (const day of days) {
+        zone.days.add(day);
+        if (minutesByDay[day] != null) minutesByDay[day] += duration;
+      }
     }
     weekMinutes += duration * days.length;
   }

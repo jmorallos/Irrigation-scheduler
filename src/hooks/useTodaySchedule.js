@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { programsRepository } from '../db/programsRepository';
 import { loadProgramHydratedZones } from '../utils/valveRecords';
 import { schedulesRepository } from '../db/schedulesRepository';
-import { getTodayKey } from '../utils/dateUtils';
+import { getTodayKey, getDateForDayKey } from '../utils/dateUtils';
+import { scheduleRunsOnDate } from '../utils/wateringCalendar';
 import { withCycleNumbers } from '../utils/scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
 
@@ -18,6 +19,7 @@ export function useTodaySchedule(dayKey) {
     setError(null);
     try {
       const todayKey = dayKey || getTodayKey();
+      const viewDate = getDateForDayKey(todayKey, new Date());
       const programs = sortProgramsByController(await programsRepository.getAll());
       const result = [];
 
@@ -26,7 +28,7 @@ export function useTodaySchedule(dayKey) {
         for (const zone of zones.filter(z => z.status === 'active')) {
           const schedules = withCycleNumbers(await schedulesRepository.getByZoneId(zone.id));
           for (const schedule of schedules) {
-            if (schedule.status === 'active' && schedule.days_of_week.includes(todayKey)) {
+            if (scheduleRunsOnDate(program, schedule, viewDate)) {
               result.push({ schedule, zone, program });
             }
           }

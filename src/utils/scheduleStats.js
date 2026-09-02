@@ -82,7 +82,7 @@ export function scheduleTableTotals(rows) {
       gallonsTotal += runGallons;
       hasGallons = true;
     }
-    const weekGallons = scheduleRowWeekGallons(row.zone, row.schedule);
+    const weekGallons = scheduleRowWeekGallons(row.zone, row.schedule, row.program);
     if (weekGallons != null) {
       weekGallonsTotal += weekGallons;
       hasWeekGallons = true;

@@ -7,6 +7,7 @@ import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, get
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from '../utils/scheduleStats';
 import { formatGallonsNumber, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
+import { effectiveScheduleDays, isIntervalProgram } from '../utils/wateringCalendar';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
@@ -78,8 +79,8 @@ function compareRows(a, b, key) {
       );
     case 'weekGallons':
       return compareNullableNumber(
-        scheduleRowWeekGallons(a.zone, a.schedule),
-        scheduleRowWeekGallons(b.zone, b.schedule),
+        scheduleRowWeekGallons(a.zone, a.schedule, a.program),
+        scheduleRowWeekGallons(b.zone, b.schedule, b.program),
       );
     case 'soak':
       return compareNullableNumber(
@@ -244,7 +245,7 @@ export default function WeeklySchedule() {
                         {formatGallonsNumber(scheduleRowGallons(row.zone, row.schedule)) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {formatGallonsNumber(scheduleRowWeekGallons(row.zone, row.schedule)) ?? '—'}
+                        {formatGallonsNumber(scheduleRowWeekGallons(row.zone, row.schedule, row.program)) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
@@ -253,7 +254,11 @@ export default function WeeklySchedule() {
                         {row.showDailyRuntime && row.dailyRuntime != null ? row.dailyRuntime : '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {formatDaysCompact(row.schedule.days_of_week)}
+                        {formatDaysCompact(
+                          isIntervalProgram(row.program)
+                            ? effectiveScheduleDays(row.program, row.schedule)
+                            : row.schedule.days_of_week,
+                        )}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left text-slate-600">
                         {row.schedule.notes || '—'}

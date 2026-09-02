@@ -1,9 +1,15 @@
-import { DAY_ORDER, DAY_LABELS, getTodayKey } from './dateUtils';
+import { DAY_ORDER, DAY_LABELS, getTodayKey, getDateForDayKey } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
 import { loadProgramHydratedZones } from './valveRecords';
 import { gallonsForRun, gallonsForWeek } from './waterUsage';
+import {
+  scheduleRunsOnDate,
+  effectiveScheduleDays,
+  isIntervalProgram,
+  weekDates,
+} from './wateringCalendar';
 
 /**
  * Minutes by day = sum of active cycle durations on that weekday.
@@ -19,6 +25,8 @@ export async function buildScheduleChartData({
   dayKey = getTodayKey(),
 }) {
   const todayKey = dayKey;
+  const referenceDate = new Date();
+  const calendarWeek = weekDates(referenceDate);
   const programs = sortProgramsByController(await programsRepository.getAll());
   const minutesByDay = DAY_ORDER.map(day => ({
     key: day,
@@ -52,7 +60,7 @@ export async function buildScheduleChartData({
       for (const schedule of schedules) {
         if (schedule.status !== 'active') continue;
         const duration = Number(schedule.duration_minutes) || 0;
-        const days = schedule.days_of_week ?? [];
+        const days = effectiveScheduleDays(program, schedule, referenceDate);
         const runGallons = gallonsForRun(zone.gph, duration);
         const scheduleWeekGallons = gallonsForWeek(zone.gph, duration, days);
 
@@ -60,15 +68,25 @@ export async function buildScheduleChartData({
         if (scheduleWeekGallons != null) weekGallons += scheduleWeekGallons;
         if (scheduleWeekGallons != null) zoneWeekGallons += scheduleWeekGallons;
 
-        for (const day of days) {
-          const index = dayIndex[day];
-          if (index != null) {
-            minutesByDay[index].minutes += duration;
-            if (runGallons != null) minutesByDay[index].gallons += runGallons;
+        if (isIntervalProgram(program)) {
+          calendarWeek.forEach((date, index) => {
+            if (scheduleRunsOnDate(program, schedule, date)) {
+              minutesByDay[index].minutes += duration;
+              if (runGallons != null) minutesByDay[index].gallons += runGallons;
+            }
+          });
+        } else {
+          for (const day of days) {
+            const index = dayIndex[day];
+            if (index != null) {
+              minutesByDay[index].minutes += duration;
+              if (runGallons != null) minutesByDay[index].gallons += runGallons;
+            }
           }
         }
 
-        if (days.includes(todayKey)) {
+        const viewDate = getDateForDayKey(todayKey, referenceDate);
+        if (scheduleRunsOnDate(program, schedule, viewDate)) {
           todayMinutes += duration;
           todayStarts += 1;
           zoneTodayMinutes += duration;
