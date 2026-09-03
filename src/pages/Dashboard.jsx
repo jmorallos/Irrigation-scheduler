@@ -6,8 +6,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
-import { countOverviewStats } from '../utils/overviewStats';
-import { ProgramTodayMinutesChart, ProgramTodayStartsChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
+import { ProgramTodayMinutesChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
@@ -16,18 +15,11 @@ import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useSelectedDay } from '../context/SelectedDayContext';
-
-const STAT_COLUMNS = [
-  { key: 'total', label: 'Programs' },
-  { key: 'active', label: 'Active' },
-  { key: 'zones', label: 'Valves' },
-  { key: 'minutes', label: 'Minutes' },
-];
+import { SUMMARY_SECTION_TITLES, SUMMARY_OVERVIEW_COLUMNS, buildTodayOverviewStats } from '../utils/summaryLabels';
 
 export default function Dashboard() {
   const { selectedDay, setSelectedDay, clockToday, isClockToday } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, clockToday);
-  const [stats, setStats] = useState({ total: 0, active: 0, zones: 0, minutes: 0 });
   const [chartData, setChartData] = useState({
     minutesByDay: [],
     byProgramToday: [],
@@ -51,14 +43,12 @@ export default function Dashboard() {
     }
     setPageError(null);
     try {
-      const overview = await countOverviewStats(programsRepository);
       const charts = await buildScheduleChartData({
         programsRepository,
         zonesRepository,
         schedulesRepository,
         dayKey: selectedDay,
       });
-      setStats(overview);
       setChartData(charts);
       chartsReady.current = true;
     } catch (err) {
@@ -89,6 +79,12 @@ export default function Dashboard() {
     ...item,
     weekGallons: chartData.byProgramWeek.find(row => row.id === item.id)?.gallons ?? null,
   }));
+  const overviewStats = buildTodayOverviewStats({
+    byProgramToday: chartData.byProgramToday,
+    zoneTotals: chartData.zoneTotals,
+    dayItems: items,
+    dayGallons: irrigationDayGallons,
+  });
 
   return (
     <div className="min-w-0 w-full">
@@ -112,7 +108,7 @@ export default function Dashboard() {
       <>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Weekly Load</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.week}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -149,7 +145,7 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.valves}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -169,7 +165,7 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Valve</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.valveWater}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -189,7 +185,7 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Run Time by Program</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.programTime}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -209,27 +205,7 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Cycles by Program</h2>
-        </div>
-        {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
-        ) : (
-          <div className="p-5">
-            <ProgramTodayStartsChart
-              data={chartData.byProgramToday}
-              dayPhrase={scope.adjective}
-              emptyMessage={`No programs scheduled ${scope.adjective}.`}
-            />
-            <p className="mt-3 text-[11px] text-black">
-              {`Number of cycles for programs running ${scope.adjective}.`}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
-        <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Program</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.programWater}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -310,13 +286,13 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Overview</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.overview}</h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
-          {STAT_COLUMNS.map(({ key, label }) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-slate-100">
+          {SUMMARY_OVERVIEW_COLUMNS.map(({ key, label }) => (
             <div key={key} className="px-5 py-4 text-center sm:text-left">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-black">{label}</p>
-              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
+              <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{overviewStats[key]}</p>
             </div>
           ))}
         </div>

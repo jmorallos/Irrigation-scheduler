@@ -40,6 +40,12 @@ import {
   wateringDaysInWeek,
   findNextIntervalWaterDate,
 } from '../src/utils/wateringCalendar.js';
+import {
+  SUMMARY_SECTION_TITLES,
+  SUMMARY_OVERVIEW_COLUMNS,
+  SUMMARY_OMITTED_SECTIONS,
+  buildTodayOverviewStats,
+} from '../src/utils/summaryLabels.js';
 
 let passed = 0;
 let failed = 0;
@@ -705,6 +711,42 @@ assert(
   formatDayHeading('mon', new Date(2026, 7, 19)).startsWith('Viewing Monday'),
   'other day heading says Viewing',
 );
+
+console.log('Summary labels');
+assert(SUMMARY_SECTION_TITLES.week === 'Week', 'week section title');
+assert(SUMMARY_SECTION_TITLES.valves === 'Valves', 'valves section title');
+assert(SUMMARY_SECTION_TITLES.valveWater === 'Water', 'valve water section title');
+assert(SUMMARY_SECTION_TITLES.programTime === 'Program Time', 'program time section title');
+assert(SUMMARY_SECTION_TITLES.programWater === 'Program Water', 'program water section title');
+assert(SUMMARY_SECTION_TITLES.overview === "Today's Overview", 'overview section title');
+assert(
+  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'water' && col.label === 'Total water'),
+  'overview includes total water tile',
+);
+assert(
+  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'active' && col.label === 'Active cycles'),
+  'overview active cycles label',
+);
+assert(SUMMARY_OVERVIEW_COLUMNS.length === 5, 'overview has five tiles');
+assert(
+  SUMMARY_OMITTED_SECTIONS.includes('Cycles by Program'),
+  'cycles by program is omitted',
+);
+const todayOverview = buildTodayOverviewStats({
+  byProgramToday: [
+    { minutes: 60, starts: 2 },
+    { minutes: 30, starts: 1 },
+  ],
+  zoneTotals: [{ id: 'z1' }, { id: 'z2' }, { id: 'z3' }, { id: 'z4' }],
+  dayItems: [{}, {}, {}],
+  dayGallons: 210,
+});
+assert(todayOverview.total === 2, 'today overview programs are day-scoped');
+assert(todayOverview.active === 3, 'today overview active is cycle count for the day');
+assert(todayOverview.zones === 4, 'today overview valves are day-scoped');
+assert(todayOverview.minutes === 90, 'today overview minutes are day-scoped');
+assert(todayOverview.water === '210 gal', 'today overview water uses day gallons');
+assert(buildTodayOverviewStats({}).water === '—', 'today overview water empty is dash');
 
 console.log('');
 if (failed) {
