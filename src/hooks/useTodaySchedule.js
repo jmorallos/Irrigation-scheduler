@@ -7,11 +7,12 @@ import { scheduleRunsOnDate } from '../utils/wateringCalendar';
 import { withCycleNumbers } from '../utils/scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
 
-export function useTodaySchedule(dayKey) {
+export function useTodaySchedule(dayKey, referenceDate = new Date()) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasLoaded = useRef(false);
+  const referenceMs = referenceDate instanceof Date ? referenceDate.getTime() : Number(referenceDate);
 
   const load = useCallback(async () => {
     const showSpinner = !hasLoaded.current;
@@ -19,7 +20,8 @@ export function useTodaySchedule(dayKey) {
     setError(null);
     try {
       const todayKey = dayKey || getTodayKey();
-      const viewDate = getDateForDayKey(todayKey, new Date());
+      const anchor = new Date(referenceMs);
+      const viewDate = getDateForDayKey(todayKey, anchor);
       const programs = sortProgramsByController(await programsRepository.getAll());
       const result = [];
 
@@ -47,7 +49,7 @@ export function useTodaySchedule(dayKey) {
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [dayKey]);
+  }, [dayKey, referenceMs]);
 
   useEffect(() => { load(); }, [load]);
 

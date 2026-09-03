@@ -7,30 +7,83 @@ const DAY_FULL = {
   fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
 };
 
-export function getTodayKey() {
-  const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  return keys[new Date().getDay()];
+export function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+/** Monday of the Mon–Sun week containing `date`. */
+export function startOfWeekMonday(date = new Date()) {
+  const day = startOfDay(date);
+  const weekday = day.getDay(); // 0 = Sun
+  const offset = weekday === 0 ? -6 : 1 - weekday;
+  day.setDate(day.getDate() + offset);
+  return day;
+}
+
+export function addWeeks(date, count) {
+  const next = startOfDay(date);
+  next.setDate(next.getDate() + (Number(count) || 0) * 7);
+  return next;
+}
+
+function addDaysLocal(date, count) {
+  const next = startOfDay(date);
+  next.setDate(next.getDate() + count);
+  return next;
+}
+
+export function isSameCalendarDay(a, b) {
+  if (!a || !b) return false;
+  return (
+    a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate()
+  );
+}
+
+export function isSameWeekMonday(a, b = new Date()) {
+  return isSameCalendarDay(startOfWeekMonday(a), startOfWeekMonday(b));
+}
+
+export function getTodayKey(from = new Date()) {
+  const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  return keys[from.getDay()];
+}
+
+/** Date for a weekday key within the Mon–Sun week of `from`. */
 export function getDateForDayKey(dayKey, from = new Date()) {
-  const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const fromKey = keys[from.getDay()];
-  const fromIndex = DAY_ORDER.indexOf(fromKey);
+  const weekStart = startOfWeekMonday(from);
   const toIndex = DAY_ORDER.indexOf(dayKey);
-  const date = new Date(from);
-  if (fromIndex < 0 || toIndex < 0) return date;
-  date.setDate(date.getDate() + (toIndex - fromIndex));
-  return date;
+  if (toIndex < 0) return startOfDay(from);
+  return addDaysLocal(weekStart, toIndex);
 }
 
-export function formatDayHeading(dayKey, from = new Date()) {
+export function weekDatesFrom(referenceDate = new Date()) {
+  const weekStart = startOfWeekMonday(referenceDate);
+  return DAY_ORDER.map((_, index) => addDaysLocal(weekStart, index));
+}
+
+export function formatDayDateNumber(date) {
+  return String(date.getDate()).padStart(2, '0');
+}
+
+export function formatWeekRange(weekStart) {
+  const start = startOfWeekMonday(weekStart);
+  const end = addDaysLocal(start, 6);
+  const opts = { month: 'short', day: 'numeric' };
+  const startLabel = start.toLocaleDateString('en-US', opts);
+  const endLabel = end.toLocaleDateString('en-US', opts);
+  return `${startLabel} – ${endLabel}`;
+}
+
+export function formatDayHeading(dayKey, from = new Date(), clockDate = new Date()) {
   const date = getDateForDayKey(dayKey, from);
   const long = date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
-  if (dayKey === getTodayKey()) return `Today · ${long}`;
+  if (isSameCalendarDay(date, clockDate)) return `Today · ${long}`;
   return `Viewing ${long}`;
 }
 
@@ -43,21 +96,29 @@ export function formatClockTodayLine(from = new Date()) {
   return `Today is ${long}`;
 }
 
-export function dayScopeLabel(dayKey, clockToday = getTodayKey()) {
+export function dayScopeLabel(
+  dayKey,
+  clockToday = getTodayKey(),
+  referenceDate = new Date(),
+  clockDate = new Date(),
+) {
   const name = DAY_FULL[dayKey] ?? dayKey;
-  if (dayKey === clockToday) {
+  const viewDate = getDateForDayKey(dayKey, referenceDate);
+  const isToday = isSameCalendarDay(viewDate, clockDate);
+  if (isToday) {
     return {
       short: 'today',
       adjective: 'today',
       possessive: "Today's",
-      heading: formatDayHeading(dayKey),
+      heading: formatDayHeading(dayKey, referenceDate, clockDate),
     };
   }
+  void clockToday;
   return {
     short: name,
     adjective: `on ${name}`,
     possessive: `${name}'s`,
-    heading: formatDayHeading(dayKey),
+    heading: formatDayHeading(dayKey, referenceDate, clockDate),
   };
 }
 

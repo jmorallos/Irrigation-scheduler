@@ -1,4 +1,4 @@
-import { getDateForDayKey, DAY_ORDER } from './dateUtils';
+import { getDateForDayKey, DAY_ORDER, weekDatesFrom, formatTime, formatDuration } from './dateUtils';
 import { normalizeLastWaterRecord } from './lastWater';
 import {
   normalizeProgramSchedule,
@@ -13,7 +13,6 @@ import {
   getDayKeyFromDate,
   WATERING_MODE_INTERVAL,
 } from './programSchedule';
-import { formatTime, formatDuration } from './dateUtils';
 
 function parseDateOnlyToLocalDate(value) {
   const [year, month, day] = value.split('-').map(Number);
@@ -22,7 +21,7 @@ function parseDateOnlyToLocalDate(value) {
 
 /** Calendar dates in the Mon–Sun week that contains referenceDate. */
 export function weekDates(referenceDate = new Date()) {
-  return DAY_ORDER.map(dayKey => getDateForDayKey(dayKey, referenceDate));
+  return weekDatesFrom(referenceDate);
 }
 
 export function isIntervalProgram(program) {

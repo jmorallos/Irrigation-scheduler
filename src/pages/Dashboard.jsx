@@ -16,10 +16,21 @@ import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useSelectedDay } from '../context/SelectedDayContext';
 import { SUMMARY_SECTION_TITLES, SUMMARY_OVERVIEW_COLUMNS, buildTodayOverviewStats } from '../utils/summaryLabels';
+import WeekNav from '../components/WeekNav';
 
 export default function Dashboard() {
-  const { selectedDay, setSelectedDay, clockToday, isClockToday } = useSelectedDay();
-  const scope = dayScopeLabel(selectedDay, clockToday);
+  const {
+    selectedDay,
+    setSelectedDay,
+    weekStart,
+    shiftWeek,
+    goToCurrentWeek,
+    weekRangeLabel,
+    todayKeyInView,
+    isClockToday,
+    viewingCurrentWeek,
+  } = useSelectedDay();
+  const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
   const [chartData, setChartData] = useState({
     minutesByDay: [],
     byProgramToday: [],
@@ -32,7 +43,7 @@ export default function Dashboard() {
   const [chartsRefreshing, setChartsRefreshing] = useState(false);
   const [pageError, setPageError] = useState(null);
   const chartsReady = useRef(false);
-  const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule(selectedDay);
+  const { items, loading, error: todayError, reload: reloadToday } = useTodaySchedule(selectedDay, weekStart);
 
   const loadDashboard = useCallback(async () => {
     const initial = !chartsReady.current;
@@ -48,6 +59,7 @@ export default function Dashboard() {
         zonesRepository,
         schedulesRepository,
         dayKey: selectedDay,
+        referenceDate: weekStart,
       });
       setChartData(charts);
       chartsReady.current = true;
@@ -57,7 +69,7 @@ export default function Dashboard() {
       setChartsLoading(false);
       setChartsRefreshing(false);
     }
-  }, [selectedDay]);
+  }, [selectedDay, weekStart]);
 
   useEffect(() => {
     loadDashboard();
@@ -108,7 +120,13 @@ export default function Dashboard() {
       <>
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.week}</h2>
+          <WeekNav
+            label={`${SUMMARY_SECTION_TITLES.week} · ${weekRangeLabel}`}
+            onPrev={() => shiftWeek(-1)}
+            onNext={() => shiftWeek(1)}
+            onToday={goToCurrentWeek}
+            showToday={!viewingCurrentWeek || !isClockToday}
+          />
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -121,23 +139,15 @@ export default function Dashboard() {
               <MinutesByDayChart
                 data={chartData.minutesByDay}
                 selectedDay={selectedDay}
-                clockToday={clockToday}
+                todayKeyInView={todayKeyInView}
                 onSelectDay={setSelectedDay}
               />
-              <p className="mt-3 text-[11px] text-black break-words">
-                Scheduled cycle minutes on each weekday
-                {chartData.weekGallonsTotal ? ` · ${formatGallons(chartData.weekGallonsTotal)} / week total` : ''}.
-                {' '}<span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
-              </p>
             </div>
             <div className="min-w-0 p-5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
                 Minutes by Week
               </h3>
               <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
-              <p className="mt-3 text-[11px] text-black">
-                Duration × watering days for the week.
-              </p>
             </div>
           </div>
         )}

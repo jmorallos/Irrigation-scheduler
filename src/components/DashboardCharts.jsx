@@ -182,7 +182,7 @@ function WaterMetricChart({ data, emptyMessage, dayPhrase = 'today' }) {
   );
 }
 
-export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }) {
+export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectDay }) {
   const total = data.reduce((sum, item) => sum + item.minutes, 0);
   if (total === 0) {
     return <ChartEmpty message="No active cycles this week." />;
@@ -195,7 +195,7 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
       <div className="flex w-full items-end gap-1 sm:gap-2">
         {data.map(item => {
           const isSelected = item.key === selectedDay;
-          const isClockToday = item.key === clockToday;
+          const isClockToday = todayKeyInView != null && item.key === todayKeyInView;
           const height = Math.max(item.minutes > 0 ? 6 : 0, (item.minutes / max) * 100);
           const minutesLabel = item.minutes ? formatMinutes(item.minutes) : '';
           const gallonsLabel = item.gallons ? formatGallons(item.gallons) : '';
@@ -209,7 +209,7 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
               onClick={() => onSelectDay?.(item.key)}
               className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
               aria-pressed={isSelected}
-              aria-label={`${item.label}: ${tooltipValue}. Show ${item.label} schedule.`}
+              aria-label={`${item.label} ${item.dateNumber ?? ''}: ${tooltipValue}. Show ${item.label} schedule.`}
             >
               <ChartTooltip
                 label={item.label}
@@ -239,10 +239,10 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
                   }}
                 />
               </div>
-              <span className={`text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 ease-out ${
+              <span className={`text-sm sm:text-base font-mono font-bold tabular-nums leading-none ${
                 isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-black'
               }`}>
-                {item.label}
+                {item.dateNumber ?? ''}
               </span>
               <span
                 className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none transition-opacity duration-200 ease-out ${

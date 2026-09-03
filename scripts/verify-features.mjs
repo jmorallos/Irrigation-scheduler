@@ -8,7 +8,7 @@ import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { programHasValve } from '../src/utils/valveRecords.js';
-import { getDateForDayKey, dayScopeLabel, formatDayHeading } from '../src/utils/dateUtils.js';
+import { getDateForDayKey, dayScopeLabel, formatDayHeading, startOfWeekMonday, addWeeks, formatWeekRange, formatDayDateNumber, isSameCalendarDay, isSameWeekMonday } from '../src/utils/dateUtils.js';
 import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
 import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
 import ExcelJS from 'exceljs';
@@ -705,11 +705,27 @@ const wed = new Date(2026, 7, 19);
 assert(getDateForDayKey('fri', wed).getDate() === 21, 'Friday is later this week');
 assert(getDateForDayKey('mon', wed).getDate() === 17, 'Monday is earlier this week');
 assert(getDateForDayKey('sun', wed).getDate() === 23, 'Sunday is end of Mon-Sun week');
-assert(dayScopeLabel('wed', 'wed').possessive === "Today's", 'clock today uses Today');
-assert(dayScopeLabel('fri', 'wed').possessive === "Friday's", 'other day uses weekday name');
+assert(dayScopeLabel('wed', 'wed', wed, wed).possessive === "Today's", 'clock today uses Today');
+assert(dayScopeLabel('fri', 'wed', wed, wed).possessive === "Friday's", 'other day uses weekday name');
 assert(
-  formatDayHeading('mon', new Date(2026, 7, 19)).startsWith('Viewing Monday'),
+  formatDayHeading('mon', new Date(2026, 7, 19), new Date(2026, 7, 19)).startsWith('Viewing Monday'),
   'other day heading says Viewing',
+);
+
+console.log('Week navigation');
+const weekStart = startOfWeekMonday(wed);
+assert(weekStart.getDate() === 17, 'week starts on Monday');
+assert(addWeeks(weekStart, 1).getDate() === 24, 'shift week forward by 7 days');
+assert(addWeeks(weekStart, -1).getDate() === 10, 'shift week back by 7 days');
+assert(formatWeekRange(weekStart) === 'Aug 17 – Aug 23', 'week range label');
+assert(formatDayDateNumber(wed) === '19', 'day date number padded');
+assert(isSameCalendarDay(wed, new Date(2026, 7, 19)), 'same calendar day');
+assert(!isSameCalendarDay(wed, addWeeks(wed, 1)), 'different week is not same day');
+assert(isSameWeekMonday(wed, new Date(2026, 7, 21)), 'Friday is same week as Wednesday');
+assert(!isSameWeekMonday(wed, addWeeks(wed, 1)), 'next week is a different week');
+assert(
+  dayScopeLabel('wed', 'wed', addWeeks(weekStart, 1), wed).possessive === "Wednesday's",
+  'same weekday next week is not Today',
 );
 
 console.log('Summary labels');

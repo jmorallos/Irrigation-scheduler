@@ -6,10 +6,9 @@ import { withCycleNumbers, getZoneNumber } from './scheduleUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { isIntervalProgram, scheduleRunsOnDate } from './wateringCalendar';
 
-export async function loadWeeklyScheduleGroups() {
+export async function loadWeeklyScheduleGroups(referenceDate = new Date()) {
   const programs = sortProgramsByController(await programsRepository.getAll());
   const result = [];
-  const referenceDate = new Date();
 
   for (const program of programs) {
     const zones = await loadProgramHydratedZones(program.id);

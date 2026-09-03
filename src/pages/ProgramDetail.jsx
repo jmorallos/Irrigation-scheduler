@@ -377,9 +377,9 @@ export default function ProgramDetail() {
   const [savedNotice, setSavedNotice] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [catalogValves, setCatalogValves] = useState([]);
-  const { selectedDay, clockToday, isClockToday } = useSelectedDay();
-  const scope = dayScopeLabel(selectedDay, clockToday);
-  const { items: todayItems } = useTodaySchedule(selectedDay);
+  const { selectedDay, weekStart, todayKeyInView, isClockToday } = useSelectedDay();
+  const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
+  const { items: todayItems } = useTodaySchedule(selectedDay, weekStart);
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
   useEffect(() => {

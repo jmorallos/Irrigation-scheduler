@@ -12,6 +12,7 @@ import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
 import { useSelectedDay } from '../context/SelectedDayContext';
+import WeekNav from '../components/WeekNav';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
@@ -107,10 +108,21 @@ function sortMark(sort, key) {
 }
 
 export default function WeeklySchedule() {
-  const { groups, loading: weekLoading } = useWeeklySchedule();
+  const {
+    selectedDay,
+    setSelectedDay,
+    weekStart,
+    shiftWeek,
+    goToCurrentWeek,
+    weekRangeLabel,
+    weekDateNumbers,
+    todayKeyInView,
+    isClockToday,
+    viewingCurrentWeek,
+  } = useSelectedDay();
+  const { groups, loading: weekLoading } = useWeeklySchedule(weekStart);
   const { rows, loading: tableLoading } = useMainSchedule();
-  const { selectedDay, setSelectedDay, clockToday, isClockToday } = useSelectedDay();
-  const scope = dayScopeLabel(selectedDay, clockToday);
+  const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
   const loading = weekLoading || tableLoading;
 
@@ -165,6 +177,15 @@ export default function WeeklySchedule() {
                   {formatClockTodayLine()}
                 </p>
               )}
+            </div>
+            <div className="bg-navy-900 rounded-lg px-4 py-3 mb-4">
+              <WeekNav
+                label={weekRangeLabel}
+                onPrev={() => shiftWeek(-1)}
+                onNext={() => shiftWeek(1)}
+                onToday={goToCurrentWeek}
+                showToday={!viewingCurrentWeek || !isClockToday}
+              />
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
               <div className="table-h-scroll">
@@ -314,9 +335,10 @@ export default function WeeklySchedule() {
                   >
                     Valve
                   </th>
-                  {DAY_ORDER.map(day => {
+                  {DAY_ORDER.map((day, dayIndex) => {
                     const isSelected = day === selectedDay;
-                    const isToday = day === clockToday;
+                    const isToday = todayKeyInView != null && day === todayKeyInView;
+                    const dateNumber = weekDateNumbers[dayIndex];
                     return (
                     <th
                       key={day}
@@ -329,10 +351,13 @@ export default function WeeklySchedule() {
                         onClick={() => setSelectedDay(day)}
                         className="w-full px-2 py-3.5 text-left font-bold uppercase tracking-wider [-webkit-tap-highlight-color:transparent]"
                         aria-pressed={isSelected}
-                        aria-label={isToday ? `${DAY_LABELS[day]}, today` : `Show ${DAY_LABELS[day]}`}
+                        aria-label={isToday ? `${DAY_LABELS[day]} ${dateNumber}, today` : `Show ${DAY_LABELS[day]} ${dateNumber}`}
                       >
                         <span className="inline-flex flex-col items-start gap-0.5">
                           <span className={isToday ? 'text-sky-300' : 'text-white'}>{DAY_LABELS[day]}</span>
+                          <span className={`text-[10px] font-mono font-semibold tracking-normal normal-case ${isToday ? 'text-sky-300' : 'text-white'}`}>
+                            {dateNumber}
+                          </span>
                           {isToday ? (
                             <span className="text-[9px] font-bold tracking-wider text-sky-300">Today</span>
                           ) : isSelected ? (
@@ -373,7 +398,7 @@ export default function WeeklySchedule() {
                         <td
                           key={day}
                           className={`${day === selectedDay ? theme.today : theme.header} ${
-                            day === clockToday ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''
+                            todayKeyInView != null && day === todayKeyInView ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''
                           }`}
                           style={{ backgroundColor: day === selectedDay ? theme.todayHex : theme.headerHex }}
                         />
@@ -407,7 +432,7 @@ export default function WeeklySchedule() {
                                 key={day}
                                 className={`px-2 py-3.5 whitespace-nowrap text-left ${
                                   day === selectedDay ? todayCellBg : rowBg
-                                } ${day === clockToday ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''}`}
+                                } ${todayKeyInView != null && day === todayKeyInView ? 'shadow-[inset_0_3px_0_0_#38bdf8]' : ''}`}
                                 style={{ backgroundColor: day === selectedDay ? todayCellBgHex : rowHex }}
                               >
                                 {daySchedules.length > 0 ? (

@@ -1,17 +1,28 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { DAY_ORDER, getTodayKey } from '../utils/dateUtils';
+import {
+  DAY_ORDER,
+  getTodayKey,
+  startOfWeekMonday,
+  addWeeks,
+  getDateForDayKey,
+  weekDatesFrom,
+  formatWeekRange,
+  formatDayDateNumber,
+  isSameCalendarDay,
+  isSameWeekMonday,
+} from '../utils/dateUtils';
 
 const SelectedDayContext = createContext(null);
 
 export function SelectedDayProvider({ children }) {
-  const clockToday = getTodayKey();
+  const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(new Date()));
   const [selectedDay, setSelectedDayState] = useState(() => {
     try {
       sessionStorage.removeItem('selected-weekday');
     } catch {
       /* ignore */
     }
-    return clockToday;
+    return getTodayKey();
   });
 
   const setSelectedDay = useCallback((day) => {
@@ -19,12 +30,39 @@ export function SelectedDayProvider({ children }) {
     setSelectedDayState(day);
   }, []);
 
-  const value = useMemo(() => ({
-    selectedDay,
-    setSelectedDay,
-    clockToday,
-    isClockToday: selectedDay === clockToday,
-  }), [selectedDay, setSelectedDay, clockToday]);
+  const shiftWeek = useCallback((delta) => {
+    setWeekStart(prev => addWeeks(prev, delta));
+  }, []);
+
+  const goToCurrentWeek = useCallback(() => {
+    setWeekStart(startOfWeekMonday(new Date()));
+    setSelectedDayState(getTodayKey());
+  }, []);
+
+  const value = useMemo(() => {
+    const clockDate = new Date();
+    const clockToday = getTodayKey(clockDate);
+    const viewDate = getDateForDayKey(selectedDay, weekStart);
+    const weekDates = weekDatesFrom(weekStart);
+    const viewingCurrentWeek = isSameWeekMonday(weekStart, clockDate);
+    const todayKeyInView = viewingCurrentWeek ? clockToday : null;
+
+    return {
+      selectedDay,
+      setSelectedDay,
+      weekStart,
+      shiftWeek,
+      goToCurrentWeek,
+      viewDate,
+      weekDates,
+      weekRangeLabel: formatWeekRange(weekStart),
+      weekDateNumbers: weekDates.map(formatDayDateNumber),
+      clockToday,
+      todayKeyInView,
+      isClockToday: isSameCalendarDay(viewDate, clockDate),
+      viewingCurrentWeek,
+    };
+  }, [selectedDay, setSelectedDay, weekStart, shiftWeek, goToCurrentWeek]);
 
   return (
     <SelectedDayContext.Provider value={value}>
