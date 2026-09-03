@@ -47,7 +47,7 @@ export default function Zones() {
   const groups = useMemo(() => groupValvesCatalog(valves, memberships), [valves, memberships]);
   const suggestedNumber = useMemo(() => nextValveNumber(valves), [valves]);
 
-  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading valves…</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-black">Loading valves…</div>;
   if (error) return <PageError message={`Could not load valves: ${error}`} onRetry={reload} />;
 
   return (
@@ -55,7 +55,7 @@ export default function Zones() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-black">
             Create numbered valves here, then add them to programs.
           </p>
         </div>
@@ -165,10 +165,10 @@ export default function Zones() {
                               ))}
                             </div>
                           )}
-                          <span className="truncate text-slate-700">{programNames.join(', ') || '—'}</span>
+                          <span className="truncate text-black">{programNames.join(', ') || '—'}</span>
                         </div>
                       </td>
-                      <td className={`px-4 py-4 hidden lg:table-cell text-sm text-slate-600 ${cellClass('lastWater')}`}>
+                      <td className={`px-4 py-4 hidden lg:table-cell text-sm text-black ${cellClass('lastWater')}`}>
                         {formatLastWater(valve) ?? '—'}
                       </td>
                       <td className="px-4 py-4 text-right">
@@ -195,7 +195,7 @@ export default function Zones() {
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
+          <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-black text-center">
             {groups.length} valve{groups.length !== 1 ? 's' : ''}
           </div>
         </div>

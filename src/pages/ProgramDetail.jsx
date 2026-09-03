@@ -162,11 +162,11 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
           </div>
           <div className="min-w-0 flex-1 flex flex-col justify-center">
             <p className="text-base font-semibold text-navy-900 leading-snug">{getZoneDisplayName(zone, programName)}</p>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-black mt-0.5">
               {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
             </p>
             {formatLastWater(zone) && (
-              <p className="text-sm text-slate-600 mt-0.5">Last: {formatLastWater(zone)}</p>
+              <p className="text-sm text-black mt-0.5">Last: {formatLastWater(zone)}</p>
             )}
             {formatNextWater(zone, program, schedules) && (
               <p className="text-sm text-brand-700 mt-0.5">Next: {formatNextWater(zone, program, schedules)}</p>
@@ -178,7 +178,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
             )}
           </div>
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ease-out ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-black flex-shrink-0 transition-transform duration-300 ease-out ${open ? 'rotate-180' : ''}`}
             aria-hidden="true"
           />
         </button>
@@ -198,7 +198,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
       >
         <div className="min-h-0 overflow-hidden" inert={!open} aria-hidden={!open}>
           {schedules.length === 0 ? (
-            <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-slate-600`}>
+            <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-black`}>
               No cycles.{' '}
               <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                 Add one
@@ -213,13 +213,13 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-black">
                         {formatCycleLabel(schedule.cycle)}
                       </span>
                       <span className="font-mono text-lg font-semibold text-navy-900">
                         {formatTimeRange(schedule.start_time, schedule.duration_minutes)}
                       </span>
-                      <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+                      <span className="font-mono text-sm text-black">{formatDuration(schedule.duration_minutes)}</span>
                       {formatScheduleRowGallons(zone, schedule) && (
                         <span className="font-mono text-sm text-navy-900">{formatScheduleRowGallons(zone, schedule)}</span>
                       )}
@@ -227,11 +227,11 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
                         <span className="font-mono text-sm text-navy-900">{formatScheduleRowWeekGallons(zone, schedule, program)} / week</span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <p className="text-sm text-black mt-1">
                       {isIntervalProgram(program) ? formatIntervalSummary(program) : formatDays(schedule.days_of_week)}
                     </p>
                     {schedule.notes && (
-                      <p className="text-sm text-slate-500 mt-1">{schedule.notes}</p>
+                      <p className="text-sm text-black mt-1">{schedule.notes}</p>
                     )}
                   </div>
                   <ActionMenu items={scheduleMenuItems(schedule)} />
@@ -279,7 +279,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
                   <ActionMenu items={zoneMenuItems} label="Valve actions" />
                 </div>
               </td>
-              <td colSpan={6} className="px-4 py-3 text-sm text-slate-500">
+              <td colSpan={6} className="px-4 py-3 text-sm text-black">
                 No cycles.{' '}
                 <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                   Add one
@@ -305,7 +305,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
               ) : null}
             </td>
             <td className={`px-4 py-3 whitespace-nowrap ${cellClass('cycle')}`}>
-              <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <span className="text-sm font-semibold uppercase tracking-wide text-black">
                 {formatCycleLabel(schedule.cycle)}
               </span>
             </td>
@@ -313,18 +313,18 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
               <span className="font-mono text-base font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
             </td>
             <td className={`px-4 py-3 whitespace-nowrap ${cellClass('end')}`}>
-              <span className="font-mono text-base text-slate-700">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
+              <span className="font-mono text-base text-black">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
             </td>
             <td className={`px-4 py-3 whitespace-nowrap ${cellClass('duration')}`}>
-              <span className="font-mono text-sm text-slate-600">{formatDuration(schedule.duration_minutes)}</span>
+              <span className="font-mono text-sm text-black">{formatDuration(schedule.duration_minutes)}</span>
             </td>
             <td className={`px-4 py-3 ${cellClass('days')}`}>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-black">
                 {isIntervalProgram(program) ? formatIntervalSummary(program) : formatDays(schedule.days_of_week)}
               </span>
             </td>
             <td className={`px-4 py-3 ${cellClass('notes')}`}>
-              <span className="text-sm text-slate-500">{schedule.notes || '—'}</span>
+              <span className="text-sm text-black">{schedule.notes || '—'}</span>
             </td>
             <td className="px-4 py-3 text-right whitespace-nowrap">
               <ActionMenu items={scheduleMenuItems(schedule)} />
@@ -456,7 +456,7 @@ export default function ProgramDetail() {
 
   return (
     <div>
-      <Link to="/programs" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-navy-900 mb-6">
+      <Link to="/programs" className="inline-flex items-center gap-1.5 text-sm text-black hover:text-navy-900 mb-6">
         <ArrowLeft className="w-4 h-4" /> Programs
       </Link>
 
@@ -505,7 +505,7 @@ export default function ProgramDetail() {
                     await saveProgram(program.id);
                     showSaved(`Saved "${program.name}" with its valves and cycles.`);
                   }}
-                  className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+                  className="p-2 rounded-lg text-black hover:text-brand-600 hover:bg-blue-50 transition-colors"
                   title="Save program"
                 >
                   <Bookmark className="w-4 h-4" />
@@ -513,7 +513,7 @@ export default function ProgramDetail() {
                 <button
                   type="button"
                   onClick={() => setEditProg(true)}
-                  className="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-blue-50 transition-colors"
+                  className="p-2 rounded-lg text-black hover:text-brand-600 hover:bg-blue-50 transition-colors"
                   title="Edit program"
                 >
                   <Pencil className="w-4 h-4" />
@@ -525,11 +525,11 @@ export default function ProgramDetail() {
               <Badge status={program.status} />
             </div>
             {program.description && (
-              <p className="text-sm text-slate-500 leading-snug line-clamp-2" title={program.description}>
+              <p className="text-sm text-black leading-snug line-clamp-2" title={program.description}>
                 {program.description}
               </p>
             )}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-black">
               {zones.length} valve{zones.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -542,25 +542,25 @@ export default function ProgramDetail() {
         </div>
         <div className="px-5 py-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mode</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-black">Mode</p>
             <p className="mt-1 text-sm font-semibold text-navy-900">{formatWateringModeLabel(program)}</p>
           </div>
           {program.watering_mode === WATERING_MODE_INTERVAL ? (
             <>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Interval</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-black">Interval</p>
                 <p className="mt-1 text-sm font-semibold text-navy-900">{intervalSummary}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-black">Start date</p>
                 <p className="mt-1 text-sm font-semibold text-navy-900">{dateRange?.start ?? '—'}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">End date</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-black">End date</p>
                 <p className="mt-1 text-sm font-semibold text-navy-900">{dateRange?.end ?? '—'}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Never on</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-black">Never on</p>
                 <p className="mt-1 text-sm font-semibold text-navy-900">{formatNeverOnSummary(program)}</p>
               </div>
             </>

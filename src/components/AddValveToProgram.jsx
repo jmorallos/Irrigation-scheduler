@@ -32,11 +32,11 @@ export default function AddValveToProgram({
 
   return (
     <div>
-      <p className="text-sm text-slate-600 mb-4">
+      <p className="text-sm text-black mb-4">
         Choose a valve from your catalog. Each valve can only be added once per program.
       </p>
       {sortedValves.length === 0 ? (
-        <p className="text-sm text-slate-500 mb-4">No catalog valves yet. Create one below.</p>
+        <p className="text-sm text-black mb-4">No catalog valves yet. Create one below.</p>
       ) : (
         <ul className="space-y-2 mb-4 max-h-64 overflow-y-auto">
           {sortedValves.map(valve => {
@@ -64,7 +64,7 @@ export default function AddValveToProgram({
                     {getZoneShortName(valve) || valve.name}
                   </span>
                   {inProgram && (
-                    <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                    <span className="text-[11px] font-medium text-black whitespace-nowrap">
                       Already in program
                     </span>
                   )}
@@ -78,7 +78,7 @@ export default function AddValveToProgram({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+          className="px-4 py-2.5 text-sm font-medium text-black bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
         >
           Cancel
         </button>

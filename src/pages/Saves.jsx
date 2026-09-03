@@ -79,14 +79,14 @@ export default function Saves() {
     }
   };
 
-  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading saves…</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-black">Loading saves…</div>;
   if (error) return <PageError message={`Could not load saves: ${error}`} onRetry={reload} />;
 
   return (
     <div className="min-w-0 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Saves</h1>
-        <p className="text-sm text-slate-500 mt-1">Copies of programs and valves you can restore later.</p>
+        <p className="text-sm text-black mt-1">Copies of programs and valves you can restore later.</p>
       </div>
 
       {restoreNotice && (
@@ -166,10 +166,10 @@ export default function Saves() {
       {restoringZone && (
         <Modal title="Restore valve" onClose={() => setRestoringZone(null)} size="sm">
           {programs.length === 0 ? (
-            <p className="text-sm text-slate-600">Add a program first, then restore this valve into it.</p>
+            <p className="text-sm text-black">Add a program first, then restore this valve into it.</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-slate-600 mb-3">
+              <p className="text-sm text-black mb-3">
                 Add <span className="font-semibold text-navy-900">{restoringZone.name}</span> to which program?
               </p>
               {programs.map(program => (
@@ -198,7 +198,7 @@ function SaveRow({ save, onRestore, onDelete }) {
     <li className="flex items-center gap-3 px-4 py-3.5">
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-navy-900 truncate">{save.name}</p>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-black mt-0.5">
           <SaveSummary save={save} />
           {save.saved_at && ` · ${formatSavedAt(save.saved_at)}`}
         </p>
@@ -214,7 +214,7 @@ function SaveRow({ save, onRestore, onDelete }) {
       <button
         type="button"
         onClick={onDelete}
-        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+        className="p-2 rounded-lg text-black hover:text-red-600 hover:bg-red-50 transition-colors"
         aria-label={`Delete ${save.name}`}
       >
         <Trash2 className="w-4 h-4" />

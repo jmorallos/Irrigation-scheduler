@@ -98,7 +98,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
           label="Program photo"
         />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-name">
+          <label className="block text-sm font-medium text-black mb-1.5" htmlFor="prog-name">
             Program Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -112,7 +112,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
           {errors.name && <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-controller">
+          <label className="block text-sm font-medium text-black mb-1.5" htmlFor="prog-controller">
             Program Prefix <span className="text-red-500">*</span>
           </label>
           <input
@@ -137,8 +137,8 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         </div>
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-desc">
-            Description <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-black mb-1.5" htmlFor="prog-desc">
+            Description <span className="text-black font-normal">(optional)</span>
           </label>
           <textarea
             id="prog-desc"
@@ -150,7 +150,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
           />
         </div>
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
+          <span className="block text-sm font-medium text-black mb-1.5">Status</span>
           <div className="flex gap-2">
             {['active', 'inactive'].map(s => (
               <button
@@ -162,7 +162,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                     ? s === 'active'
                       ? 'bg-brand-600 border-brand-600 text-white'
                       : 'bg-slate-600 border-slate-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-white border-slate-200 text-black hover:border-slate-300'
                 }`}
               >
                 {s}
@@ -172,7 +172,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         </div>
 
         <div className="pt-2 border-t border-slate-100">
-          <span className="block text-sm font-medium text-gray-700 mb-3">Watering schedule</span>
+          <span className="block text-sm font-medium text-black mb-3">Watering schedule</span>
           <div className="flex gap-2 mb-4">
             {[
               { id: WATERING_MODE_WEEKDAY, label: 'Weekdays' },
@@ -185,7 +185,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   wateringMode === option.id
                     ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-white border-slate-200 text-black hover:border-slate-300'
                 }`}
               >
                 {option.label}
@@ -196,7 +196,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
           {wateringMode === WATERING_MODE_INTERVAL && (
             <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-interval">
+                <label className="block text-sm font-medium text-black mb-1.5" htmlFor="prog-interval">
                   Every
                 </label>
                 <div className="flex items-center gap-2">
@@ -227,13 +227,13 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                   >
                     +
                   </button>
-                  <span className="text-sm text-slate-600">days</span>
+                  <span className="text-sm text-black">days</span>
                 </div>
                 {errors.interval_days && <p className="mt-1.5 text-xs text-red-500">{errors.interval_days}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="prog-start-date">
+                <label className="block text-sm font-medium text-black mb-1.5" htmlFor="prog-start-date">
                   Start date
                 </label>
                 <input
@@ -251,7 +251,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
               </div>
 
               <div>
-                <span className="block text-sm font-medium text-gray-700 mb-1.5">End date</span>
+                <span className="block text-sm font-medium text-black mb-1.5">End date</span>
                 <div className="flex gap-2 mb-3">
                   {[
                     { id: 'never', label: 'Never' },
@@ -264,7 +264,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                       className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         programEndMode === option.id
                           ? 'bg-brand-600 border-brand-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          : 'bg-white border-slate-200 text-black hover:border-slate-300'
                       }`}
                     >
                       {option.label}
@@ -290,7 +290,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
               </div>
 
               <div>
-                <span className="block text-sm font-medium text-gray-700 mb-1.5">Never on</span>
+                <span className="block text-sm font-medium text-black mb-1.5">Never on</span>
                 <div className="flex flex-wrap gap-2">
                   {DAY_ORDER.map(day => (
                     <button
@@ -300,7 +300,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
                       className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                         neverOnDays.includes(day)
                           ? 'bg-brand-600 border-brand-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
+                          : 'bg-white border-slate-200 text-black hover:border-brand-400'
                       }`}
                       aria-pressed={neverOnDays.includes(day)}
                     >
@@ -314,7 +314,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
         </div>
       </div>
       <div className="flex gap-3 mt-6 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-black bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           Cancel
         </button>
         <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">

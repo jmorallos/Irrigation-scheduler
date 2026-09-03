@@ -114,7 +114,7 @@ export default function HsvColorPicker({ value, onChange }) {
           style={{ backgroundColor: value }}
           aria-hidden="true"
         />
-        <span className="font-mono text-xs text-slate-600 uppercase">{value}</span>
+        <span className="font-mono text-xs text-black uppercase">{value}</span>
       </div>
     </div>
   );

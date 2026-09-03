@@ -137,7 +137,7 @@ export default function WeeklySchedule() {
     ));
   };
 
-  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading schedule…</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-black">Loading schedule…</div>;
 
   return (
     <div className="min-w-0 w-full">
@@ -159,7 +159,7 @@ export default function WeeklySchedule() {
           <div>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-navy-900">Schedule</h1>
-              <p className="mt-1 text-sm text-slate-500">{scope.heading}</p>
+              <p className="mt-1 text-sm text-black">{scope.heading}</p>
               {!isClockToday && (
                 <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-brand-600">
                   {formatClockTodayLine()}
@@ -260,7 +260,7 @@ export default function WeeklySchedule() {
                             : row.schedule.days_of_week,
                         )}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left text-slate-600">
+                      <td className="px-3 py-3 whitespace-nowrap text-left text-black">
                         {row.schedule.notes || '—'}
                       </td>
                     </tr>
@@ -281,7 +281,7 @@ export default function WeeklySchedule() {
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {formatGallonsNumber(totals.weekGallonsTotal) ?? '—'}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-slate-400">—</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-black">—</td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {totals.dailyRuntimeTotal}
                       </td>
@@ -389,14 +389,14 @@ export default function WeeklySchedule() {
                       return (
                         <tr key={row.zone.id} className={`border-t ${zoneTheme.border} ${rowBg}`} style={{ borderColor: zoneTheme.borderHex }}>
                           <td
-                            className={`${ZONE_COL} py-3.5 text-left text-sm text-slate-700 font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
+                            className={`${ZONE_COL} py-3.5 text-left text-sm text-black font-medium shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]`}
                             style={{ backgroundColor: rowHex }}
                             title={row.zone.name}
                           >
                             <span className="block truncate">
                               {getZoneDisplayName(row.zone, group.program.name)}
                               {row.zone.status === 'inactive' && (
-                                <span className="ml-1 text-slate-300">(off)</span>
+                                <span className="ml-1 text-black">(off)</span>
                               )}
                             </span>
                           </td>
@@ -417,14 +417,14 @@ export default function WeeklySchedule() {
                                         <span className={`block font-mono text-base font-bold ${day === selectedDay ? 'text-brand-600' : 'text-navy-900'}`}>
                                           {formatTime(sched.start_time)}
                                         </span>
-                                        <span className="block font-mono text-xs font-medium text-slate-500">
+                                        <span className="block font-mono text-xs font-medium text-black">
                                           {formatTime(getEndTime(sched.start_time, sched.duration_minutes))}
                                         </span>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="text-slate-200 text-sm">—</span>
+                                  <span className="text-black text-sm">—</span>
                                 )}
                               </td>
                             );

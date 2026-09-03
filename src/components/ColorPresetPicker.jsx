@@ -30,7 +30,7 @@ export default function ColorPresetPicker({ value, onChange, label = 'Color' }) 
 
   return (
     <div>
-      <span className="block text-sm font-medium text-gray-700 mb-1.5">{label}</span>
+      <span className="block text-sm font-medium text-black mb-1.5">{label}</span>
       <div
         className="grid"
         style={{

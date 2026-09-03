@@ -202,7 +202,7 @@ export default function Settings() {
       </div>
 
       <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Data</h2>
+        <h2 className="text-xs font-semibold text-black uppercase tracking-wider mb-4">Data</h2>
         <div className="space-y-3">
           {sampleError && (
             <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -215,7 +215,7 @@ export default function Settings() {
               <button
                 type="button"
                 onClick={() => setImportNotice(null)}
-                className="p-0.5 text-slate-400 hover:text-navy-900 transition-colors"
+                className="p-0.5 text-black hover:text-navy-900 transition-colors"
                 aria-label="Dismiss"
               >
                 <X className="w-4 h-4" />
@@ -252,24 +252,24 @@ export default function Settings() {
               Import failed: {importError}
             </div>
           )}
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-black">
             How to use: Export Data → file in Downloads → Import that file later. HTML and Excel are printable schedules only and cannot restore the app.
           </p>
           <button
             onClick={exportData}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <Upload className="w-4 h-4 text-slate-500" />
+            <Upload className="w-4 h-4 text-black" />
             Export Data
-            <span className="ml-auto text-xs text-slate-400">Save as JSON</span>
+            <span className="ml-auto text-xs text-black">Save as JSON</span>
           </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <Download className="w-4 h-4 text-slate-500" />
+            <Download className="w-4 h-4 text-black" />
             Import Data
-            <span className="ml-auto text-xs text-slate-400">Restore from JSON</span>
+            <span className="ml-auto text-xs text-black">Restore from JSON</span>
           </button>
           <input
             ref={fileRef}
@@ -282,34 +282,34 @@ export default function Settings() {
             onClick={handleXlsxExport}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <Sheet className="w-4 h-4 text-slate-500" />
+            <Sheet className="w-4 h-4 text-black" />
             Export Excel
-            <span className="ml-auto text-xs text-slate-400">.xlsx</span>
+            <span className="ml-auto text-xs text-black">.xlsx</span>
           </button>
           <button
             onClick={() => handleHtmlExport(false)}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <FileText className="w-4 h-4 text-slate-500" />
+            <FileText className="w-4 h-4 text-black" />
             Export printable schedule
-            <span className="ml-auto text-xs text-slate-400">HTML · cannot restore</span>
+            <span className="ml-auto text-xs text-black">HTML · cannot restore</span>
           </button>
           <button
             onClick={() => handleHtmlExport(true)}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left"
           >
-            <ExternalLink className="w-4 h-4 text-slate-500" />
+            <ExternalLink className="w-4 h-4 text-black" />
             Open printable schedule
-            <span className="ml-auto text-xs text-slate-400">New tab</span>
+            <span className="ml-auto text-xs text-black">New tab</span>
           </button>
           <button
             onClick={handleLoadSample}
             disabled={sampleLoading}
             className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-alt hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-navy-900 transition-colors text-left disabled:opacity-60"
           >
-            <Sprout className="w-4 h-4 text-slate-500" />
+            <Sprout className="w-4 h-4 text-black" />
             Load Sample Data
-            <span className="ml-auto text-xs text-slate-400">Empty app only</span>
+            <span className="ml-auto text-xs text-black">Empty app only</span>
           </button>
           <button
             onClick={() => setConfirmClear(true)}

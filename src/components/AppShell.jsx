@@ -30,10 +30,10 @@ function NavItem({ item, pathname, onClick }) {
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
         active
           ? 'bg-navy-900 text-white'
-          : 'text-slate-500 hover:text-navy-900 hover:bg-surface-alt'
+          : 'text-black hover:text-navy-900 hover:bg-surface-alt'
       }`}
     >
-      <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
+      <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-black'}`} />
       {item.label}
     </NavLink>
   );
@@ -64,13 +64,13 @@ export default function AppShell({ children }) {
           </div>
           <div className="leading-tight">
             <span className="text-sm font-bold text-navy-900">Irrigation</span>
-            <span className="block text-[10px] font-semibold text-slate-400 tracking-wider uppercase">Scheduler</span>
+            <span className="block text-[10px] font-semibold text-black tracking-wider uppercase">Scheduler</span>
           </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
           <div>
-            <p className="px-3 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Records</p>
+            <p className="px-3 mb-2 text-[10px] font-semibold text-black uppercase tracking-wider">Records</p>
             <div className="space-y-0.5">
               {NAV.map(item => (
                 <NavItem key={item.to} item={item} pathname={pathname} />
@@ -78,7 +78,7 @@ export default function AppShell({ children }) {
             </div>
           </div>
           <div>
-            <p className="px-3 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">System</p>
+            <p className="px-3 mb-2 text-[10px] font-semibold text-black uppercase tracking-wider">System</p>
             <div className="space-y-0.5">
               {SYSTEM_NAV.map(item => (
                 <NavItem key={item.to} item={item} pathname={pathname} />
@@ -117,7 +117,7 @@ export default function AppShell({ children }) {
               aria-label={item.label}
               title={item.label}
               className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 text-[9px] font-medium gap-0.5 transition-colors ${
-                active ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'
+                active ? 'text-brand-600' : 'text-black hover:text-black'
               }`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -139,7 +139,7 @@ export default function AppShell({ children }) {
 
         {menuOpen && (
           <div className="fixed z-50 bottom-[calc(5rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] w-56 bg-white rounded-xl border border-slate-200 shadow-xl p-2">
-            <p className="px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Menu</p>
+            <p className="px-3 py-2 text-[10px] font-semibold text-black uppercase tracking-wider">Menu</p>
             {ALL_NAV.map(item => (
               <NavItem
                 key={item.to}

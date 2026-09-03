@@ -5,7 +5,7 @@ import ProgramBadge from './ProgramBadge';
 
 function ChartEmpty({ message }) {
   return (
-    <p className="py-8 text-center text-sm text-slate-400">{message}</p>
+    <p className="py-8 text-center text-sm text-black">{message}</p>
   );
 }
 
@@ -216,7 +216,7 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
                 value={tooltipValue}
                 className="bottom-full left-1/2 -translate-x-1/2 mb-1"
               />
-              <span className="h-3 max-w-full truncate text-[9px] sm:text-[11px] font-mono tabular-nums leading-none text-slate-500">
+              <span className="h-3 max-w-full truncate text-[9px] sm:text-[11px] font-mono tabular-nums leading-none text-black">
                 {item.minutes ? (
                   <>
                     <span className="sm:hidden">{item.minutes}</span>
@@ -240,7 +240,7 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
                 />
               </div>
               <span className={`text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200 ease-out ${
-                isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-slate-400'
+                isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-black'
               }`}>
                 {item.label}
               </span>
@@ -249,7 +249,7 @@ export function MinutesByDayChart({ data, selectedDay, clockToday, onSelectDay }
                   isClockToday
                     ? 'text-brand-600 opacity-100'
                     : isSelected
-                      ? 'text-navy-700 opacity-100'
+                      ? 'text-navy-900 opacity-100'
                       : 'opacity-0'
                 }`}
                 aria-hidden={!isClockToday && !isSelected}

@@ -19,7 +19,7 @@ export default function Modal({ title, children, onClose, size = 'md' }) {
           <h2 className="text-base font-semibold text-navy-900">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-black hover:text-black hover:bg-slate-100 transition-colors"
             aria-label="Close"
           >
             <X className="w-4 h-4" />

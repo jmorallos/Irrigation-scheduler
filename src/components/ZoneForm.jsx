@@ -97,7 +97,7 @@ export default function ZoneForm({
         />
         <div className="grid grid-cols-[6.5rem_1fr] gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-number">
+            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-number">
               Valve # <span className="text-red-500">*</span>
             </label>
             <input
@@ -111,7 +111,7 @@ export default function ZoneForm({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-name">
+            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-name">
               Valve Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -129,8 +129,8 @@ export default function ZoneForm({
         )}
         <ColorPresetPicker value={color} onChange={setColor} label="Color" />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-gph">
-            Emitter Total G.P.H. <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-gph">
+            Emitter Total G.P.H. <span className="text-black font-normal">(optional)</span>
           </label>
           <input
             id="zone-gph"
@@ -146,18 +146,18 @@ export default function ZoneForm({
           {errors.gph ? (
             <p className="mt-1.5 text-xs text-red-500">{errors.gph}</p>
           ) : (
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-black">
               Gallons per hour for this valve.
             </p>
           )}
         </div>
         <div className="pt-2 border-t border-slate-100">
-          <span className="block text-sm font-medium text-gray-700 mb-3">
-            Last water <span className="text-gray-400 font-normal">(optional)</span>
+          <span className="block text-sm font-medium text-black mb-3">
+            Last water <span className="text-black font-normal">(optional)</span>
           </span>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-date">
+              <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-last-water-date">
                 Date
               </label>
               <input
@@ -175,7 +175,7 @@ export default function ZoneForm({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-time">
+                <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-last-water-time">
                   Time
                 </label>
                 <input
@@ -192,7 +192,7 @@ export default function ZoneForm({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="zone-last-water-duration">
+                <label className="block text-sm font-medium text-black mb-1.5" htmlFor="zone-last-water-duration">
                   Duration (Min)
                 </label>
                 <input
@@ -216,7 +216,7 @@ export default function ZoneForm({
         </div>
         {showStatus && (
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
+          <span className="block text-sm font-medium text-black mb-1.5">Status</span>
           <div className="flex gap-2">
             {['active', 'inactive'].map(s => (
               <button
@@ -226,7 +226,7 @@ export default function ZoneForm({
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors capitalize ${
                   status === s
                     ? s === 'active' ? 'bg-brand-600 border-brand-600 text-white' : 'bg-slate-600 border-slate-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-white border-slate-200 text-black hover:border-slate-300'
                 }`}
               >
                 {s}
@@ -237,7 +237,7 @@ export default function ZoneForm({
         )}
       </div>
       <div className="flex gap-3 mt-6 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-black bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           Cancel
         </button>
         <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">

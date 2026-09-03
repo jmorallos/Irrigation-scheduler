@@ -94,7 +94,7 @@ export default function Dashboard() {
     <div className="min-w-0 w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-navy-900">Summary</h1>
-        <p className="mt-1 text-sm text-slate-500">{scope.heading}</p>
+        <p className="mt-1 text-sm text-black">{scope.heading}</p>
         {!isClockToday && (
           <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-brand-600">
             {formatClockTodayLine()}
@@ -115,11 +115,11 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Weekly Load</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="grid min-w-0 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
             <div className="min-w-0 p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
                 Minutes by Day
               </h3>
               <MinutesByDayChart
@@ -128,18 +128,18 @@ export default function Dashboard() {
                 clockToday={clockToday}
                 onSelectDay={setSelectedDay}
               />
-              <p className="mt-3 text-[11px] text-slate-400 break-words">
+              <p className="mt-3 text-[11px] text-black break-words">
                 Scheduled cycle minutes on each weekday
                 {chartData.weekGallonsTotal ? ` · ${formatGallons(chartData.weekGallonsTotal)} / week total` : ''}.
                 {' '}<span className="font-semibold text-brand-600">Today</span> stays labeled. Tap another day to preview it.
               </p>
             </div>
             <div className="min-w-0 p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
                 Minutes by Week
               </h3>
               <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
-              <p className="mt-3 text-[11px] text-slate-400">
+              <p className="mt-3 text-[11px] text-black">
                 Duration × watering days for the week.
               </p>
             </div>
@@ -152,7 +152,7 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Valve</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ZoneMinutesChart
@@ -160,7 +160,7 @@ export default function Dashboard() {
               dayPhrase={scope.adjective}
               emptyMessage={`No valves scheduled ${scope.adjective}.`}
             />
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-black">
               {`Cycle minutes per valve for ${scope.short} only.`}
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Valve</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ZoneWaterChart
@@ -180,7 +180,7 @@ export default function Dashboard() {
               dayPhrase={scope.adjective}
               emptyMessage={`No water estimates for valves running ${scope.adjective}. Set Emitter Total G.P.H. on valves.`}
             />
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-black">
               {`Estimated gallons per valve for ${scope.short} and the week.`}
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Run Time by Program</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ProgramTodayMinutesChart
@@ -200,7 +200,7 @@ export default function Dashboard() {
               dayPhrase={scope.adjective}
               emptyMessage={`No programs scheduled ${scope.adjective}.`}
             />
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-black">
               {`Total cycle minutes for programs running ${scope.adjective}.`}
             </p>
           </div>
@@ -212,7 +212,7 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Cycles by Program</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ProgramTodayStartsChart
@@ -220,7 +220,7 @@ export default function Dashboard() {
               dayPhrase={scope.adjective}
               emptyMessage={`No programs scheduled ${scope.adjective}.`}
             />
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-black">
               {`Number of cycles for programs running ${scope.adjective}.`}
             </p>
           </div>
@@ -232,7 +232,7 @@ export default function Dashboard() {
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Water by Program</h2>
         </div>
         {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading charts…</div>
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ProgramWaterChart
@@ -240,7 +240,7 @@ export default function Dashboard() {
               dayPhrase={scope.adjective}
               emptyMessage={`No water estimates for programs running ${scope.adjective}. Set Emitter Total G.P.H. on valves.`}
             />
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-black">
               {`Estimated gallons per program for ${scope.short} and the week.`}
             </p>
           </div>
@@ -255,12 +255,12 @@ export default function Dashboard() {
           </Link>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Loading…</div>
+          <div className="p-8 text-center text-sm text-black">Loading…</div>
         ) : items.length === 0 ? (
           <div className="p-10 text-center">
-            <Droplets className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-500">{`No irrigation scheduled ${scope.adjective}`}</p>
-            <p className="text-xs text-slate-400 mt-1">Add schedules to your valves to see them here.</p>
+            <Droplets className="w-8 h-8 text-black mx-auto mb-3" />
+            <p className="text-sm font-medium text-black">{`No irrigation scheduled ${scope.adjective}`}</p>
+            <p className="text-xs text-black mt-1">Add schedules to your valves to see them here.</p>
           </div>
         ) : (
           <div>
@@ -315,7 +315,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
           {STAT_COLUMNS.map(({ key, label }) => (
             <div key={key} className="px-5 py-4 text-center sm:text-left">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black">{label}</p>
               <p className="mt-1 text-2xl font-bold font-mono text-navy-900 tabular-nums">{stats[key]}</p>
             </div>
           ))}

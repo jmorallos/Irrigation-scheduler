@@ -275,8 +275,8 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
     }
     h1 { margin: 0; font-size: 22px; }
     h2 { margin: 28px 0 10px; font-size: 16px; }
-    .meta { margin: 6px 0 16px; color: #64748b; font-size: 13px; }
-    .note { margin: 0 0 10px; color: #64748b; font-size: 12px; }
+    .meta { margin: 6px 0 16px; color: #000; font-size: 13px; }
+    .note { margin: 0 0 10px; color: #000; font-size: 12px; }
     .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
     .stat {
       min-width: 108px;
@@ -290,7 +290,7 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
       font-weight: 700;
       letter-spacing: .06em;
       text-transform: uppercase;
-      color: #64748b;
+      color: #000;
     }
     .stat .value { margin-top: 4px; font-size: 20px; font-weight: 700; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -319,13 +319,13 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
       font-size: 12px;
       text-align: center;
     }
-    .empty { text-align: center; color: #64748b; padding: 28px 8px; }
+    .empty { text-align: center; color: #000; padding: 28px 8px; }
     .week td { vertical-align: top; }
     .week .zone { text-align: left; font-weight: 600; white-space: nowrap; }
-    .week .blank { color: #cbd5e1; }
-    .week .off { color: #94a3b8; font-weight: 500; }
+    .week .blank { color: #000; }
+    .week .off { color: #000; font-weight: 500; }
     .cycle + .cycle { margin-top: 8px; }
-    .cycle .end { display: block; font-size: 11px; color: #64748b; font-weight: 500; }
+    .cycle .end { display: block; font-size: 11px; color: #000; font-weight: 500; }
     .program-gap td { border-top: 8px solid #fff; }
     .keep { break-inside: avoid; }
     @page { size: landscape; margin: 10mm; }

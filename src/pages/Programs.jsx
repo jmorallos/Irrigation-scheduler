@@ -63,7 +63,7 @@ export default function Programs() {
     window.setTimeout(() => setSavedNotice(null), 3000);
   };
 
-  if (loading) return <div className="py-16 text-center text-sm text-slate-400">Loading programs…</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-black">Loading programs…</div>;
   if (error) return <PageError message={`Could not load programs: ${error}`} onRetry={reload} />;
 
   return (
@@ -182,16 +182,16 @@ export default function Programs() {
                         <div className="min-w-0">
                           <p className="font-semibold text-navy-900 truncate">{program.name}</p>
                           {program.description ? (
-                            <p className="text-xs text-slate-400 truncate mt-0.5">{program.description}</p>
+                            <p className="text-xs text-black truncate mt-0.5">{program.description}</p>
                           ) : (
-                            <p className="text-xs text-slate-400 mt-0.5 sm:hidden">
+                            <p className="text-xs text-black mt-0.5 sm:hidden">
                               <ZoneCount programId={program.id} /> valve(s)
                             </p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className={`px-4 py-4 text-slate-600 hidden sm:table-cell ${cellClass('zones')}`}>
+                    <td className={`px-4 py-4 text-black hidden sm:table-cell ${cellClass('zones')}`}>
                       <ZoneCount programId={program.id} />
                     </td>
                     <td className={`px-4 py-4 ${cellClass('status')}`}>
@@ -218,7 +218,7 @@ export default function Programs() {
               </tbody>
             </table>
             </div>
-          <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-slate-500 text-center">
+          <div className="px-4 py-3 border-t border-slate-100 bg-surface-alt/40 text-xs text-black text-center">
             {programs.length} program{programs.length !== 1 ? 's' : ''}
           </div>
           </div>

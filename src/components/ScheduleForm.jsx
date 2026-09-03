@@ -159,7 +159,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         )}
         {availableStarts.length > 0 && (
           <div>
-            <span className="block text-sm font-medium text-gray-700 mb-1.5">
+            <span className="block text-sm font-medium text-black mb-1.5">
               Available starts
             </span>
             <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
                 );
               })}
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-400">
+            <p className="mt-1.5 text-[11px] text-black">
               {days.length === 0
                 ? 'Tap a time to fill Start. Select days to refine free slots.'
                 : 'Tap a time to fill Start. Slots skip busy times for the selected days.'}
@@ -192,7 +192,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-time">
+            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-time">
               Start Time <span className="text-red-500">*</span>
             </label>
             <input
@@ -208,7 +208,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
             {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-end">
+            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-end">
               End Time
             </label>
             <input
@@ -216,11 +216,11 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
               type="text"
               readOnly
               value={endTime ? `${formatTime(endTime)}${wrapsNextDay ? ' next day' : ''}` : '—'}
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none font-mono bg-slate-50 text-slate-600"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none font-mono bg-slate-50 text-black"
             />
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-dur">
+            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-dur">
               Duration (min) <span className="text-red-500">*</span>
             </label>
             <input
@@ -237,7 +237,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         </div>
 
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-1.5">
+          <span className="block text-sm font-medium text-black mb-1.5">
             Days of Week <span className="text-red-500">*</span>
           </span>
           <div className="flex flex-wrap gap-2">
@@ -249,7 +249,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
                 className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                   days.includes(day)
                     ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
+                    : 'bg-white border-slate-200 text-black hover:border-brand-400'
                 }`}
                 aria-pressed={days.includes(day)}
               >
@@ -260,8 +260,8 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
           {errors.days && <p className="mt-1.5 text-xs text-red-500">{errors.days}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="sched-notes">
-            Notes <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-notes">
+            Notes <span className="text-black font-normal">(optional)</span>
           </label>
           <textarea
             id="sched-notes"
@@ -275,7 +275,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
           {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes}</p>}
         </div>
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-1.5">Status</span>
+          <span className="block text-sm font-medium text-black mb-1.5">Status</span>
           <div className="flex gap-2">
             {['active', 'inactive'].map(s => (
               <button
@@ -285,7 +285,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors capitalize ${
                   status === s
                     ? s === 'active' ? 'bg-brand-600 border-brand-600 text-white' : 'bg-slate-600 border-slate-600 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-white border-slate-200 text-black hover:border-slate-300'
                 }`}
               >
                 {s}
@@ -295,7 +295,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         </div>
       </div>
       <div className="flex gap-3 mt-6 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+        <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-black bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           Cancel
         </button>
         <button type="submit" disabled={saving || hasConflict} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">

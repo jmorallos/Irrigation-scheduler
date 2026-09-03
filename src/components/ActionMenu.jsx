@@ -24,7 +24,7 @@ function MenuItem({ item, onClose }) {
   const base = 'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors';
   const styles = item.danger
     ? 'text-red-600 hover:bg-red-50'
-    : 'text-slate-700 hover:bg-surface-alt';
+    : 'text-black hover:bg-surface-alt';
 
   const content = (
     <>
@@ -127,7 +127,7 @@ export default function ActionMenu({ items, label = 'Actions' }) {
         className={`p-2 rounded-lg transition-colors ${
           open
             ? 'text-navy-900 bg-surface-alt'
-            : 'text-slate-400 hover:text-navy-900 hover:bg-surface-alt'
+            : 'text-black hover:text-navy-900 hover:bg-surface-alt'
         }`}
       >
         <MoreVertical className="w-4 h-4" />

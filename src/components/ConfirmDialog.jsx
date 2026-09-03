@@ -15,16 +15,16 @@ export default function ConfirmDialog({ title, message, detail, confirmLabel = '
             )}
             <div className="flex-1">
               <h3 className="text-base font-semibold text-navy-900">{title}</h3>
-              <p className="mt-1.5 text-sm text-slate-600">{message}</p>
+              <p className="mt-1.5 text-sm text-black">{message}</p>
               {detail && (
-                <p className="mt-2 text-xs text-slate-400 font-mono bg-surface-alt rounded-lg px-3 py-2 whitespace-pre-line">{detail}</p>
+                <p className="mt-2 text-xs text-black font-mono bg-surface-alt rounded-lg px-3 py-2 whitespace-pre-line">{detail}</p>
               )}
             </div>
           </div>
           <div className="mt-6 flex gap-3 justify-end">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-black bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
             >
               Cancel
             </button>
