@@ -47,6 +47,7 @@ import {
   buildTodayOverviewStats,
   overviewSectionTitle,
 } from '../src/utils/summaryLabels.js';
+import { SEED_RECORDS } from '../src/db/seedRecords.js';
 
 let passed = 0;
 let failed = 0;
@@ -766,6 +767,53 @@ assert(todayOverview.zones === 4, 'today overview valves are day-scoped');
 assert(todayOverview.minutes === 90, 'today overview minutes are day-scoped');
 assert(todayOverview.water === '210 gal', 'today overview water uses day gallons');
 assert(buildTodayOverviewStats({}).water === '—', 'today overview water empty is dash');
+
+console.log('Sample seed shape');
+const seedValves = SEED_RECORDS.flatMap(program => program.zones);
+const seedValveNumbers = seedValves.map(zone => zone.valve);
+assert(SEED_RECORDS.length === 4, 'sample has four programs');
+assert(
+  SEED_RECORDS.every(program => program.watering_mode === WATERING_MODE_WEEKDAY || program.watering_mode === WATERING_MODE_INTERVAL),
+  'every sample program has a watering mode',
+);
+assert(
+  new Set(seedValveNumbers).size === seedValveNumbers.length,
+  'sample valve numbers are unique',
+);
+assert(
+  seedValves.every(zone => normalizeGph(zone.gph) != null),
+  'every sample valve has GPH',
+);
+assert(
+  seedValves.every(zone => lastWaterPayload(zone).last_water_date),
+  'every sample valve has last water',
+);
+const seedWeekday = SEED_RECORDS.find(program => program.controller_program === 'A');
+const seedWeekdayPayload = programSchedulePayload({
+  watering_mode: seedWeekday.watering_mode,
+  interval_days: seedWeekday.interval_days,
+  program_start_date: seedWeekday.program_start_date,
+  program_end_mode: 'never',
+  program_end_date: seedWeekday.program_end_date,
+  never_on_days: seedWeekday.never_on_days,
+});
+assert(seedWeekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'program A seed is weekday');
+assert(seedWeekdayPayload.program_start_date == null, 'weekday seed has no start date');
+const seedInterval = SEED_RECORDS.find(program => program.controller_program === 'D');
+const seedIntervalPayload = programSchedulePayload({
+  watering_mode: seedInterval.watering_mode,
+  interval_days: seedInterval.interval_days,
+  program_start_date: seedInterval.program_start_date,
+  program_end_mode: seedInterval.program_end_date ? 'date' : 'never',
+  program_end_date: seedInterval.program_end_date,
+  never_on_days: seedInterval.never_on_days,
+});
+assert(seedIntervalPayload.watering_mode === WATERING_MODE_INTERVAL, 'program D seed is interval');
+assert(seedIntervalPayload.interval_days === 3, 'program D interval is every 3 days');
+assert(seedIntervalPayload.program_start_date === '2026-08-31', 'program D has start date');
+assert(seedIntervalPayload.program_end_date === '2026-09-08', 'program D has end date');
+assert(seedIntervalPayload.never_on_days.includes('sun'), 'program D never-on includes Sunday');
+assert(formatLastWater(seedValves[0]).includes('Sep'), 'sample last water formats a date');
 
 console.log('');
 if (failed) {

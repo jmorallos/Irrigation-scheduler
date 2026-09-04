@@ -5,6 +5,28 @@ import { schedulesRepository } from "./schedulesRepository";
 import { SEED_RECORDS } from "./seedRecords";
 import { colorFromLetter } from "../utils/programColors";
 import { formatZoneName } from "../utils/scheduleUtils";
+import { programSchedulePayload } from "../utils/programSchedule";
+import { lastWaterPayload } from "../utils/lastWater";
+import { normalizeGph } from "../utils/waterUsage";
+
+function seedProgramScheduleFields(programSeed) {
+  return programSchedulePayload({
+    watering_mode: programSeed.watering_mode,
+    interval_days: programSeed.interval_days,
+    program_start_date: programSeed.program_start_date,
+    program_end_mode: programSeed.program_end_date ? "date" : "never",
+    program_end_date: programSeed.program_end_date,
+    never_on_days: programSeed.never_on_days,
+  });
+}
+
+function seedValveFields(zoneSeed) {
+  return {
+    gph: normalizeGph(zoneSeed.gph),
+    ...lastWaterPayload(zoneSeed),
+    profile_image_id: null,
+  };
+}
 
 export async function loadSampleData() {
   const programs = await programsRepository.getAll();
@@ -23,8 +45,10 @@ export async function loadSampleData() {
       name: programSeed.name,
       description: programSeed.description,
       status: "active",
+      profile_image_id: null,
       created_at: now,
       updated_at: now,
+      ...seedProgramScheduleFields(programSeed),
     };
     await programsRepository.putRaw(program);
 
@@ -38,9 +62,9 @@ export async function loadSampleData() {
           zone_number: zoneSeed.valve,
           name: formatZoneName(zoneSeed.valve, zoneSeed.name),
           color: zoneSeed.color ?? program.color,
-          profile_image_id: null,
           created_at: now,
           updated_at: now,
+          ...seedValveFields(zoneSeed),
         };
         await valvesRepository.putRaw(valve);
         valveByNumber.set(zoneSeed.valve, valve);
@@ -64,7 +88,7 @@ export async function loadSampleData() {
           duration_minutes: scheduleSeed.duration_minutes,
           days_of_week: scheduleSeed.days_of_week,
           status: scheduleSeed.status,
-          notes: scheduleSeed.notes ?? '',
+          notes: scheduleSeed.notes ?? "",
           created_at: now,
           updated_at: now,
         });
