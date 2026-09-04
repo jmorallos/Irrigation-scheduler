@@ -15,7 +15,7 @@ import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useSelectedDay } from '../context/SelectedDayContext';
-import { SUMMARY_SECTION_TITLES, SUMMARY_OVERVIEW_COLUMNS, buildTodayOverviewStats } from '../utils/summaryLabels';
+import { SUMMARY_SECTION_TITLES, SUMMARY_OVERVIEW_COLUMNS, buildTodayOverviewStats, overviewSectionTitle } from '../utils/summaryLabels';
 import WeekNav from '../components/WeekNav';
 
 export default function Dashboard() {
@@ -296,7 +296,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.overview}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{overviewSectionTitle(scope.possessive)}</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-slate-100">
           {SUMMARY_OVERVIEW_COLUMNS.map(({ key, label }) => (

@@ -45,6 +45,7 @@ import {
   SUMMARY_OVERVIEW_COLUMNS,
   SUMMARY_OMITTED_SECTIONS,
   buildTodayOverviewStats,
+  overviewSectionTitle,
 } from '../src/utils/summaryLabels.js';
 
 let passed = 0;
@@ -734,7 +735,9 @@ assert(SUMMARY_SECTION_TITLES.valves === 'Valves', 'valves section title');
 assert(SUMMARY_SECTION_TITLES.valveWater === 'Water', 'valve water section title');
 assert(SUMMARY_SECTION_TITLES.programTime === 'Program Time', 'program time section title');
 assert(SUMMARY_SECTION_TITLES.programWater === 'Program Water', 'program water section title');
-assert(SUMMARY_SECTION_TITLES.overview === "Today's Overview", 'overview section title');
+assert(SUMMARY_SECTION_TITLES.overview === 'Overview', 'overview section title suffix');
+assert(overviewSectionTitle("Today's") === "Today's Overview", 'today overview title');
+assert(overviewSectionTitle("Friday's") === "Friday's Overview", 'other day overview title');
 assert(
   SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'water' && col.label === 'Total water'),
   'overview includes total water tile',

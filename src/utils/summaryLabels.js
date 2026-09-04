@@ -7,10 +7,15 @@ export const SUMMARY_SECTION_TITLES = {
   valveWater: 'Water',
   programTime: 'Program Time',
   programWater: 'Program Water',
-  overview: "Today's Overview",
+  overview: 'Overview',
 };
 
-/** Today's Overview tiles — values are for the selected day only. */
+/** Card title for the Overview section — "Today's Overview" or "Friday's Overview". */
+export function overviewSectionTitle(possessive = "Today's") {
+  return `${possessive} ${SUMMARY_SECTION_TITLES.overview}`;
+}
+
+/** Overview tiles — values are for the selected day only. */
 export const SUMMARY_OVERVIEW_COLUMNS = [
   { key: 'total', label: 'Programs' },
   { key: 'active', label: 'Active cycles' },
