@@ -55,6 +55,12 @@ import {
   overviewSectionTitle,
 } from '../src/utils/summaryLabels.js';
 import { SEED_RECORDS } from '../src/db/seedRecords.js';
+import {
+  buildProgramListSummary,
+  formatCycleListItem,
+  formatCycleWindow,
+  formatWeekdaysHyphen,
+} from '../src/utils/programListSummary.js';
 
 let passed = 0;
 let failed = 0;
@@ -889,6 +895,61 @@ assert(seedIntervalPayload.program_start_date === '2026-08-31', 'program D has s
 assert(seedIntervalPayload.program_end_date === '2026-09-08', 'program D has end date');
 assert(seedIntervalPayload.never_on_days.includes('sun'), 'program D never-on includes Sunday');
 assert(formatLastWater(seedValves[0]).includes('Sep'), 'sample last water formats a date');
+
+console.log('Programs list summary');
+assert(formatCycleWindow('04:00', 105) === '4:00-5:45 AM', 'cycle window compact same period');
+assert(formatCycleWindow('08:30', 60) === '8:30-9:30 AM', 'cycle window hour later');
+assert(formatCycleListItem(0, '04:00', 105) === '1 - 4:00-5:45 AM', 'cycle item numbered from 1');
+assert(formatWeekdaysHyphen(['sat', 'mon', 'wed', 'fri']) === 'Mon - Wed - Fri - Sat', 'weekdays hyphen ordered');
+assert(formatWeekdaysHyphen([]) === '—', 'empty weekdays dash');
+const listProgram = { id: 'p1', watering_mode: WATERING_MODE_WEEKDAY };
+const listValves = [
+  { id: 'v1', zone_number: 1 },
+  { id: 'v5', zone_number: 5 },
+];
+const listMemberships = [
+  { id: 'm1', program_id: 'p1', valve_id: 'v1' },
+  { id: 'm5', program_id: 'p1', valve_id: 'v5' },
+];
+const listSchedules = [
+  { zone_id: 'm1', status: 'active', start_time: '04:00', duration_minutes: 105, days_of_week: ['mon', 'wed', 'fri', 'sat'] },
+  { zone_id: 'm1', status: 'active', start_time: '10:00', duration_minutes: 45, days_of_week: ['mon', 'wed', 'fri', 'sat'] },
+  { zone_id: 'm5', status: 'inactive', start_time: '05:00', duration_minutes: 15, days_of_week: ['tue'] },
+];
+const weekdaySummary = buildProgramListSummary(listProgram, {
+  memberships: listMemberships,
+  valves: listValves,
+  schedules: listSchedules,
+});
+assert(weekdaySummary.daysLabel === 'Mon - Wed - Fri - Sat', 'weekday summary days');
+assert(
+  weekdaySummary.cyclesLabel === '1 - 4:00-5:45 AM, 2 - 10:00-10:45 AM',
+  'cycles comma-separated in start order',
+);
+assert(weekdaySummary.valvesLabel === '1, 5', 'valve numbers sorted');
+assert(weekdaySummary.startLabel === '—', 'weekday start is dash');
+assert(weekdaySummary.endLabel === 'Never', 'weekday end is Never');
+const intervalSummary = buildProgramListSummary({
+  id: 'p2',
+  watering_mode: WATERING_MODE_INTERVAL,
+  interval_days: 3,
+  program_start_date: '2026-08-31',
+  program_end_date: '2026-09-08',
+}, {
+  memberships: [{ id: 'm4', program_id: 'p2', valve_id: 'v4' }],
+  valves: [{ id: 'v4', zone_number: 4 }],
+  schedules: [
+    { zone_id: 'm4', status: 'active', start_time: '08:30', duration_minutes: 60, days_of_week: ['tue'] },
+  ],
+});
+assert(intervalSummary.daysLabel === 'Every 3 days', 'interval summary days');
+assert(intervalSummary.cyclesLabel === '1 - 8:30-9:30 AM', 'interval cycle line');
+assert(intervalSummary.valvesLabel === '4', 'interval valve number');
+assert(intervalSummary.startLabel.includes('Aug 31'), 'interval start date');
+assert(intervalSummary.endLabel.includes('Sep 8'), 'interval end date');
+const emptySummary = buildProgramListSummary({ id: 'empty', watering_mode: WATERING_MODE_WEEKDAY }, {});
+assert(emptySummary.cyclesLabel === '—', 'empty cycles dash');
+assert(emptySummary.valvesLabel === '—', 'empty valves dash');
 
 console.log('');
 if (failed) {

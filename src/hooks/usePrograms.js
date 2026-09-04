@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
+import { valvesRepository } from '../db/valvesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { sortProgramsByController } from '../db/programSort';
@@ -58,4 +59,30 @@ export function usePrograms() {
   }, [load]);
 
   return { programs, loading, error, reload: load, createProgram, updateProgram, deleteProgram, toggleStatus };
+}
+
+export function useProgramCatalog() {
+  const [memberships, setMemberships] = useState([]);
+  const [valves, setValves] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const [nextMemberships, nextValves, nextSchedules] = await Promise.all([
+        zonesRepository.getAll(),
+        valvesRepository.getAll(),
+        schedulesRepository.getAll(),
+      ]);
+      setMemberships(nextMemberships);
+      setValves(nextValves);
+      setSchedules(nextSchedules);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { memberships, valves, schedules, loading, reload: load };
 }

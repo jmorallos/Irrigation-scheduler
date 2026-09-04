@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Eye, Power, List, Bookmark } from 'lucide-react';
-import { usePrograms } from '../hooks/usePrograms';
-import { useZones } from '../hooks/useZones';
+import { useProgramCatalog, usePrograms } from '../hooks/usePrograms';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import Modal from '../components/Modal';
@@ -18,16 +17,33 @@ import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 import { useSaves } from '../hooks/useSaves';
 import { useColumnAlign } from '../hooks/useColumnAlign';
+import { programListSummariesById } from '../utils/programListSummary';
 
-function ZoneCount({ programId }) {
-  const { zones } = useZones(programId);
-  return <span>{zones.length}</span>;
+function SummaryLine({ label, value, wrap = false }) {
+  return (
+    <p className={wrap ? 'whitespace-normal break-words' : 'truncate'}>
+      <span className="font-semibold text-navy-900">{label}:</span>{' '}
+      <span>{value}</span>
+    </p>
+  );
+}
+
+function ProgramScheduleSummary({ summary }) {
+  if (!summary) return null;
+  return (
+    <div className="mt-1.5 space-y-0.5 text-sm text-black">
+      <SummaryLine label="Days" value={summary.daysLabel} />
+      <SummaryLine label="Cycles" value={summary.cyclesLabel} wrap />
+      <SummaryLine label="Valves" value={summary.valvesLabel} />
+      <SummaryLine label="Start" value={summary.startLabel} />
+      <SummaryLine label="End" value={summary.endLabel} />
+    </div>
+  );
 }
 
 const PROGRAMS_ALIGN = {
   letter: 'left',
   name: 'left',
-  zones: 'left',
   status: 'left',
 };
 
@@ -37,6 +53,7 @@ const TH_PROGRAMS =
 export default function Programs() {
   const navigate = useNavigate();
   const { programs, loading, error, reload, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
+  const { memberships, valves, schedules, reload: reloadCatalog } = useProgramCatalog();
   const { saveProgram } = useSaves();
   const { cycle, cellClass, flexClass } = useColumnAlign('programs-align', PROGRAMS_ALIGN);
   const [showCreate, setShowCreate] = useState(false);
@@ -45,6 +62,16 @@ export default function Programs() {
   const [deleteCounts, setDeleteCounts] = useState({ zones: 0, schedules: 0 });
   const [savedNotice, setSavedNotice] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+
+  const summaries = useMemo(
+    () => programListSummariesById(programs, { memberships, valves, schedules }),
+    [programs, memberships, valves, schedules],
+  );
+
+  const refreshAll = async () => {
+    await reload();
+    await reloadCatalog();
+  };
 
   const openDelete = async (program) => {
     const zones = await zonesRepository.getByProgramId(program.id);
@@ -64,7 +91,7 @@ export default function Programs() {
   };
 
   if (loading) return <div className="py-16 text-center text-sm text-black">Loading programs…</div>;
-  if (error) return <PageError message={`Could not load programs: ${error}`} onRetry={reload} />;
+  if (error) return <PageError message={`Could not load programs: ${error}`} onRetry={refreshAll} />;
 
   return (
     <div className="min-w-0 w-full overflow-x-hidden">
@@ -121,7 +148,6 @@ export default function Programs() {
                 <tr className="text-white">
                   <th onClick={() => cycle('letter')} className={`${TH_PROGRAMS} w-10`} aria-label="Controller program"></th>
                   <th onClick={() => cycle('name')} className={TH_PROGRAMS}>Program Name</th>
-                  <th onClick={() => cycle('zones')} className={`${TH_PROGRAMS} hidden sm:table-cell`}>Valves</th>
                   <th onClick={() => cycle('status')} className={TH_PROGRAMS}>Status</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
@@ -129,6 +155,7 @@ export default function Programs() {
               <tbody>
                 {programs.map((program) => {
                   const theme = getProgramTheme(program);
+                  const summary = summaries.get(program.id);
                   return (
                   <tr
                     key={program.id}
@@ -144,11 +171,11 @@ export default function Programs() {
                     className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
                     style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
                   >
-                    <td className={`px-4 py-4 ${cellClass('letter')}`}>
+                    <td className={`px-4 py-4 align-top ${cellClass('letter')}`}>
                       <ProgramBadge code={program.controller_program} color={program.color} size="md" />
                     </td>
                     <td className={`px-4 py-4 ${cellClass('name')}`}>
-                      <div className={`flex items-center gap-3 min-w-0 ${flexClass('name')}`}>
+                      <div className={`flex items-start gap-3 min-w-0 ${flexClass('name')}`}>
                         {program.profile_image_id ? (
                           <button
                             type="button"
@@ -181,23 +208,14 @@ export default function Programs() {
                         )}
                         <div className="min-w-0">
                           <p className="font-semibold text-navy-900 truncate">{program.name}</p>
-                          {program.description ? (
-                            <p className="text-xs text-black truncate mt-0.5">{program.description}</p>
-                          ) : (
-                            <p className="text-xs text-black mt-0.5 sm:hidden">
-                              <ZoneCount programId={program.id} /> valve(s)
-                            </p>
-                          )}
+                          <ProgramScheduleSummary summary={summary} />
                         </div>
                       </div>
                     </td>
-                    <td className={`px-4 py-4 text-black hidden sm:table-cell ${cellClass('zones')}`}>
-                      <ZoneCount programId={program.id} />
-                    </td>
-                    <td className={`px-4 py-4 ${cellClass('status')}`}>
+                    <td className={`px-4 py-4 align-top ${cellClass('status')}`}>
                       <Badge status={program.status} size="sm" />
                     </td>
-                    <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-4 text-right align-top" onClick={(e) => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           { label: 'View', icon: Eye, to: `/programs/${program.id}` },
@@ -230,7 +248,7 @@ export default function Programs() {
           <ProgramForm
             existingNames={programs.map(p => p.name)}
             existingPrefixes={programs.map(p => p.controller_program).filter(Boolean)}
-            onSubmit={async data => { await createProgram(data); setShowCreate(false); }}
+            onSubmit={async data => { await createProgram(data); await reloadCatalog(); setShowCreate(false); }}
             onCancel={() => setShowCreate(false)}
           />
         </Modal>
@@ -242,7 +260,7 @@ export default function Programs() {
             initial={editing}
             existingNames={programs.filter(p => p.id !== editing.id).map(p => p.name)}
             existingPrefixes={programs.filter(p => p.id !== editing.id).map(p => p.controller_program).filter(Boolean)}
-            onSubmit={async data => { await updateProgram(editing.id, data); setEditing(null); }}
+            onSubmit={async data => { await updateProgram(editing.id, data); await reloadCatalog(); setEditing(null); }}
             onCancel={() => setEditing(null)}
           />
         </Modal>
@@ -254,7 +272,7 @@ export default function Programs() {
           message="This action cannot be undone."
           detail={`This will also delete:\n• ${deleteCounts.zones} valve${deleteCounts.zones !== 1 ? 's' : ''}\n• ${deleteCounts.schedules} schedule${deleteCounts.schedules !== 1 ? 's' : ''}`}
           confirmLabel="Delete"
-          onConfirm={async () => { await deleteProgram(deleting.id); setDeleting(null); }}
+          onConfirm={async () => { await deleteProgram(deleting.id); await reloadCatalog(); setDeleting(null); }}
           onCancel={() => setDeleting(null)}
         />
       )}
