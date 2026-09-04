@@ -180,17 +180,20 @@ export function useAllZones() {
   const [zones, setZones] = useState([]);
   const [valves, setValves] = useState([]);
   const [memberships, setMemberships] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [rawMemberships, catalog] = await Promise.all([
+      const [rawMemberships, catalog, allSchedules] = await Promise.all([
         zonesRepository.getAll(),
         valvesRepository.getAll(),
+        schedulesRepository.getAll(),
       ]);
       setMemberships(rawMemberships);
       setValves(catalog);
+      setSchedules(allSchedules);
       setZones(hydrateZones(rawMemberships, catalog));
     } catch (err) {
       setError(err.message);
@@ -220,6 +223,7 @@ export function useAllZones() {
     zones,
     valves,
     memberships,
+    schedules,
     loading,
     error,
     reload: load,

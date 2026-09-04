@@ -15,7 +15,7 @@ import ActionMenu from '../components/ActionMenu';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { groupValvesCatalog, nextValveNumber, takenValveNumbers, programsForMemberships } from '../utils/zoneIdentity';
 import { getZoneTheme } from '../utils/programColors';
-import { formatLastWater } from '../utils/lastWater';
+import { formatLastRun, formatNextRun, groupSchedulesByZoneId } from '../utils/valveRuns';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 
 const ZONES_ALIGN = {
@@ -23,7 +23,8 @@ const ZONES_ALIGN = {
   name: 'left',
   color: 'left',
   program: 'left',
-  lastWater: 'left',
+  lastRun: 'left',
+  nextRun: 'left',
 };
 
 const TH_ZONES =
@@ -31,7 +32,7 @@ const TH_ZONES =
 
 export default function Zones() {
   const navigate = useNavigate();
-  const { valves, memberships, loading, error, reload, createValve, updateValve, deleteValve } = useAllZones();
+  const { valves, memberships, schedules, loading, error, reload, createValve, updateValve, deleteValve } = useAllZones();
   const { programs } = usePrograms();
   const { cycle, cellClass, flexClass } = useColumnAlign('zones-align', ZONES_ALIGN);
   const [creating, setCreating] = useState(false);
@@ -46,6 +47,7 @@ export default function Zones() {
 
   const groups = useMemo(() => groupValvesCatalog(valves, memberships), [valves, memberships]);
   const suggestedNumber = useMemo(() => nextValveNumber(valves), [valves]);
+  const schedulesByMembershipId = useMemo(() => groupSchedulesByZoneId(schedules), [schedules]);
 
   if (loading) return <div className="py-16 text-center text-sm text-black">Loading valves…</div>;
   if (error) return <PageError message={`Could not load valves: ${error}`} onRetry={reload} />;
@@ -88,7 +90,8 @@ export default function Zones() {
                   <th onClick={() => cycle('name')} className={TH_ZONES}>Valve Name</th>
                   <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
                   <th onClick={() => cycle('program')} className={TH_ZONES}>Programs</th>
-                  <th onClick={() => cycle('lastWater')} className={`${TH_ZONES} hidden lg:table-cell`}>Last water</th>
+                  <th onClick={() => cycle('lastRun')} className={TH_ZONES}>Last Run</th>
+                  <th onClick={() => cycle('nextRun')} className={TH_ZONES}>Next Run</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
@@ -168,8 +171,16 @@ export default function Zones() {
                           <span className="truncate text-black">{programNames.join(', ') || '—'}</span>
                         </div>
                       </td>
-                      <td className={`px-4 py-4 hidden lg:table-cell text-sm text-black ${cellClass('lastWater')}`}>
-                        {formatLastWater(valve) ?? '—'}
+                      <td className={`px-4 py-4 whitespace-nowrap text-sm text-black ${cellClass('lastRun')}`}>
+                        {formatLastRun(valve) ?? '—'}
+                      </td>
+                      <td className={`px-4 py-4 whitespace-nowrap text-sm text-black ${cellClass('nextRun')}`}>
+                        {formatNextRun({
+                          valve,
+                          memberships: group.memberships,
+                          programsById,
+                          schedulesByMembershipId,
+                        }) ?? '—'}
                       </td>
                       <td className="px-4 py-4 text-right">
                         <ActionMenu

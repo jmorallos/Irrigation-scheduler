@@ -34,6 +34,13 @@ import {
   validateLastWaterFields,
 } from '../src/utils/lastWater.js';
 import {
+  formatLastRun,
+  formatNextRun,
+  formatRunAt,
+  computeEarliestNextRun,
+  groupSchedulesByZoneId,
+} from '../src/utils/valveRuns.js';
+import {
   scheduleRunsOnDate,
   computeNextWater,
   formatNextWater,
@@ -442,6 +449,74 @@ assert(nextFormatted?.includes('8:30 AM'), 'next water includes earliest cycle t
 assert(nextFormatted?.includes('1h'), 'next water includes total daily runtime');
 const nextPayload = computeNextWater(valveWithLastWater, sundaySlideProgram, intervalSchedules, new Date(2026, 8, 1));
 assert(nextPayload?.durationMinutes === 60, 'next water duration sums active cycles');
+
+console.log('Last Run / Next Run columns');
+assert(formatRunAt('2026-09-02', '05:00') === 'Wed, Sep 02 at 05:00 AM', 'run at matches client format');
+assert(formatRunAt('2026-09-02', null) === 'Wed, Sep 02', 'run at date only when time missing');
+assert(formatLastRun({
+  last_water_date: '2026-09-02',
+  last_water_time: '04:30',
+  last_water_duration_minutes: 30,
+}) === 'Wed, Sep 02 at 04:30 AM', 'last run omits duration');
+assert(formatLastRun({}) == null, 'empty last run is null');
+const runFrom = new Date(2026, 8, 4);
+const runValve = {
+  last_water_date: '2026-09-02',
+  last_water_time: '04:30',
+};
+const earlyProgram = { id: 'early', status: 'active', watering_mode: WATERING_MODE_WEEKDAY };
+const lateProgram = { id: 'late', status: 'active', watering_mode: WATERING_MODE_WEEKDAY };
+const inactiveProgram = { id: 'off', status: 'inactive', watering_mode: WATERING_MODE_WEEKDAY };
+const weekdayDays = ['mon', 'wed', 'fri', 'sat'];
+const runPrograms = new Map([
+  ['early', earlyProgram],
+  ['late', lateProgram],
+  ['off', inactiveProgram],
+]);
+const runSchedules = new Map([
+  ['m-late', [{ status: 'active', start_time: '05:30', duration_minutes: 80, days_of_week: weekdayDays }]],
+  ['m-early', [{ status: 'active', start_time: '04:30', duration_minutes: 30, days_of_week: weekdayDays }]],
+  ['m-off', [{ status: 'active', start_time: '03:00', duration_minutes: 15, days_of_week: weekdayDays }]],
+]);
+assert(
+  formatNextRun({
+    valve: runValve,
+    memberships: [
+      { id: 'm-late', program_id: 'late', status: 'active' },
+      { id: 'm-early', program_id: 'early', status: 'active' },
+      { id: 'm-off', program_id: 'off', status: 'active' },
+    ],
+    programsById: runPrograms,
+    schedulesByMembershipId: runSchedules,
+    fromDate: runFrom,
+  }) === 'Fri, Sep 04 at 04:30 AM',
+  'next run is earliest time across programs',
+);
+assert(
+  computeEarliestNextRun({
+    valve: runValve,
+    memberships: [{ id: 'm-off', program_id: 'off', status: 'active' }],
+    programsById: runPrograms,
+    schedulesByMembershipId: runSchedules,
+    fromDate: runFrom,
+  }) == null,
+  'inactive program is skipped for next run',
+);
+assert(
+  formatNextRun({
+    valve: runValve,
+    memberships: [{ id: 'm-late', program_id: 'late', status: 'inactive' }],
+    programsById: runPrograms,
+    schedulesByMembershipId: runSchedules,
+    fromDate: runFrom,
+  }) == null,
+  'inactive membership is skipped for next run',
+);
+const grouped = groupSchedulesByZoneId([
+  { id: 's1', zone_id: 'm-early', start_time: '04:30' },
+  { id: 's2', zone_id: 'm-early', start_time: '07:30' },
+]);
+assert(grouped.get('m-early').length === 2, 'schedules grouped by membership');
 
 console.log('XLSX export');
 const xlsxRows = [{
