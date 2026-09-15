@@ -190,7 +190,7 @@ export function formatDays(days) {
     .slice()
     .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
     .map(d => DAY_LABELS[d])
-    .join(' · ');
+    .join(', ');
 }
 
 export { DAY_ORDER, DAY_LABELS, DAY_FULL };

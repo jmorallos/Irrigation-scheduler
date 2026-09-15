@@ -167,7 +167,7 @@ export default function Dashboard() {
               emptyMessage={`No valves scheduled ${scope.adjective}.`}
             />
             <p className="mt-3 text-[11px] text-black">
-              {`Cycle minutes per valve for ${scope.short} only.`}
+              {`Event minutes per valve for ${scope.short} only.`}
             </p>
           </div>
         )}
@@ -207,7 +207,7 @@ export default function Dashboard() {
               emptyMessage={`No programs scheduled ${scope.adjective}.`}
             />
             <p className="mt-3 text-[11px] text-black">
-              {`Total cycle minutes for programs running ${scope.adjective}.`}
+              {`Total event minutes for programs running ${scope.adjective}.`}
             </p>
           </div>
         )}

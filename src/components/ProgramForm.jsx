@@ -127,7 +127,7 @@ export default function ProgramForm({ initial, onSubmit, onCancel, existingNames
             placeholder="e.g. A"
             required
             aria-required="true"
-            className={`w-24 px-3.5 py-2.5 text-sm border rounded-lg outline-none transition-colors font-mono uppercase ${
+            className={`w-24 px-3.5 py-2.5 text-sm border rounded-lg outline-none transition-colors font-mono uppercase placeholder:normal-case ${
               errors.controllerProgram ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-brand-600'
             }`}
           />

@@ -34,7 +34,7 @@ function minuteLabel(value, period, dayPhrase) {
 function metricDisplayValue(item, metric, period, dayPhrase, includeGallons = false) {
   const value = item[metric];
   const isMinutes = metric === 'minutes';
-  const primary = isMinutes ? formatMinutes(value) : `${value} cycle${value !== 1 ? 's' : ''}`;
+  const primary = isMinutes ? formatMinutes(value) : `${value} event${value !== 1 ? 's' : ''}`;
   if (!includeGallons) return primary;
   const gallons = period === 'week' ? item.weekGallons ?? item.gallons : item.gallons;
   const gallonsText = gallonLabel(gallons, period, dayPhrase);
@@ -47,7 +47,7 @@ function metricTooltipValue(item, metric, period, dayPhrase, includeGallons = fa
   const isMinutes = metric === 'minutes';
   const primary = isMinutes
     ? minuteLabel(value, period, dayPhrase)
-    : `${value} cycle${value !== 1 ? 's' : ''} ${dayPhrase}`;
+    : `${value} event${value !== 1 ? 's' : ''} ${dayPhrase}`;
   if (!includeGallons) return primary;
   const gallons = period === 'week' ? item.weekGallons ?? item.gallons : item.gallons;
   const gallonsText = gallonLabel(gallons, period, dayPhrase);
@@ -185,7 +185,7 @@ function WaterMetricChart({ data, emptyMessage, dayPhrase = 'today' }) {
 export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectDay }) {
   const total = data.reduce((sum, item) => sum + item.minutes, 0);
   if (total === 0) {
-    return <ChartEmpty message="No active cycles this week." />;
+    return <ChartEmpty message="No active events this week." />;
   }
 
   const max = maxValue(data, 'minutes');

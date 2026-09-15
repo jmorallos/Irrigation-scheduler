@@ -7,8 +7,8 @@ export function withCycleNumbers(schedules) {
 }
 
 export function formatCycleLabel(cycle) {
-  if (!cycle || cycle <= 1) return "Cycle 1";
-  return `Cycle ${cycle}`;
+  if (!cycle || cycle <= 1) return 'Event 1';
+  return `Event ${cycle}`;
 }
 
 export function parseZoneName(name) {

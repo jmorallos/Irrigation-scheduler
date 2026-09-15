@@ -18,7 +18,7 @@ export function overviewSectionTitle(possessive = "Today's") {
 /** Overview tiles — values are for the selected day only. */
 export const SUMMARY_OVERVIEW_COLUMNS = [
   { key: 'total', label: 'Programs' },
-  { key: 'active', label: 'Active cycles' },
+  { key: 'active', label: 'Active events' },
   { key: 'zones', label: 'Valves' },
   { key: 'minutes', label: 'Minutes' },
   { key: 'water', label: 'Total water' },

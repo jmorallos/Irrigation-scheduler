@@ -26,13 +26,13 @@ function SaveSummary({ save }) {
   if (save.type === 'program') {
     const zones = save.summary?.zones ?? 0;
     const cycles = save.summary?.cycles ?? 0;
-    return `${zones} valve${zones !== 1 ? 's' : ''} · ${cycles} cycle${cycles !== 1 ? 's' : ''}`;
+    return `${zones} valve${zones !== 1 ? 's' : ''} · ${cycles} event${cycles !== 1 ? 's' : ''}`;
   }
   const cycles = save.summary?.cycles ?? 0;
   const from = save.summary?.programName;
   return from
-    ? `${cycles} cycle${cycles !== 1 ? 's' : ''} · from ${from}`
-    : `${cycles} cycle${cycles !== 1 ? 's' : ''}`;
+    ? `${cycles} event${cycles !== 1 ? 's' : ''} · from ${from}`
+    : `${cycles} event${cycles !== 1 ? 's' : ''}`;
 }
 
 export default function Saves() {
@@ -106,7 +106,7 @@ export default function Saves() {
           <EmptyState
             icon={Bookmark}
             title="No saves yet"
-            description="Use Save on a program or valve to keep a copy, including valves, cycles, and photos."
+            description="Use Save on a program or valve to keep a copy, including valves, events, and photos."
           />
         </div>
       ) : (

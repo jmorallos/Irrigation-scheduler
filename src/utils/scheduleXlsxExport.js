@@ -192,7 +192,7 @@ function buildScheduleSheet(workbook, rows) {
 
 function buildRuntimeSheet(workbook, zoneRows, lastDataRow) {
   const sheet = workbook.addWorksheet(RUNTIME_SHEET);
-  const headers = ['Program', 'Program Name', 'Valve #', 'Valve Name', 'ValveKey', 'Days', 'Cycles', 'Daily min', 'Weekly min', 'Soak (hrs)'];
+  const headers = ['Program', 'Program Name', 'Valve #', 'Valve Name', 'ValveKey', 'Days', 'Events', 'Daily min', 'Weekly min', 'Soak (hrs)'];
   applyHeaderRow(sheet.addRow(headers));
 
   const vRange = scheduleRange(SC.valveKey, 2, lastDataRow);

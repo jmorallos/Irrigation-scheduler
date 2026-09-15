@@ -33,7 +33,7 @@ function ProgramScheduleSummary({ summary }) {
   return (
     <div className="mt-1.5 space-y-0.5 text-sm text-black">
       <SummaryLine label="Days" value={summary.daysLabel} />
-      <SummaryLine label="Cycles" value={summary.cyclesLabel} wrap />
+      <SummaryLine label="Events" value={summary.cyclesLabel} wrap />
       <SummaryLine label="Valves" value={summary.valvesLabel} />
       <SummaryLine label="Start" value={summary.startLabel} />
       <SummaryLine label="End" value={summary.endLabel} />
@@ -137,7 +137,7 @@ export default function Programs() {
 
           {savedNotice && (
             <div className="mb-4 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-              {`Saved "${savedNotice}" with its valves and cycles.`}
+              {`Saved "${savedNotice}" with its valves and events.`}
             </div>
           )}
 

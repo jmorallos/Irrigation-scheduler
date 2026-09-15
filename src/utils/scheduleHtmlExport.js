@@ -35,7 +35,7 @@ function renderOverview(summary) {
   const stats = [
     ['Programs', summary.programCount],
     ['Valves', summary.zoneCount],
-    ['Cycles', summary.cycleCount],
+    ['Events', summary.cycleCount],
     ['Daily minutes', summary.dailyMinutes],
     ['Weekly minutes', summary.weekMinutes],
   ];
@@ -139,7 +139,7 @@ function renderZoneRuntime(zoneRows) {
 
   return `<section>
     <h2>Runtime by valve</h2>
-    <p class="note">Daily minutes are the cycle total on a watering day. Weekly minutes multiply each cycle by the days it runs.</p>
+    <p class="note">Daily minutes are the event total on a watering day. Weekly minutes multiply each event by the days it runs.</p>
     <table>
       <thead>
         <tr>
@@ -147,7 +147,7 @@ function renderZoneRuntime(zoneRows) {
           <th>Valve #</th>
           <th>Valve Name</th>
           <th>Days</th>
-          <th>Cycles</th>
+          <th>Events</th>
           <th>Daily min</th>
           <th>Weekly min</th>
           <th>Soak (hrs)</th>
@@ -343,7 +343,7 @@ export function buildScheduleHtml(rowsOrData, options = {}) {
 </head>
 <body>
   <h1>Irrigation Schedule</h1>
-  <p class="meta">${escapeHtml(dateLabel)} · ${count} cycle${count === 1 ? '' : 's'} · printable sheet (not a restore backup)</p>
+  <p class="meta">${escapeHtml(dateLabel)} · ${count} event${count === 1 ? '' : 's'} · printable sheet (not a restore backup)</p>
   <div class="keep">
     ${renderOverview(summary)}
   </div>

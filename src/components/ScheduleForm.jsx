@@ -269,7 +269,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
             maxLength={200}
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder="e.g. 2nd cycle – soak"
+            placeholder="e.g. 2nd event – soak"
             className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none resize-none transition-colors ${errors.notes ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
           />
           {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes}</p>}
@@ -299,7 +299,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
           Cancel
         </button>
         <button type="submit" disabled={saving || hasConflict} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
-          {saving ? 'Saving…' : initial?.id ? 'Save Cycle' : 'Add Cycle'}
+          {saving ? 'Saving…' : initial?.id ? 'Save Event' : 'Add Event'}
         </button>
       </div>
     </form>

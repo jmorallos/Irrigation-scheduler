@@ -26,7 +26,7 @@ export function formatCycleListItem(index, startTime, durationMinutes) {
 export function formatWeekdaysHyphen(days = []) {
   const ordered = DAY_ORDER.filter(day => days.includes(day));
   if (ordered.length === 0) return '—';
-  return ordered.map(day => DAY_LABELS[day]).join(' - ');
+  return ordered.map(day => DAY_LABELS[day]).join(', ');
 }
 
 function unionWeekdays(schedules) {

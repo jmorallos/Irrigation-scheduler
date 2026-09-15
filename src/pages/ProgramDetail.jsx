@@ -71,7 +71,7 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
   };
 
   const zoneMenuItems = [
-    { label: 'Add cycle', icon: Plus, onClick: () => setAddSched(true) },
+    { label: 'Add event', icon: Plus, onClick: () => setAddSched(true) },
     { label: 'Edit valve', icon: Pencil, onClick: onEditZone },
     { label: 'Save valve', icon: Bookmark, onClick: onSaveZone },
     { label: zone.status === 'active' ? 'Deactivate valve' : 'Activate valve', icon: Power, onClick: onToggleZone },
@@ -91,7 +91,7 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
   const modals = (
     <>
       {addSched && (
-        <Modal title="Add Cycle" onClose={() => setAddSched(false)}>
+        <Modal title="Add Event" onClose={() => setAddSched(false)}>
           <ScheduleForm
             programId={program.id}
             programName={program.name}
@@ -102,7 +102,7 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
         </Modal>
       )}
       {editSched && (
-        <Modal title="Edit Cycle" onClose={() => setEditSched(null)}>
+        <Modal title="Edit Event" onClose={() => setEditSched(null)}>
           <ScheduleForm
             initial={editSched}
             programId={program.id}
@@ -115,8 +115,8 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
       )}
       {deleteSched && (
         <ConfirmDialog
-          title="Delete cycle?"
-          message="This will permanently remove this watering cycle."
+          title="Delete event?"
+          message="This will permanently remove this watering event."
           confirmLabel="Delete"
           onConfirm={async () => { await deleteSchedule(deleteSched.id); setDeleteSched(null); }}
           onCancel={() => setDeleteSched(null)}
@@ -163,7 +163,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
           <div className="min-w-0 flex-1 flex flex-col justify-center">
             <p className="text-base font-semibold text-navy-900 leading-snug">{getZoneDisplayName(zone, programName)}</p>
             <p className="text-sm text-black mt-0.5">
-              {schedules.length} cycle{schedules.length !== 1 ? 's' : ''}
+              {schedules.length} event{schedules.length !== 1 ? 's' : ''}
             </p>
             {formatLastWater(zone) && (
               <p className="text-sm text-black mt-0.5">Last: {formatLastWater(zone)}</p>
@@ -199,7 +199,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
         <div className="min-h-0 overflow-hidden" inert={!open} aria-hidden={!open}>
           {schedules.length === 0 ? (
             <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-black`}>
-              No cycles.{' '}
+              No events.{' '}
               <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                 Add one
               </button>
@@ -280,7 +280,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
                 </div>
               </td>
               <td colSpan={6} className="px-4 py-3 text-sm text-black">
-                No cycles.{' '}
+                No events.{' '}
                 <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
                   Add one
                 </button>
@@ -503,7 +503,7 @@ export default function ProgramDetail() {
                   type="button"
                   onClick={async () => {
                     await saveProgram(program.id);
-                    showSaved(`Saved "${program.name}" with its valves and cycles.`);
+                    showSaved(`Saved "${program.name}" with its valves and events.`);
                   }}
                   className="p-2 rounded-lg text-black hover:text-brand-600 hover:bg-blue-50 transition-colors"
                   title="Save program"
@@ -651,7 +651,7 @@ export default function ProgramDetail() {
                 onToggleZone={() => toggleZone(zone.id, zone.status)}
                 onSaveZone={async () => {
                   await saveZone(zone.id);
-                  showSaved(`Saved "${zone.name}" with its cycles.`);
+                  showSaved(`Saved "${zone.name}" with its events.`);
                 }}
               />
             ))}
@@ -663,7 +663,7 @@ export default function ProgramDetail() {
               <thead>
                 <tr className="text-white">
                   <th onClick={() => cycle('zone')} className={TH_DETAIL}>Valve</th>
-                  <th onClick={() => cycle('cycle')} className={TH_DETAIL}>Cycle</th>
+                  <th onClick={() => cycle('cycle')} className={TH_DETAIL}>Event</th>
                   <th onClick={() => cycle('start')} className={TH_DETAIL}>Start</th>
                   <th onClick={() => cycle('end')} className={TH_DETAIL}>End</th>
                   <th onClick={() => cycle('duration')} className={TH_DETAIL}>Duration</th>
@@ -686,7 +686,7 @@ export default function ProgramDetail() {
                     cellClass={cellClass}
                     onSaveZone={async () => {
                       await saveZone(zone.id);
-                      showSaved(`Saved "${zone.name}" with its cycles.`);
+                      showSaved(`Saved "${zone.name}" with its events.`);
                     }}
                   />
                 ))}
@@ -752,7 +752,7 @@ export default function ProgramDetail() {
       {deleteZone && (
         <ConfirmDialog
           title={`Remove "${getZoneDisplayName(deleteZone, program.name)}"?`}
-          message="This removes the valve from this program and deletes its cycles here. The catalog valve stays on the Valves page."
+          message="This removes the valve from this program and deletes its events here. The catalog valve stays on the Valves page."
           confirmLabel="Remove from Program"
           onConfirm={async () => { await removeZone(deleteZone.id); setDeleteZone(null); }}
           onCancel={() => setDeleteZone(null)}

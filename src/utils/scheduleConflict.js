@@ -109,7 +109,7 @@ export function defaultStartForNewCycle({
 
 /**
  * Free start times for a given duration/days, packed after busy windows.
- * Clickable suggestions for the Add Cycle form.
+ * Clickable suggestions for the Add Event form.
  */
 export function listAvailableStarts({
   durationMinutes = 15,

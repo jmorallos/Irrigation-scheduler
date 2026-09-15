@@ -8,8 +8,8 @@ import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { programHasValve } from '../src/utils/valveRecords.js';
-import { getDateForDayKey, dayScopeLabel, formatDayHeading, startOfWeekMonday, addWeeks, formatWeekRange, formatDayDateNumber, isSameCalendarDay, isSameWeekMonday } from '../src/utils/dateUtils.js';
-import { formatValveSubtitle } from '../src/utils/scheduleUtils.js';
+import { getDateForDayKey, dayScopeLabel, formatDayHeading, startOfWeekMonday, addWeeks, formatWeekRange, formatDayDateNumber, isSameCalendarDay, isSameWeekMonday, formatDays } from '../src/utils/dateUtils.js';
+import { formatValveSubtitle, formatCycleLabel } from '../src/utils/scheduleUtils.js';
 import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
 import ExcelJS from 'exceljs';
 import { buildScheduleWorkbookForTest } from '../src/utils/scheduleXlsxExport.js';
@@ -194,7 +194,7 @@ const conflict = findScheduleConflict({
   status: 'active',
 }, existing);
 const message = conflictMessage(conflict, 'Courts', '06:15');
-assert(message.includes('Cycle 1'), 'banner names the other cycle');
+assert(message.includes('Event 1'), 'banner names the other event');
 assert(message.includes('Valve 5'), 'banner names the other valve');
 assert(message.includes('Courts'), 'banner names the other program');
 assert(message.includes('Next available: 6:15 AM'), 'banner includes next available');
@@ -293,6 +293,9 @@ assert(
   formatValveSubtitle({ zone_number: 3, name: 'Valve 3 · Lauris Nobilis' }) === 'Valve 3 - Lauris Nobilis',
   'summary valve subtitle uses hyphen',
 );
+assert(formatDays(['sat', 'mon', 'wed']) === 'Mon, Wed, Sat', 'days of week use commas');
+assert(formatCycleLabel(1) === 'Event 1', 'event 1 label');
+assert(formatCycleLabel(2) === 'Event 2', 'event 2 label');
 
 console.log('Water usage');
 assert(normalizeGph('') === null, 'empty GPH is null');
@@ -825,8 +828,8 @@ assert(
   'overview includes total water tile',
 );
 assert(
-  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'active' && col.label === 'Active cycles'),
-  'overview active cycles label',
+  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'active' && col.label === 'Active events'),
+  'overview active events label',
 );
 assert(SUMMARY_OVERVIEW_COLUMNS.length === 5, 'overview has five tiles');
 assert(
@@ -900,7 +903,7 @@ console.log('Programs list summary');
 assert(formatCycleWindow('04:00', 105) === '4:00-5:45 AM', 'cycle window compact same period');
 assert(formatCycleWindow('08:30', 60) === '8:30-9:30 AM', 'cycle window hour later');
 assert(formatCycleListItem(0, '04:00', 105) === '1 - 4:00-5:45 AM', 'cycle item numbered from 1');
-assert(formatWeekdaysHyphen(['sat', 'mon', 'wed', 'fri']) === 'Mon - Wed - Fri - Sat', 'weekdays hyphen ordered');
+assert(formatWeekdaysHyphen(['sat', 'mon', 'wed', 'fri']) === 'Mon, Wed, Fri, Sat', 'weekdays comma ordered');
 assert(formatWeekdaysHyphen([]) === '—', 'empty weekdays dash');
 const listProgram = { id: 'p1', watering_mode: WATERING_MODE_WEEKDAY };
 const listValves = [
@@ -921,7 +924,7 @@ const weekdaySummary = buildProgramListSummary(listProgram, {
   valves: listValves,
   schedules: listSchedules,
 });
-assert(weekdaySummary.daysLabel === 'Mon - Wed - Fri - Sat', 'weekday summary days');
+assert(weekdaySummary.daysLabel === 'Mon, Wed, Fri, Sat', 'weekday summary days');
 assert(
   weekdaySummary.cyclesLabel === '1 - 4:00-5:45 AM, 2 - 10:00-10:45 AM',
   'cycles comma-separated in start order',

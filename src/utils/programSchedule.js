@@ -211,7 +211,7 @@ export function formatIntervalSummary(program) {
 export function formatNeverOnSummary(program) {
   const schedule = normalizeProgramSchedule(program);
   if (schedule.never_on_days.length === 0) return 'None';
-  return schedule.never_on_days.map(day => DAY_LABELS[day]).join(' · ');
+  return schedule.never_on_days.map(day => DAY_LABELS[day]).join(', ');
 }
 
 export function formatProgramDateRange(program) {
