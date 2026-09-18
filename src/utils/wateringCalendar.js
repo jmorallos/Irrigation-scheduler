@@ -3,6 +3,7 @@ import { normalizeLastWaterRecord } from './lastWater';
 import {
   normalizeProgramSchedule,
   isIntervalWateringDay,
+  isWeekdayWateringDay,
   effectiveIntervalDate,
   addDays,
   startOfDay,
@@ -10,7 +11,6 @@ import {
   formatDisplayDate,
   daysBetween,
   slideIntervalDate,
-  getDayKeyFromDate,
   WATERING_MODE_INTERVAL,
 } from './programSchedule';
 
@@ -34,8 +34,7 @@ export function scheduleRunsOnDate(program, schedule, date) {
   if (isIntervalProgram(program)) {
     return isIntervalWateringDay(program, date);
   }
-  const dayKey = getDayKeyFromDate(startOfDay(date));
-  return (schedule.days_of_week ?? []).includes(dayKey);
+  return isWeekdayWateringDay(program, date, schedule.days_of_week);
 }
 
 /** Weekday keys (Mon–Sun) when this program waters in the current week. */
@@ -122,11 +121,63 @@ export function findNextWeekdayWaterDate(program, schedules, valve, fromDate = n
     if (afterLast > searchFrom) searchFrom = afterLast;
   }
 
-  for (let offset = 0; offset < 14; offset += 1) {
+  const { program_start_date, program_end_date } = normalizeProgramSchedule(program);
+  if (program_start_date) {
+    const start = parseDateOnlyToLocalDate(program_start_date);
+    if (searchFrom < start) searchFrom = start;
+  }
+  const end = program_end_date ? parseDateOnlyToLocalDate(program_end_date) : null;
+
+  for (let offset = 0; offset < 21; offset += 1) {
     const date = addDays(searchFrom, offset);
-    const dayKey = getDayKeyFromDate(date);
-    const hasRun = active.some(schedule => (schedule.days_of_week ?? []).includes(dayKey));
+    if (end && date > end) return null;
+    const hasRun = active.some(schedule => scheduleRunsOnDate(program, schedule, date));
     if (hasRun) return date;
+  }
+  return null;
+}
+
+function combineDateAndTime(date, time) {
+  const [hoursRaw, minutesRaw] = String(time ?? '').split(':');
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+    next.setHours(hours, minutes, 0, 0);
+  }
+  return next;
+}
+
+/** Most recent program event that has already started (not valve last-water fields). */
+export function computeLastWater(program, schedules, fromDate = new Date()) {
+  const active = (schedules ?? [])
+    .filter(schedule => (schedule.status ?? 'active') === 'active' && schedule.start_time)
+    .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)));
+  if (active.length === 0) return null;
+
+  const from = fromDate instanceof Date ? fromDate : new Date(fromDate);
+  const fromDay = startOfDay(from);
+  const lookback = isIntervalProgram(program) ? 400 : 28;
+  const { program_start_date } = normalizeProgramSchedule(program);
+  const start = program_start_date ? parseDateOnlyToLocalDate(program_start_date) : null;
+
+  for (let offset = 0; offset <= lookback; offset += 1) {
+    const date = addDays(fromDay, -offset);
+    if (start && date < start) break;
+
+    const dayEvents = active.filter(schedule => scheduleRunsOnDate(program, schedule, date));
+    if (dayEvents.length === 0) continue;
+
+    for (let index = dayEvents.length - 1; index >= 0; index -= 1) {
+      const event = dayEvents[index];
+      if (combineDateAndTime(date, event.start_time) > from) continue;
+      const duration = Number(event.duration_minutes);
+      return {
+        date: formatDateOnly(date),
+        startTime: event.start_time,
+        durationMinutes: Number.isFinite(duration) ? duration : null,
+      };
+    }
   }
   return null;
 }

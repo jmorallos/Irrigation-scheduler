@@ -1,6 +1,6 @@
 import { normalizeLastWaterRecord } from './lastWater';
-import { parseDateOnly } from './programSchedule';
-import { computeNextWater } from './wateringCalendar';
+import { parseDateOnly, programScheduleEventTemplates } from './programSchedule';
+import { computeLastWater, computeNextWater } from './wateringCalendar';
 
 function parseDateOnlyToLocalDate(value) {
   const [year, month, day] = value.split('-').map(Number);
@@ -58,6 +58,44 @@ function compareNextRun(a, b) {
   const byDate = String(a.date).localeCompare(String(b.date));
   if (byDate !== 0) return byDate;
   return String(a.startTime ?? '').localeCompare(String(b.startTime ?? ''));
+}
+
+function eventsFromProgram(program, membershipSchedules) {
+  const templates = programScheduleEventTemplates(program);
+  if (templates.length > 0) {
+    return templates.map(template => ({
+      status: 'active',
+      start_time: template.start_time,
+      duration_minutes: template.duration_minutes,
+      days_of_week: template.days_of_week,
+    }));
+  }
+  return membershipSchedules;
+}
+
+/** Latest past program event across every program this valve belongs to. */
+export function computeLatestLastWater({
+  memberships = [],
+  programsById,
+  schedulesByMembershipId,
+  fromDate = new Date(),
+} = {}) {
+  if (!programsById || !schedulesByMembershipId) return null;
+  const candidates = [];
+  for (const membership of memberships) {
+    if (membership.status && membership.status !== 'active') continue;
+    const program = programsById.get(membership.program_id);
+    if (!program || program.status === 'inactive') continue;
+    const last = computeLastWater(
+      program,
+      eventsFromProgram(program, schedulesByMembershipId.get(membership.id) ?? []),
+      fromDate,
+    );
+    if (last) candidates.push(last);
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => -compareNextRun(a, b));
+  return candidates[0];
 }
 
 /** Earliest upcoming run across every program this valve belongs to. */

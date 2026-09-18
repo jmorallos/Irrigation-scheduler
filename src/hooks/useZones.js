@@ -3,17 +3,26 @@ import { valvesRepository } from '../db/valvesRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { mediaRepository } from '../db/mediaRepository';
+import { programsRepository } from '../db/programsRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { normalizeGph } from '../utils/waterUsage';
-import { normalizeLastWaterRecord } from '../utils/lastWater';
 import {
   isValveNumberTaken,
   valveNumberConflictMessage,
 } from '../utils/zoneIdentity';
 import { hydrateZones } from '../utils/valveRecords';
+import { programScheduleEventTemplates } from '../utils/programSchedule';
+
+function omitLastWaterFromCatalog(data) {
+  const rest = { ...data };
+  delete rest.last_water_date;
+  delete rest.last_water_time;
+  delete rest.last_water_duration_minutes;
+  return rest;
+}
 
 export async function updateValveCatalog(valveId, data) {
-  const { profileImageChange, ...valveData } = data;
+  const { profileImageChange, ...valveData } = omitLastWaterFromCatalog(data);
   const existing = await valvesRepository.getById(valveId);
   if (!existing) throw new Error('Valve not found.');
 
@@ -33,13 +42,12 @@ export async function updateValveCatalog(valveId, data) {
   return valvesRepository.update(valveId, {
     ...valveData,
     gph: normalizeGph(valveData.gph),
-    ...normalizeLastWaterRecord(valveData),
     profile_image_id: imageId,
   });
 }
 
 export async function createValveCatalog(data) {
-  const { profileImageChange, status: _status, ...valveData } = data;
+  const { profileImageChange, status: _status, ...valveData } = omitLastWaterFromCatalog(data);
   const allValves = await valvesRepository.getAll();
   if (isValveNumberTaken(allValves, valveData.zone_number)) {
     throw new Error(valveNumberConflictMessage(valveData.zone_number));
@@ -48,7 +56,6 @@ export async function createValveCatalog(data) {
   const valve = await valvesRepository.create({
     ...valveData,
     gph: normalizeGph(valveData.gph),
-    ...normalizeLastWaterRecord(valveData),
     profile_image_id: null,
   });
   const imageId = await applyProfileImageChange('valve', valve.id, profileImageChange, null);
@@ -75,11 +82,17 @@ export async function attachValveToProgram(valveId, programId) {
   if (existing.some(membership => membership.valve_id === valveId)) {
     throw new Error('This valve is already in the program.');
   }
-  return zonesRepository.create({
+  const membership = await zonesRepository.create({
     program_id: programId,
     valve_id: valveId,
     status: 'active',
   });
+  const program = await programsRepository.getById(programId);
+  const templates = programScheduleEventTemplates(program);
+  if (templates.length > 0) {
+    await schedulesRepository.replaceZoneSchedulesFromTemplates(membership.id, templates);
+  }
+  return membership;
 }
 
 async function loadHydratedProgramZones(programId) {

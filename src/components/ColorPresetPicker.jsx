@@ -18,7 +18,7 @@ function presetHex(id) {
   return COLOR_PRESETS.find(preset => preset.id === id)?.swatch ?? DEFAULT_CUSTOM;
 }
 
-export default function ColorPresetPicker({ value, onChange, label = 'Color' }) {
+export default function ColorPresetPicker({ value, onChange, label = 'Color', required = false }) {
   const customSelected = isHexColor(value);
   const [pickerOpen, setPickerOpen] = useState(customSelected);
   const pickerValue = customSelected ? value : presetHex(value);
@@ -30,7 +30,10 @@ export default function ColorPresetPicker({ value, onChange, label = 'Color' }) 
 
   return (
     <div>
-      <span className="block text-sm font-medium text-black mb-1.5">{label}</span>
+      <span className="block text-sm font-medium text-black mb-1.5">
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </span>
       <div
         className="grid"
         style={{

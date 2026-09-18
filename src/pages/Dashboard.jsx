@@ -6,7 +6,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
-import { ProgramTodayMinutesChart, MinutesByDayChart, ProgramWeekMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
+import { ProgramTodayMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
@@ -15,13 +15,20 @@ import { formatCycleLabel, formatValveSubtitle } from '../utils/scheduleUtils';
 import { getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
 import { useSelectedDay } from '../context/SelectedDayContext';
-import { SUMMARY_SECTION_TITLES, SUMMARY_OVERVIEW_COLUMNS, buildTodayOverviewStats, overviewSectionTitle } from '../utils/summaryLabels';
+import {
+  SUMMARY_SECTION_TITLES,
+  SUMMARY_OVERVIEW_COLUMNS,
+  buildTodayOverviewStats,
+  overviewSectionTitle,
+  summaryHeaderDate,
+  datedSummaryTitle,
+  summaryWeekNavLabel,
+} from '../utils/summaryLabels';
 import WeekNav from '../components/WeekNav';
 
 export default function Dashboard() {
   const {
     selectedDay,
-    setSelectedDay,
     weekStart,
     shiftWeek,
     goToCurrentWeek,
@@ -31,6 +38,7 @@ export default function Dashboard() {
     viewingCurrentWeek,
   } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
+  const headerDate = summaryHeaderDate(selectedDay, weekStart);
   const [chartData, setChartData] = useState({
     minutesByDay: [],
     byProgramToday: [],
@@ -87,10 +95,14 @@ export default function Dashboard() {
   }`;
   const irrigationDayGallons = chartData.dayGallonsTotal
     ?? sumGallons(items.map(item => gallonsForRun(item.zone.gph, item.schedule.duration_minutes)));
-  const programWaterData = chartData.byProgramToday.map(item => ({
-    ...item,
-    weekGallons: chartData.byProgramWeek.find(row => row.id === item.id)?.gallons ?? null,
-  }));
+  const programTodayWithWeek = chartData.byProgramToday.map(item => {
+    const weekRow = chartData.byProgramWeek.find(row => row.id === item.id);
+    return {
+      ...item,
+      weekGallons: weekRow?.gallons ?? null,
+      weekMinutes: weekRow?.minutes ?? null,
+    };
+  });
   const overviewStats = buildTodayOverviewStats({
     byProgramToday: chartData.byProgramToday,
     zoneTotals: chartData.zoneTotals,
@@ -121,41 +133,18 @@ export default function Dashboard() {
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3.5 bg-navy-900">
           <WeekNav
-            label={`${SUMMARY_SECTION_TITLES.week} · ${weekRangeLabel}`}
+            label={summaryWeekNavLabel(headerDate, weekRangeLabel)}
             onPrev={() => shiftWeek(-1)}
             onNext={() => shiftWeek(1)}
             onToday={goToCurrentWeek}
             showToday={!viewingCurrentWeek || !isClockToday}
           />
         </div>
-        {chartsLoading ? (
-          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
-        ) : (
-          <div className="grid min-w-0 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            <div className="min-w-0 p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
-                Minutes by Day
-              </h3>
-              <MinutesByDayChart
-                data={chartData.minutesByDay}
-                selectedDay={selectedDay}
-                todayKeyInView={todayKeyInView}
-                onSelectDay={setSelectedDay}
-              />
-            </div>
-            <div className="min-w-0 p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
-                Minutes by Week
-              </h3>
-              <ProgramWeekMinutesChart data={chartData.byProgramWeek} />
-            </div>
-          </div>
-        )}
       </div>
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.valves}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{datedSummaryTitle(SUMMARY_SECTION_TITLES.valves, headerDate)}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -175,7 +164,7 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.valveWater}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{datedSummaryTitle(SUMMARY_SECTION_TITLES.valveWater, headerDate)}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
@@ -195,14 +184,14 @@ export default function Dashboard() {
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
-          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{SUMMARY_SECTION_TITLES.programTime}</h2>
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">{datedSummaryTitle(SUMMARY_SECTION_TITLES.programTime, headerDate)}</h2>
         </div>
         {chartsLoading ? (
           <div className="p-8 text-center text-sm text-black">Loading charts…</div>
         ) : (
           <div className="p-5">
             <ProgramTodayMinutesChart
-              data={chartData.byProgramToday}
+              data={programTodayWithWeek}
               dayPhrase={scope.adjective}
               emptyMessage={`No programs scheduled ${scope.adjective}.`}
             />
@@ -222,7 +211,7 @@ export default function Dashboard() {
         ) : (
           <div className="p-5">
             <ProgramWaterChart
-              data={programWaterData}
+              data={programTodayWithWeek}
               dayPhrase={scope.adjective}
               emptyMessage={`No water estimates for programs running ${scope.adjective}. Set Emitter Total G.P.H. on valves.`}
             />

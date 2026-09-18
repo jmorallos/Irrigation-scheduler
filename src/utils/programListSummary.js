@@ -1,11 +1,15 @@
-import { DAY_ORDER, DAY_LABELS, formatTime, getEndTime, endsNextDay } from './dateUtils';
+import { DAY_ORDER, endsNextDay, formatDays, formatTime, getEndTime } from './dateUtils';
+import { formatMinutes } from './formatMinutes';
+import { formatLastWater } from './lastWater';
 import {
   formatIntervalSummary,
   formatProgramDateRange,
   WATERING_MODE_INTERVAL,
 } from './programSchedule';
+import { gallonsForRun, formatGallons, sumGallons } from './waterUsage';
+import { computeLastWater, computeNextWater, formatNextWater } from './wateringCalendar';
 
-/** Compact cycle window: `4:30-5:00 AM`. */
+/** Compact event window: `4:30-5:00 AM`. */
 export function formatCycleWindow(startTime, durationMinutes) {
   if (!startTime) return '—';
   const start = formatTime(startTime);
@@ -19,14 +23,21 @@ export function formatCycleWindow(startTime, durationMinutes) {
   return `${start}-${end}${suffix}`;
 }
 
+/** Time range plus minutes: `4:00-5:45 AM, 105 min`. */
+export function formatValveWindow(startTime, durationMinutes) {
+  const minutes = Number(durationMinutes);
+  const minutesLabel = Number.isFinite(minutes) ? `${Math.round(minutes)} min` : '—';
+  return `${formatCycleWindow(startTime, durationMinutes)}, ${minutesLabel}`;
+}
+
 export function formatCycleListItem(index, startTime, durationMinutes) {
-  return `${index + 1} - ${formatCycleWindow(startTime, durationMinutes)}`;
+  return `Event ${index + 1} - ${formatCycleWindow(startTime, durationMinutes)}`;
 }
 
 export function formatWeekdaysHyphen(days = []) {
   const ordered = DAY_ORDER.filter(day => days.includes(day));
   if (ordered.length === 0) return '—';
-  return ordered.map(day => DAY_LABELS[day]).join(', ');
+  return formatDays(ordered);
 }
 
 function unionWeekdays(schedules) {
@@ -42,14 +53,101 @@ function valveNumberFor(membership, valveById) {
   return valve?.zone_number ?? 999;
 }
 
+function minutesLabelFor(program, activeSchedules) {
+  const fromProgram = Number(program?.duration_minutes);
+  if (Number.isFinite(fromProgram) && fromProgram >= 1) {
+    return formatMinutes(Math.round(fromProgram));
+  }
+  const fallback = Number(activeSchedules[0]?.duration_minutes);
+  if (Number.isFinite(fallback) && fallback >= 1) {
+    return formatMinutes(Math.round(fallback));
+  }
+  return '—';
+}
+
+function lastWaterLabelFor(program, activeSchedules, fromDate) {
+  const last = computeLastWater(program, activeSchedules, fromDate);
+  if (!last) return '—';
+  return formatLastWater({
+    last_water_date: last.date,
+    last_water_time: last.startTime,
+    last_water_duration_minutes: last.durationMinutes,
+  }) ?? '—';
+}
+
+function nextWaterLabelFor(program, programMemberships, valveById, schedules, fromDate) {
+  let bestKey = null;
+  let bestLabel = null;
+  for (const membership of programMemberships) {
+    const valve = valveById.get(membership.valve_id);
+    if (!valve) continue;
+    const membershipSchedules = schedules.filter(
+      schedule => schedule.zone_id === membership.id && schedule.status === 'active',
+    );
+    const next = computeNextWater(valve, program, membershipSchedules, fromDate);
+    if (!next) continue;
+    const key = `${next.date}T${next.startTime ?? ''}`;
+    if (bestKey == null || key < bestKey) {
+      bestKey = key;
+      bestLabel = formatNextWater(valve, program, membershipSchedules, fromDate);
+    }
+  }
+  return bestLabel ?? '—';
+}
+
+function valveWindowsFor(programMemberships, valveById, activeSchedules) {
+  const byMembership = new Map();
+  for (const membership of programMemberships) {
+    const valve = valveById.get(membership.valve_id);
+    const valveNumber = valve?.zone_number;
+    if (valveNumber == null) continue;
+    byMembership.set(membership.id, { valveNumber, schedules: [] });
+  }
+  for (const schedule of activeSchedules) {
+    const group = byMembership.get(schedule.zone_id);
+    if (group) group.schedules.push(schedule);
+  }
+  return [...byMembership.values()]
+    .filter(group => group.schedules.length > 0)
+    .sort((a, b) => a.valveNumber - b.valveNumber)
+    .map(group => {
+      const windows = group.schedules
+        .slice()
+        .sort((a, b) => String(a.start_time ?? '').localeCompare(String(b.start_time ?? '')))
+        .map(schedule => formatValveWindow(schedule.start_time, schedule.duration_minutes));
+      return {
+        valveNumber: group.valveNumber,
+        label: windows.join('; '),
+      };
+    });
+}
+
+function progTotalLabelFor(activeSchedules, membershipById, valveById) {
+  let totalMinutes = 0;
+  const gallons = [];
+  for (const schedule of activeSchedules) {
+    const minutes = Number(schedule.duration_minutes) || 0;
+    totalMinutes += minutes;
+    const membership = membershipById.get(schedule.zone_id);
+    const valve = membership ? valveById.get(membership.valve_id) : null;
+    gallons.push(gallonsForRun(valve?.gph, minutes));
+  }
+  if (totalMinutes <= 0) return '—';
+  if (gallons.length > 0 && gallons.every(value => value != null)) {
+    return formatGallons(sumGallons(gallons)) ?? '—';
+  }
+  return formatMinutes(totalMinutes);
+}
+
 /**
  * Schedule summary for one Programs-list row.
- * Cycles are numbered in start-time order and joined with commas.
+ * Valve windows are grouped by valve number (time range + minutes).
  */
 export function buildProgramListSummary(program, {
   memberships = [],
   valves = [],
   schedules = [],
+  fromDate = new Date(),
 } = {}) {
   const valveById = new Map(valves.map(valve => [valve.id, valve]));
   const programMemberships = memberships.filter(membership => membership.program_id === program.id);
@@ -72,15 +170,15 @@ export function buildProgramListSummary(program, {
     return valveNumberFor(membershipA ?? {}, valveById) - valveNumberFor(membershipB ?? {}, valveById);
   });
 
-  const cyclesLabel = sortedSchedules.length === 0
+  const valveWindows = valveWindowsFor(programMemberships, valveById, sortedSchedules);
+  const valveWindowsLabel = valveWindows.length === 0
     ? '—'
-    : sortedSchedules
-      .map((schedule, index) => formatCycleListItem(index, schedule.start_time, schedule.duration_minutes))
-      .join(', ');
+    : valveWindows.map(window => `${window.valveNumber}: ${window.label}`).join(', ');
 
   const interval = formatIntervalSummary(program);
+  const weekdayKeys = unionWeekdays(sortedSchedules);
   const daysLabel = interval
-    ?? formatWeekdaysHyphen(unionWeekdays(sortedSchedules));
+    ?? formatWeekdaysHyphen(weekdayKeys.length > 0 ? weekdayKeys : (program.days_of_week ?? []));
 
   const range = formatProgramDateRange(program);
   const valvesLabel = memberValves.length === 0
@@ -88,12 +186,17 @@ export function buildProgramListSummary(program, {
     : memberValves.map(valve => valve.zone_number).filter(number => number != null).join(', ');
 
   return {
+    minutesLabel: minutesLabelFor(program, sortedSchedules),
+    lastWaterLabel: lastWaterLabelFor(program, sortedSchedules, fromDate),
+    nextWaterLabel: nextWaterLabelFor(program, programMemberships, valveById, schedules, fromDate),
     daysLabel,
-    cyclesLabel,
+    valveWindows,
+    valveWindowsLabel,
     valvesLabel,
     valveCount: memberValves.length,
     startLabel: range?.start ?? '—',
     endLabel: range?.end ?? 'Never',
+    progTotalLabel: progTotalLabelFor(sortedSchedules, membershipById, valveById),
     isInterval: Boolean(interval) || program?.watering_mode === WATERING_MODE_INTERVAL,
   };
 }

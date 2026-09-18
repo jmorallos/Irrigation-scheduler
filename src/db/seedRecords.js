@@ -22,8 +22,8 @@ export const SEED_RECORDS = [
         last_water_time: "04:30",
         last_water_duration_minutes: 30,
         schedules: [
-          { start_time: "04:30", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "07:30", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "04:30", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st event" },
+          { start_time: "07:30", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd event – soak" },
         ],
       },
       {
@@ -46,8 +46,8 @@ export const SEED_RECORDS = [
         last_water_time: "05:15",
         last_water_duration_minutes: 15,
         schedules: [
-          { start_time: "05:15", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "08:20", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "05:15", duration_minutes: 15, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st event" },
+          { start_time: "08:20", duration_minutes: 30, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd event – soak" },
         ],
       },
     ],
@@ -93,8 +93,8 @@ export const SEED_RECORDS = [
         last_water_time: "04:00",
         last_water_duration_minutes: 60,
         schedules: [
-          { start_time: "04:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "10:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "04:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 1, notes: "1st event" },
+          { start_time: "10:00", duration_minutes: 60, days_of_week: ["mon", "wed", "fri", "sat"], status: "active", cycle: 2, notes: "2nd event – soak" },
         ],
       },
     ],
@@ -102,7 +102,7 @@ export const SEED_RECORDS = [
   {
     controller_program: "D",
     name: "Tangerine",
-    description: "Crossvine (cycle-and-soak)",
+    description: "Crossvine (event-and-soak)",
     watering_mode: "interval",
     interval_days: 3,
     program_start_date: "2026-08-31",
@@ -117,8 +117,8 @@ export const SEED_RECORDS = [
         last_water_time: "08:30",
         last_water_duration_minutes: 30,
         schedules: [
-          { start_time: "08:30", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 1, notes: "1st cycle" },
-          { start_time: "13:00", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 2, notes: "2nd cycle – soak" },
+          { start_time: "08:30", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 1, notes: "1st event" },
+          { start_time: "13:00", duration_minutes: 30, days_of_week: ["tue", "thu", "sat"], status: "active", cycle: 2, notes: "2nd event – soak" },
         ],
       },
     ],

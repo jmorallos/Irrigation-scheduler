@@ -8,7 +8,8 @@ import { hsvToHex, hexToHsv } from '../src/utils/hsvColor.js';
 import { getThemeByColor, contrastBadgeText, relativeLuminance, suggestColorForPrefix, badgeEdgeColor } from '../src/utils/programColors.js';
 import { isValveNumberTaken, nextValveNumber, takenValveNumbers, programsForMemberships } from '../src/utils/zoneIdentity.js';
 import { programHasValve } from '../src/utils/valveRecords.js';
-import { getDateForDayKey, dayScopeLabel, formatDayHeading, startOfWeekMonday, addWeeks, formatWeekRange, formatDayDateNumber, isSameCalendarDay, isSameWeekMonday, formatDays } from '../src/utils/dateUtils.js';
+import { getDateForDayKey, dayScopeLabel, formatDayHeading, startOfWeekMonday, addWeeks, formatWeekRange, formatDayDateNumber, isSameCalendarDay, isSameWeekMonday, formatDays, formatDaysCompact, parseClockTime, parseStartTimes, findStartTimeOverlap, DAY_FULL, DAY_ORDER } from '../src/utils/dateUtils.js';
+import { buildScheduleChartData } from '../src/utils/chartData.js';
 import { formatValveSubtitle, formatCycleLabel } from '../src/utils/scheduleUtils.js';
 import { gallonsForRun, formatGallons, formatRunGallons, normalizeGph, sumGallons, gallonsForWeek, gallonLabel } from '../src/utils/waterUsage.js';
 import ExcelJS from 'exceljs';
@@ -21,10 +22,14 @@ import {
   isWithinProgramDateRange,
   validateProgramScheduleFields,
   programSchedulePayload,
+  programScheduleEventTemplates,
+  planZoneScheduleUpsert,
   formatIntervalSummary,
   WATERING_MODE_WEEKDAY,
   WATERING_MODE_INTERVAL,
   slideIntervalDate,
+  isWeekdayWateringDay,
+  formatProgramDateRange,
   formatNeverOnSummary,
 } from '../src/utils/programSchedule.js';
 import {
@@ -38,11 +43,13 @@ import {
   formatNextRun,
   formatRunAt,
   computeEarliestNextRun,
+  computeLatestLastWater,
   groupSchedulesByZoneId,
 } from '../src/utils/valveRuns.js';
 import {
   scheduleRunsOnDate,
   computeNextWater,
+  computeLastWater,
   formatNextWater,
   wateringDaysInWeek,
   findNextIntervalWaterDate,
@@ -53,14 +60,20 @@ import {
   SUMMARY_OMITTED_SECTIONS,
   buildTodayOverviewStats,
   overviewSectionTitle,
+  summaryHeaderDate,
+  datedSummaryTitle,
+  summaryWeekNavLabel,
+  formatWeekMinutesLine,
 } from '../src/utils/summaryLabels.js';
 import { SEED_RECORDS } from '../src/db/seedRecords.js';
 import {
   buildProgramListSummary,
   formatCycleListItem,
   formatCycleWindow,
+  formatValveWindow,
   formatWeekdaysHyphen,
 } from '../src/utils/programListSummary.js';
+import { shouldRestoreSnapshotSchedules } from '../src/utils/saveSnapshots.js';
 
 let passed = 0;
 let failed = 0;
@@ -294,6 +307,7 @@ assert(
   'summary valve subtitle uses hyphen',
 );
 assert(formatDays(['sat', 'mon', 'wed']) === 'Mon, Wed, Sat', 'days of week use commas');
+assert(formatDaysCompact(['sat', 'mon', 'wed']) === 'Mon, Wed, Sat', 'compact days use commas');
 assert(formatCycleLabel(1) === 'Event 1', 'event 1 label');
 assert(formatCycleLabel(2) === 'Event 2', 'event 2 label');
 
@@ -370,9 +384,180 @@ const weekdayPayload = programSchedulePayload({
   interval_days: 3,
   program_start_date: '2026-09-02',
   program_end_mode: 'never',
+  never_on_days: ['sun'],
+  start_times: '04:00 AM\n10:00 AM',
+  duration_minutes: 105,
+  days_of_week: ['mon', 'wed', 'fri'],
 });
-assert(weekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'weekday payload clears interval fields');
-assert(weekdayPayload.never_on_days.length === 0, 'weekday payload clears never-on days');
+assert(weekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'weekday payload keeps weekday mode');
+assert(weekdayPayload.interval_days === null, 'weekday payload clears interval days');
+assert(weekdayPayload.program_start_date === '2026-09-02', 'weekday payload stores start date');
+assert(weekdayPayload.program_end_date === null, 'weekday payload stores never end');
+assert(weekdayPayload.never_on_days.includes('sun'), 'weekday payload stores never-on days');
+assert(
+  weekdayPayload.start_times[0] === '04:00' && weekdayPayload.start_times[1] === '10:00',
+  'weekday payload stores start times',
+);
+assert(weekdayPayload.duration_minutes === 105, 'weekday payload stores minutes watered');
+assert(weekdayPayload.days_of_week.join(',') === 'mon,wed,fri', 'weekday payload stores days of week');
+const weekdayDated = {
+  watering_mode: WATERING_MODE_WEEKDAY,
+  program_start_date: '2026-09-02',
+  program_end_date: '2026-09-04',
+  days_of_week: ['mon', 'wed', 'fri'],
+};
+assert(
+  !isWithinProgramDateRange(weekdayDated, new Date(2026, 8, 1)),
+  'weekday date range skips before start',
+);
+assert(
+  isWithinProgramDateRange(weekdayDated, new Date(2026, 8, 2)),
+  'weekday date range includes start date',
+);
+assert(
+  isWithinProgramDateRange(weekdayDated, new Date(2026, 8, 4)),
+  'weekday date range includes end date',
+);
+assert(
+  !isWithinProgramDateRange(weekdayDated, new Date(2026, 8, 5)),
+  'weekday date range stops after end date',
+);
+assert(
+  formatProgramDateRange({
+    watering_mode: WATERING_MODE_WEEKDAY,
+    program_start_date: '2026-09-02',
+    program_end_date: null,
+  })?.end === 'Never',
+  'weekday date range formats Never end',
+);
+const weekdayDayErrors = validateProgramScheduleFields({
+  watering_mode: WATERING_MODE_WEEKDAY,
+  program_start_date: '2026-09-02',
+  program_end_mode: 'never',
+  days_of_week: [],
+});
+assert(weekdayDayErrors.days_of_week, 'weekday validation requires at least one day');
+const overlapErrors = validateProgramScheduleFields({
+  watering_mode: WATERING_MODE_WEEKDAY,
+  program_start_date: '2026-09-02',
+  program_end_mode: 'never',
+  days_of_week: ['mon'],
+  start_times: ['04:00', '05:00'],
+  duration_minutes: 105,
+});
+assert(overlapErrors.start_times, 'overlapping 04:00 + 105 min vs 05:00 errors');
+const spacedTimes = validateProgramScheduleFields({
+  watering_mode: WATERING_MODE_WEEKDAY,
+  program_start_date: '2026-09-02',
+  program_end_mode: 'never',
+  days_of_week: ['mon'],
+  start_times: ['04:00', '10:00'],
+  duration_minutes: 105,
+});
+assert(!spacedTimes.start_times, '04:00 and 10:00 with 105 min do not overlap');
+assert(parseClockTime('04:00 AM') === '04:00', 'parses 04:00 AM');
+assert(parseClockTime('10:00 PM') === '22:00', 'parses 10:00 PM');
+assert(
+  parseStartTimes(' 04:00 AM\n10:00 AM ').join(',') === '04:00,10:00',
+  'parses multi-line start times',
+);
+assert(Boolean(findStartTimeOverlap(['04:00', '05:00'], 105)), '04:00 + 105 min overlaps 05:00');
+assert(findStartTimeOverlap(['04:00', '10:00'], 105) == null, '04:00 and 10:00 do not overlap');
+
+console.log('Program schedule fan-out');
+const fanOutEvents = programScheduleEventTemplates({
+  start_times: ['04:00', '10:00'],
+  duration_minutes: 105,
+  days_of_week: ['mon', 'wed', 'fri'],
+});
+assert(fanOutEvents.length === 2, 'one derived event per start time');
+assert(
+  fanOutEvents[0].start_time === '04:00'
+    && fanOutEvents[0].duration_minutes === 105
+    && fanOutEvents[0].days_of_week.join(',') === 'mon,wed,fri'
+    && fanOutEvents[0].cycle === 1,
+  'first event copies program minutes and days',
+);
+assert(
+  fanOutEvents[1].start_time === '10:00' && fanOutEvents[1].cycle === 2,
+  'second start time is event 2',
+);
+assert(
+  programScheduleEventTemplates({ start_times: [], duration_minutes: 15 }).length === 0,
+  'no start times means no derived events',
+);
+assert(
+  programScheduleEventTemplates({ start_times: ['04:00'] }).length === 0,
+  'missing minutes watered means no derived events',
+);
+
+console.log('Restore Valve snapshot schedules');
+assert(
+  shouldRestoreSnapshotSchedules({ start_times: ['04:00', '10:00'], duration_minutes: 105 }) === false,
+  'do not create snapshot rows when program already has start times',
+);
+assert(
+  shouldRestoreSnapshotSchedules({ start_times: [], duration_minutes: 15 }) === true,
+  'snapshot creates allowed when program has no start times',
+);
+assert(
+  shouldRestoreSnapshotSchedules({ start_times: ['04:00'] }) === true,
+  'snapshot creates allowed when program has times but no minutes (no fan-out)',
+);
+const shiftedPlan = planZoneScheduleUpsert(
+  [
+    { id: 'a', start_time: '04:30' },
+    { id: 'b', start_time: '07:30' },
+  ],
+  fanOutEvents,
+);
+assert(
+  shiftedPlan.updates.length === 2
+    && shiftedPlan.updates[0].id === 'a'
+    && shiftedPlan.updates[0].start_time === '04:00'
+    && shiftedPlan.updates[1].id === 'b'
+    && shiftedPlan.updates[1].start_time === '10:00'
+    && shiftedPlan.creates.length === 0
+    && shiftedPlan.deletes.length === 0,
+  'same count reuses rows in start-time order when times shift',
+);
+const matchedPlan = planZoneScheduleUpsert(
+  [
+    { id: 'keep-late', start_time: '10:00' },
+    { id: 'keep-early', start_time: '04:00' },
+  ],
+  fanOutEvents,
+);
+assert(
+  matchedPlan.updates[0].id === 'keep-early' && matchedPlan.updates[1].id === 'keep-late',
+  'matching start times reuse those rows',
+);
+const growPlan = planZoneScheduleUpsert(
+  [{ id: 'only', start_time: '04:00' }],
+  fanOutEvents,
+);
+assert(
+  growPlan.updates.length === 1
+    && growPlan.creates.length === 1
+    && growPlan.creates[0].start_time === '10:00'
+    && growPlan.deletes.length === 0,
+  'extra program start creates a new row',
+);
+const shrinkPlan = planZoneScheduleUpsert(
+  [
+    { id: 'keep', start_time: '04:00' },
+    { id: 'drop', start_time: '10:00' },
+    { id: 'extra', start_time: '12:00' },
+  ],
+  [fanOutEvents[0]],
+);
+assert(
+  shrinkPlan.updates.length === 1
+    && shrinkPlan.updates[0].id === 'keep'
+    && shrinkPlan.deletes.includes('drop')
+    && shrinkPlan.deletes.includes('extra'),
+  'removed program starts delete leftover rows',
+);
 
 const sundaySlideProgram = {
   watering_mode: WATERING_MODE_INTERVAL,
@@ -395,6 +580,38 @@ assert(
   'interval waters on slid Monday',
 );
 assert(formatNeverOnSummary(sundaySlideProgram) === 'Sun', 'never-on summary text');
+
+const sundayNeverWeekday = {
+  watering_mode: WATERING_MODE_WEEKDAY,
+  program_start_date: '2026-08-27',
+  program_end_date: null,
+  never_on_days: ['sun'],
+  days_of_week: ['sun'],
+};
+assert(
+  !isWeekdayWateringDay(sundayNeverWeekday, new Date(2026, 7, 30)),
+  'weekday never-on skips blocked Sunday',
+);
+assert(
+  isWeekdayWateringDay(sundayNeverWeekday, new Date(2026, 7, 31)),
+  'weekday never-on waters next calendar day',
+);
+assert(
+  !scheduleRunsOnDate(
+    sundayNeverWeekday,
+    { status: 'active', days_of_week: ['sun'] },
+    new Date(2026, 7, 30),
+  ),
+  'weekday schedule skips blocked Sunday',
+);
+assert(
+  scheduleRunsOnDate(
+    sundayNeverWeekday,
+    { status: 'active', days_of_week: ['sun'] },
+    new Date(2026, 7, 31),
+  ),
+  'weekday schedule runs on slid Monday',
+);
 
 console.log('Last water');
 const lastWaterValve = {
@@ -527,6 +744,58 @@ const grouped = groupSchedulesByZoneId([
 ]);
 assert(grouped.get('m-early').length === 2, 'schedules grouped by membership');
 
+console.log('Derived last water from program events');
+const derivedDays = ['mon', 'wed', 'fri'];
+const derivedProgram = { watering_mode: WATERING_MODE_WEEKDAY, days_of_week: derivedDays };
+const derivedEvents = [
+  { status: 'active', start_time: '04:30', duration_minutes: 30, days_of_week: derivedDays },
+  { status: 'active', start_time: '07:30', duration_minutes: 45, days_of_week: derivedDays },
+];
+const afterSecond = computeLastWater(derivedProgram, derivedEvents, new Date(2026, 8, 4, 10, 0));
+assert(afterSecond?.date === '2026-09-04', 'last water uses most recent watering day');
+assert(afterSecond?.startTime === '07:30', 'last water uses latest started event');
+assert(afterSecond?.durationMinutes === 45, 'last water minutes come from that event');
+const betweenEvents = computeLastWater(derivedProgram, derivedEvents, new Date(2026, 8, 4, 6, 0));
+assert(betweenEvents?.startTime === '04:30' && betweenEvents?.durationMinutes === 30, 'last water stays on earlier event before later start');
+const beforeFirst = computeLastWater(derivedProgram, derivedEvents, new Date(2026, 8, 4, 4, 0));
+assert(beforeFirst?.date === '2026-09-02' && beforeFirst?.startTime === '07:30', 'last water walks back to previous watering day');
+assert(computeLastWater(derivedProgram, [], new Date(2026, 8, 4)) == null, 'empty events yield no last water');
+const templateProgram = {
+  id: 'templated',
+  status: 'active',
+  watering_mode: WATERING_MODE_WEEKDAY,
+  start_times: ['10:00'],
+  duration_minutes: 15,
+  days_of_week: derivedDays,
+};
+assert(
+  computeLatestLastWater({
+    memberships: [{ id: 'm-template', program_id: 'templated', status: 'active' }],
+    programsById: new Map([['templated', templateProgram]]),
+    schedulesByMembershipId: new Map([['m-template', derivedEvents]]),
+    fromDate: new Date(2026, 8, 4, 12, 0),
+  })?.startTime === '10:00',
+  'program start times win over membership schedule copies',
+);
+assert(
+  computeLatestLastWater({
+    memberships: [
+      { id: 'm-late', program_id: 'late', status: 'active' },
+      { id: 'm-early', program_id: 'early', status: 'active' },
+    ],
+    programsById: runPrograms,
+    schedulesByMembershipId: runSchedules,
+    fromDate: new Date(2026, 8, 4, 12, 0),
+  })?.startTime === '05:30',
+  'latest last water picks later event across programs',
+);
+const intervalLast = computeLastWater(
+  sundaySlideProgram,
+  intervalSchedules,
+  new Date(2026, 8, 1, 12, 0),
+);
+assert(intervalLast?.date === '2026-08-31' && intervalLast?.startTime === '13:00', 'interval last water uses last started event');
+
 console.log('XLSX export');
 const xlsxRows = [{
   id: 'sch-x1',
@@ -629,7 +898,7 @@ assert(html.includes('<th>Duration (Min)</th>'), 'duration unit is in the header
 assert(html.includes('<th>Daily runtime (Min)</th>'), 'daily runtime unit is in the header');
 assert(!html.includes('15 Min'), 'cells do not repeat Min');
 assert(html.includes('Court'), 'valve short name');
-assert(html.includes('M-W'), 'compact days');
+assert(html.includes('Mon, Wed'), 'compact days use commas');
 const zoneIdx = html.indexOf('<th>Valve #</th>');
 const startIdx = html.indexOf('<th>Start</th>');
 const endIdx = html.indexOf('<th>End</th>');
@@ -814,19 +1083,58 @@ assert(
   'same weekday next week is not Today',
 );
 
+console.log('Weekday minutes chart labels');
+assert(
+  DAY_ORDER.map(day => DAY_FULL[day]).join(', ') ===
+    'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+  'DAY_FULL is Monday through Sunday',
+);
+const emptyDayChart = await buildScheduleChartData({
+  programsRepository: { getAll: async () => [] },
+  zonesRepository: {},
+  schedulesRepository: {},
+});
+assert(
+  emptyDayChart.minutesByDay.map(item => item.label).join(', ') ===
+    'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+  'minutes-by-day axis uses full weekday names',
+);
+
 console.log('Summary labels');
 assert(SUMMARY_SECTION_TITLES.week === 'Week', 'week section title');
-assert(SUMMARY_SECTION_TITLES.valves === 'Valves', 'valves section title');
-assert(SUMMARY_SECTION_TITLES.valveWater === 'Water', 'valve water section title');
-assert(SUMMARY_SECTION_TITLES.programTime === 'Program Time', 'program time section title');
-assert(SUMMARY_SECTION_TITLES.programWater === 'Program Water', 'program water section title');
+assert(SUMMARY_SECTION_TITLES.valves === 'Valves - Minutes', 'valves section title');
+assert(SUMMARY_SECTION_TITLES.valveWater === 'Valves - Gallons', 'valve water section title');
+assert(SUMMARY_SECTION_TITLES.programTime === 'Program - Minutes', 'program time section title');
+assert(SUMMARY_SECTION_TITLES.programWater === 'Program - Gallons', 'program water section title');
 assert(SUMMARY_SECTION_TITLES.overview === 'Overview', 'overview section title suffix');
 assert(overviewSectionTitle("Today's") === "Today's Overview", 'today overview title');
 assert(overviewSectionTitle("Friday's") === "Friday's Overview", 'other day overview title');
 assert(
-  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'water' && col.label === 'Total water'),
-  'overview includes total water tile',
+  SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'water' && col.label === 'Total Gallons'),
+  'overview includes total gallons tile',
 );
+const summaryDate = new Date(2026, 8, 14);
+const headerDate = summaryHeaderDate('mon', summaryDate);
+assert(headerDate === 'Mon, Sep 14', 'summary header date is Mon, Sep 14');
+assert(summaryHeaderDate('wed', summaryDate) === 'Wed, Sep 16', 'summary header date follows selected day');
+assert(
+  datedSummaryTitle(SUMMARY_SECTION_TITLES.valves, headerDate) === 'Valves - Minutes Mon, Sep 14',
+  'valves header includes date',
+);
+assert(
+  datedSummaryTitle(SUMMARY_SECTION_TITLES.valveWater, headerDate) === 'Valves - Gallons Mon, Sep 14',
+  'valve gallons header includes date',
+);
+assert(
+  datedSummaryTitle(SUMMARY_SECTION_TITLES.programTime, headerDate) === 'Program - Minutes Mon, Sep 14',
+  'program minutes header includes date',
+);
+assert(
+  summaryWeekNavLabel(headerDate, 'Sep 14 – Sep 20') === 'Mon, Sep 14 · Sep 14 – Sep 20',
+  'week strip is renamed with selected date',
+);
+assert(formatWeekMinutesLine(90) === '90 Min / Week', 'week minutes line uses / Week');
+assert(formatWeekMinutesLine(null) === null, 'week minutes line empty is null');
 assert(
   SUMMARY_OVERVIEW_COLUMNS.some(col => col.key === 'active' && col.label === 'Active events'),
   'overview active events label',
@@ -882,7 +1190,8 @@ const seedWeekdayPayload = programSchedulePayload({
   never_on_days: seedWeekday.never_on_days,
 });
 assert(seedWeekdayPayload.watering_mode === WATERING_MODE_WEEKDAY, 'program A seed is weekday');
-assert(seedWeekdayPayload.program_start_date == null, 'weekday seed has no start date');
+assert(seedWeekdayPayload.program_end_date == null, 'weekday seed end is Never');
+assert(Array.isArray(seedWeekdayPayload.never_on_days), 'weekday seed persists never-on');
 const seedInterval = SEED_RECORDS.find(program => program.controller_program === 'D');
 const seedIntervalPayload = programSchedulePayload({
   watering_mode: seedInterval.watering_mode,
@@ -902,10 +1211,18 @@ assert(formatLastWater(seedValves[0]).includes('Sep'), 'sample last water format
 console.log('Programs list summary');
 assert(formatCycleWindow('04:00', 105) === '4:00-5:45 AM', 'cycle window compact same period');
 assert(formatCycleWindow('08:30', 60) === '8:30-9:30 AM', 'cycle window hour later');
-assert(formatCycleListItem(0, '04:00', 105) === '1 - 4:00-5:45 AM', 'cycle item numbered from 1');
+assert(formatCycleListItem(0, '04:00', 105) === 'Event 1 - 4:00-5:45 AM', 'event item numbered from 1');
+assert(formatValveWindow('04:00', 105) === '4:00-5:45 AM, 105 min', 'valve window includes minutes');
 assert(formatWeekdaysHyphen(['sat', 'mon', 'wed', 'fri']) === 'Mon, Wed, Fri, Sat', 'weekdays comma ordered');
 assert(formatWeekdaysHyphen([]) === '—', 'empty weekdays dash');
-const listProgram = { id: 'p1', watering_mode: WATERING_MODE_WEEKDAY };
+const listFrom = new Date(2026, 8, 3);
+const listProgram = {
+  id: 'p1',
+  watering_mode: WATERING_MODE_WEEKDAY,
+  duration_minutes: 30,
+  program_start_date: '2026-08-31',
+  days_of_week: ['mon', 'wed', 'fri', 'sat'],
+};
 const listValves = [
   { id: 'v1', zone_number: 1 },
   { id: 'v5', zone_number: 5 },
@@ -923,36 +1240,60 @@ const weekdaySummary = buildProgramListSummary(listProgram, {
   memberships: listMemberships,
   valves: listValves,
   schedules: listSchedules,
+  fromDate: listFrom,
 });
+assert(weekdaySummary.minutesLabel === '30 Min', 'weekday summary minutes from program');
+assert(weekdaySummary.lastWaterLabel.includes('Sep 2'), 'weekday last water from program events');
+assert(weekdaySummary.lastWaterLabel.includes('10:00 AM'), 'weekday last water is latest started event');
+assert(weekdaySummary.nextWaterLabel.includes('Sep 4'), 'weekday next water after last');
+assert(weekdaySummary.nextWaterLabel.includes('4:00 AM'), 'weekday next water start');
 assert(weekdaySummary.daysLabel === 'Mon, Wed, Fri, Sat', 'weekday summary days');
 assert(
-  weekdaySummary.cyclesLabel === '1 - 4:00-5:45 AM, 2 - 10:00-10:45 AM',
-  'cycles comma-separated in start order',
+  weekdaySummary.valveWindowsLabel === '1: 4:00-5:45 AM, 105 min; 10:00-10:45 AM, 45 min',
+  'valve windows time range and minutes',
 );
 assert(weekdaySummary.valvesLabel === '1, 5', 'valve numbers sorted');
-assert(weekdaySummary.startLabel === '—', 'weekday start is dash');
+assert(weekdaySummary.startLabel.includes('Aug 31'), 'weekday start date when persisted');
 assert(weekdaySummary.endLabel === 'Never', 'weekday end is Never');
+assert(weekdaySummary.progTotalLabel === '150 Min', 'prog total minutes when GPH missing');
+const gallonsSummary = buildProgramListSummary(listProgram, {
+  memberships: listMemberships,
+  valves: [{ ...listValves[0], gph: 120 }, listValves[1]],
+  schedules: listSchedules,
+  fromDate: listFrom,
+});
+assert(gallonsSummary.progTotalLabel === '300 gal', 'prog total gallons when GPH exists');
 const intervalSummary = buildProgramListSummary({
   id: 'p2',
   watering_mode: WATERING_MODE_INTERVAL,
   interval_days: 3,
+  duration_minutes: 60,
   program_start_date: '2026-08-31',
   program_end_date: '2026-09-08',
 }, {
   memberships: [{ id: 'm4', program_id: 'p2', valve_id: 'v4' }],
-  valves: [{ id: 'v4', zone_number: 4 }],
+  valves: [{ id: 'v4', zone_number: 4, gph: 90 }],
   schedules: [
     { zone_id: 'm4', status: 'active', start_time: '08:30', duration_minutes: 60, days_of_week: ['tue'] },
   ],
+  fromDate: new Date(2026, 8, 1),
 });
+assert(intervalSummary.minutesLabel === '60 Min', 'interval summary minutes');
 assert(intervalSummary.daysLabel === 'Every 3 days', 'interval summary days');
-assert(intervalSummary.cyclesLabel === '1 - 8:30-9:30 AM', 'interval cycle line');
+assert(intervalSummary.valveWindowsLabel === '4: 8:30-9:30 AM, 60 min', 'interval valve window');
 assert(intervalSummary.valvesLabel === '4', 'interval valve number');
 assert(intervalSummary.startLabel.includes('Aug 31'), 'interval start date');
 assert(intervalSummary.endLabel.includes('Sep 8'), 'interval end date');
+assert(intervalSummary.nextWaterLabel.includes('Sep 3'), 'interval next water');
+assert(intervalSummary.progTotalLabel === '90 gal', 'interval prog total gallons');
 const emptySummary = buildProgramListSummary({ id: 'empty', watering_mode: WATERING_MODE_WEEKDAY }, {});
-assert(emptySummary.cyclesLabel === '—', 'empty cycles dash');
+assert(emptySummary.minutesLabel === '—', 'empty minutes dash');
+assert(emptySummary.lastWaterLabel === '—', 'empty last water dash');
+assert(emptySummary.nextWaterLabel === '—', 'empty next water dash');
+assert(emptySummary.valveWindowsLabel === '—', 'empty valve windows dash');
 assert(emptySummary.valvesLabel === '—', 'empty valves dash');
+assert(emptySummary.endLabel === 'Never', 'empty end is Never');
+assert(emptySummary.progTotalLabel === '—', 'empty prog total dash');
 
 console.log('');
 if (failed) {

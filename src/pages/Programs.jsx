@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Eye, Power, List, Bookmark } from 'lucide-react';
 import { useProgramCatalog, usePrograms } from '../hooks/usePrograms';
+import { attachValveToProgram, createValveCatalog } from '../hooks/useZones';
+import { programsRepository } from '../db/programsRepository';
 import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProgramForm from '../components/ProgramForm';
+import ZoneForm from '../components/ZoneForm';
+import AddValveToProgram from '../components/AddValveToProgram';
 import ProgramLogo from '../components/ProgramLogo';
 import PhotoPreview from '../components/PhotoPreview';
 import ProgramBadge from '../components/ProgramBadge';
@@ -18,10 +22,18 @@ import ActionMenu from '../components/ActionMenu';
 import { useSaves } from '../hooks/useSaves';
 import { useColumnAlign } from '../hooks/useColumnAlign';
 import { programListSummariesById } from '../utils/programListSummary';
+import { nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
 
-function SummaryLine({ label, value, wrap = false }) {
+async function resolveCreatedProgramId(name) {
+  const all = await programsRepository.getAll();
+  const matches = all.filter(program => program.name === name);
+  matches.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  return matches[0]?.id ?? null;
+}
+
+function SummaryLine({ label, value }) {
   return (
-    <p className={wrap ? 'whitespace-normal break-words' : 'truncate'}>
+    <p className="whitespace-nowrap">
       <span className="font-semibold text-navy-900">{label}:</span>{' '}
       <span>{value}</span>
     </p>
@@ -30,13 +42,27 @@ function SummaryLine({ label, value, wrap = false }) {
 
 function ProgramScheduleSummary({ summary }) {
   if (!summary) return null;
+  const valveWindows = summary.valveWindows ?? [];
   return (
     <div className="mt-1.5 space-y-0.5 text-sm text-black">
+      <SummaryLine label="Minutes" value={summary.minutesLabel} />
+      <SummaryLine label="Last Water" value={summary.lastWaterLabel} />
+      <SummaryLine label="Next Water" value={summary.nextWaterLabel} />
       <SummaryLine label="Days" value={summary.daysLabel} />
-      <SummaryLine label="Events" value={summary.cyclesLabel} wrap />
-      <SummaryLine label="Valves" value={summary.valvesLabel} />
-      <SummaryLine label="Start" value={summary.startLabel} />
-      <SummaryLine label="End" value={summary.endLabel} />
+      {valveWindows.length === 0 ? (
+        <SummaryLine label="Valves" value="—" />
+      ) : (
+        valveWindows.map((window, index) => (
+          <SummaryLine
+            key={`${window.valveNumber}-${index}`}
+            label={String(window.valveNumber)}
+            value={window.label}
+          />
+        ))
+      )}
+      <SummaryLine label="Start Date" value={summary.startLabel} />
+      <SummaryLine label="End Date" value={summary.endLabel} />
+      <SummaryLine label="Prog Total" value={summary.progTotalLabel} />
     </div>
   );
 }
@@ -57,6 +83,12 @@ export default function Programs() {
   const { saveProgram } = useSaves();
   const { cycle, cellClass, flexClass } = useColumnAlign('programs-align', PROGRAMS_ALIGN);
   const [showCreate, setShowCreate] = useState(false);
+  const [createDraft, setCreateDraft] = useState(null);
+  const [createError, setCreateError] = useState(null);
+  const [createBusy, setCreateBusy] = useState(false);
+  const createLockRef = useRef(false);
+  const createDraftRef = useRef(null);
+  createDraftRef.current = createDraft;
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [deleteCounts, setDeleteCounts] = useState({ zones: 0, schedules: 0 });
@@ -67,6 +99,67 @@ export default function Programs() {
     () => programListSummariesById(programs, { memberships, valves, schedules }),
     [programs, memberships, valves, schedules],
   );
+  const valveCountByProgramId = useMemo(() => {
+    const counts = {};
+    for (const membership of memberships) {
+      counts[membership.program_id] = (counts[membership.program_id] ?? 0) + 1;
+    }
+    return counts;
+  }, [memberships]);
+
+  const openCreate = () => {
+    setCreateDraft(null);
+    setCreateError(null);
+    setShowCreate(true);
+  };
+
+  const closeCreate = () => {
+    if (createLockRef.current) return;
+    setShowCreate(false);
+    setCreateDraft(null);
+    setCreateError(null);
+  };
+
+  const finishCreateWithValve = async ({ existingValveId, newValveData }) => {
+    const draft = createDraftRef.current;
+    if (createLockRef.current || !draft) {
+      throw new Error('Add at least one valve to create this program.');
+    }
+    createLockRef.current = true;
+    setCreateBusy(true);
+    setCreateError(null);
+    let programId = null;
+    let attached = false;
+    try {
+      await createProgram(draft);
+      programId = await resolveCreatedProgramId(draft.name);
+      if (!programId) throw new Error('Program was not created.');
+      let valveId = existingValveId;
+      if (newValveData) {
+        const valve = await createValveCatalog(newValveData);
+        valveId = valve.id;
+      }
+      if (!valveId) throw new Error('Add at least one valve to create this program.');
+      await attachValveToProgram(valveId, programId);
+      attached = true;
+      await reloadCatalog();
+      setShowCreate(false);
+      setCreateDraft(null);
+    } catch (err) {
+      if (programId && !attached) {
+        try {
+          await deleteProgram(programId);
+        } catch {
+          /* keep the valve-step error */
+        }
+      }
+      setCreateError(err.message || 'Add at least one valve to create this program.');
+      throw err;
+    } finally {
+      createLockRef.current = false;
+      setCreateBusy(false);
+    }
+  };
 
   const refreshAll = async () => {
     await reload();
@@ -94,7 +187,7 @@ export default function Programs() {
   if (error) return <PageError message={`Could not load programs: ${error}`} onRetry={refreshAll} />;
 
   return (
-    <div className="min-w-0 w-full overflow-x-hidden">
+    <div className="min-w-0 w-full">
       {programs.length === 0 ? (
         <>
           <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
@@ -102,7 +195,7 @@ export default function Programs() {
               <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
             </div>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={openCreate}
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
@@ -115,7 +208,7 @@ export default function Programs() {
               icon={List}
               title="No programs yet"
               description="Create your first irrigation program to get started."
-              action={{ label: 'Add Program', onClick: () => setShowCreate(true) }}
+              action={{ label: 'Add Program', onClick: openCreate }}
             />
           </div>
         </>
@@ -126,7 +219,7 @@ export default function Programs() {
               <h1 className="text-2xl font-bold text-navy-900">Programs</h1>
             </div>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={openCreate}
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
@@ -244,13 +337,59 @@ export default function Programs() {
       )}
 
       {showCreate && (
-        <Modal title="Create Program" onClose={() => setShowCreate(false)}>
-          <ProgramForm
-            existingNames={programs.map(p => p.name)}
-            existingPrefixes={programs.map(p => p.controller_program).filter(Boolean)}
-            onSubmit={async data => { await createProgram(data); await reloadCatalog(); setShowCreate(false); }}
-            onCancel={() => setShowCreate(false)}
-          />
+        <Modal title={createDraft ? 'Add Valve' : 'Create Program'} onClose={closeCreate}>
+          <div className={createDraft ? 'hidden' : undefined} aria-hidden={Boolean(createDraft)}>
+            <ProgramForm
+              existingNames={programs.map(p => p.name)}
+              existingPrefixes={programs.map(p => p.controller_program).filter(Boolean)}
+              onSubmit={async data => {
+                setCreateError(null);
+                setCreateDraft(data);
+              }}
+              onCancel={closeCreate}
+            />
+          </div>
+          {createDraft && (
+            <>
+              {createError && (
+                <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                  {createError}
+                </div>
+              )}
+              <AddValveToProgram
+                catalogValves={valves}
+                programValveCounts={{}}
+                busy={createBusy}
+                cancelLabel="Back"
+                intro="A program needs at least one valve. Create a new valve or add an existing one."
+                onAddExisting={async valveId => {
+                  try {
+                    await finishCreateWithValve({ existingValveId: valveId });
+                  } catch {
+                    /* createError is shown above */
+                  }
+                }}
+                onCreateNew={({ onDone }) => (
+                  <ZoneForm
+                    suggestedNumber={nextValveNumber(valves)}
+                    existingNumbers={takenValveNumbers(valves)}
+                    defaultColor={createDraft.color}
+                    showStatus={false}
+                    onSubmit={async data => {
+                      await finishCreateWithValve({ newValveData: data });
+                      onDone();
+                    }}
+                    onCancel={onDone}
+                  />
+                )}
+                onCancel={() => {
+                  if (createLockRef.current) return;
+                  setCreateDraft(null);
+                  setCreateError(null);
+                }}
+              />
+            </>
+          )}
         </Modal>
       )}
 
@@ -258,11 +397,42 @@ export default function Programs() {
         <Modal title="Edit Program" onClose={() => setEditing(null)}>
           <ProgramForm
             initial={editing}
+            valveCount={valveCountByProgramId[editing.id] ?? 0}
             existingNames={programs.filter(p => p.id !== editing.id).map(p => p.name)}
             existingPrefixes={programs.filter(p => p.id !== editing.id).map(p => p.controller_program).filter(Boolean)}
             onSubmit={async data => { await updateProgram(editing.id, data); await reloadCatalog(); setEditing(null); }}
             onCancel={() => setEditing(null)}
           />
+          {(valveCountByProgramId[editing.id] ?? 0) < 1 && (
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <AddValveToProgram
+                catalogValves={valves}
+                programValveCounts={{}}
+                showCancel={false}
+                intro="Add at least one valve before saving. Create a new valve or add an existing one."
+                onAddExisting={async valveId => {
+                  await attachValveToProgram(valveId, editing.id);
+                  await reloadCatalog();
+                }}
+                onCreateNew={({ onDone }) => (
+                  <ZoneForm
+                    suggestedNumber={nextValveNumber(valves)}
+                    existingNumbers={takenValveNumbers(valves)}
+                    defaultColor={editing.color}
+                    showStatus={false}
+                    onSubmit={async data => {
+                      const valve = await createValveCatalog(data);
+                      await attachValveToProgram(valve.id, editing.id);
+                      await reloadCatalog();
+                      onDone();
+                    }}
+                    onCancel={onDone}
+                  />
+                )}
+                onCancel={() => setEditing(null)}
+              />
+            </div>
+          )}
         </Modal>
       )}
 

@@ -1,45 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { DAY_ORDER, DAY_LABELS, getEndTime, formatTime, endsNextDay } from '../utils/dateUtils';
+import { useEffect, useState } from 'react';
+import { formatDays, formatTime, getEndTime, endsNextDay } from '../utils/dateUtils';
 import {
   getAllSchedulesForConflict,
   findScheduleConflict,
-  findNextAvailableStart,
-  defaultStartForNewCycle,
-  listAvailableStarts,
   conflictMessage,
 } from '../utils/scheduleConflict';
 
-export default function ScheduleForm({ initial, programId, programName, zoneId, onSubmit, onCancel }) {
-  const isNew = !initial?.id;
-  const startTouched = useRef(false);
-  const [startTime, setStartTime] = useState(initial?.start_time ?? '06:00');
-  const [duration, setDuration] = useState(String(initial?.duration_minutes ?? 15));
-  const [days, setDays] = useState(initial?.days_of_week ?? []);
+const EMPTY_DAYS = [];
+
+export default function ScheduleForm({ initial, programName, zoneId, onSubmit, onCancel }) {
+  const startTime = initial?.start_time ?? '';
+  const durationMins = Number(initial?.duration_minutes);
+  const days = initial?.days_of_week ?? EMPTY_DAYS;
   const [status, setStatus] = useState(initial?.status ?? 'active');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [existing, setExisting] = useState(null);
 
-  const durationMins = parseInt(duration, 10);
-  const endTime = Number.isFinite(durationMins) && durationMins > 0
-    ? getEndTime(startTime, durationMins)
-    : '';
-  const wrapsNextDay = Number.isFinite(durationMins) && durationMins > 0 && endsNextDay(startTime, durationMins);
+  const hasDuration = Number.isFinite(durationMins) && durationMins > 0;
+  const endTime = hasDuration ? getEndTime(startTime, durationMins) : '';
+  const wrapsNextDay = hasDuration && endsNextDay(startTime, durationMins);
   const hasConflict = Boolean(errors.conflict);
-
-  const availableStarts = useMemo(() => {
-    if (!existing) return [];
-    const mins = parseInt(duration, 10);
-    if (!Number.isFinite(mins) || mins <= 0 || mins > 480) return [];
-    return listAvailableStarts({
-      durationMinutes: mins,
-      daysOfWeek: days,
-      existingSchedules: existing,
-      excludeId: initial?.id,
-      limit: 8,
-    });
-  }, [existing, duration, days, initial?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,23 +34,11 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
   }, []);
 
   useEffect(() => {
-    if (!isNew || !existing || startTouched.current) return;
-    const suggested = defaultStartForNewCycle({
-      durationMinutes: parseInt(duration, 10),
-      daysOfWeek: days,
-      existingSchedules: existing,
-    });
-    setStartTime(prev => (prev === suggested ? prev : suggested));
-  }, [existing, isNew]);
-
-  useEffect(() => {
     if (!existing) return undefined;
 
-    const mins = parseInt(duration, 10);
     const canCheck = startTime
-      && Number.isFinite(mins)
-      && mins > 0
-      && mins <= 480
+      && hasDuration
+      && durationMins <= 480
       && days.length > 0;
 
     if (!canCheck || status === 'inactive') {
@@ -83,7 +53,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         id: initial?.id,
         zone_id: zoneId,
         start_time: startTime,
-        duration_minutes: mins,
+        duration_minutes: durationMins,
         days_of_week: days,
         status,
       };
@@ -92,30 +62,15 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         setErrors(prev => (prev.conflict ? { ...prev, conflict: undefined } : prev));
         return;
       }
-      const nextAvailable = findNextAvailableStart(candidate, existing);
-      const message = conflictMessage(conflict, programName, nextAvailable);
+      const message = conflictMessage(conflict, programName);
       setErrors(prev => (prev.conflict === message ? prev : { ...prev, conflict: message }));
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [existing, startTime, duration, days, status, initial?.id, zoneId, programName]);
-
-  const toggleDay = (day) => {
-    setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-  };
-
-  const pickStart = (time) => {
-    startTouched.current = true;
-    setStartTime(time);
-  };
+  }, [existing, startTime, durationMins, hasDuration, days, status, initial?.id, zoneId, programName]);
 
   const validate = () => {
     const errs = {};
-    if (!startTime) errs.start_time = 'Start time is required.';
-    const mins = parseInt(duration, 10);
-    if (!duration || isNaN(mins) || mins <= 0) errs.duration = 'Duration must be greater than 0.';
-    else if (mins > 480) errs.duration = 'Duration cannot exceed 480 minutes (8 hours).';
-    if (days.length === 0) errs.days = 'Select at least one day.';
     if (notes.trim().length > 200) errs.notes = 'Notes cannot exceed 200 characters.';
     setErrors(prev => ({ ...errs, conflict: prev.conflict }));
     return Object.keys(errs).length === 0 && !hasConflict;
@@ -127,9 +82,6 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
     setSaving(true);
     try {
       await onSubmit({
-        start_time: startTime,
-        duration_minutes: parseInt(duration, 10),
-        days_of_week: days,
         status,
         notes: notes.trim(),
       });
@@ -146,73 +98,22 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
         {errors.conflict && (
           <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             <p>{errors.conflict}</p>
-            {availableStarts[0] && availableStarts[0] !== startTime && (
-              <button
-                type="button"
-                onClick={() => pickStart(availableStarts[0])}
-                className="mt-2 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
-              >
-                Use {formatTime(availableStarts[0])}
-              </button>
-            )}
-          </div>
-        )}
-        {availableStarts.length > 0 && (
-          <div>
-            <span className="block text-sm font-medium text-black mb-1.5">
-              Available starts
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {availableStarts.map(time => {
-                const selected = time === startTime;
-                return (
-                  <button
-                    key={time}
-                    type="button"
-                    onClick={() => pickStart(time)}
-                    aria-pressed={selected}
-                    className={`px-3 py-1.5 text-sm font-mono font-semibold rounded-lg border transition-colors ${
-                      selected
-                        ? 'bg-brand-600 border-brand-600 text-white'
-                        : 'bg-white border-slate-200 text-navy-900 hover:border-brand-400 hover:bg-blue-50'
-                    }`}
-                  >
-                    {formatTime(time)}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1.5 text-[11px] text-black">
-              {days.length === 0
-                ? 'Tap a time to fill Start. Select days to refine free slots.'
-                : 'Tap a time to fill Start. Slots skip busy times for the selected days.'}
-            </p>
           </div>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-time">
-              Start Time <span className="text-red-500">*</span>
-            </label>
+            <span className="block text-sm font-medium text-black mb-1.5">Start Time</span>
             <input
-              id="sched-time"
-              type="time"
-              value={startTime}
-              onChange={e => {
-                startTouched.current = true;
-                setStartTime(e.target.value);
-              }}
-              className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.start_time ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
+              type="text"
+              readOnly
+              value={startTime ? formatTime(startTime) : '—'}
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none font-mono bg-slate-50 text-black"
             />
-            {errors.start_time && <p className="mt-1 text-xs text-red-500">{errors.start_time}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-end">
-              End Time
-            </label>
+            <span className="block text-sm font-medium text-black mb-1.5">End Time</span>
             <input
-              id="sched-end"
               type="text"
               readOnly
               value={endTime ? `${formatTime(endTime)}${wrapsNextDay ? ' next day' : ''}` : '—'}
@@ -220,44 +121,25 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
             />
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-dur">
-              Duration (min) <span className="text-red-500">*</span>
-            </label>
+            <span className="block text-sm font-medium text-black mb-1.5">Duration (min)</span>
             <input
-              id="sched-dur"
-              type="number"
-              min="1"
-              max="480"
-              value={duration}
-              onChange={e => setDuration(e.target.value)}
-              className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none font-mono transition-colors ${errors.duration ? 'border-red-400' : 'border-slate-200 focus:border-brand-600'}`}
+              type="text"
+              readOnly
+              value={hasDuration ? String(durationMins) : '—'}
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none font-mono bg-slate-50 text-black"
             />
-            {errors.duration && <p className="mt-1 text-xs text-red-500">{errors.duration}</p>}
           </div>
         </div>
 
         <div>
-          <span className="block text-sm font-medium text-black mb-1.5">
-            Days of Week <span className="text-red-500">*</span>
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {DAY_ORDER.map(day => (
-              <button
-                key={day}
-                type="button"
-                onClick={() => toggleDay(day)}
-                className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
-                  days.includes(day)
-                    ? 'bg-brand-600 border-brand-600 text-white'
-                    : 'bg-white border-slate-200 text-black hover:border-brand-400'
-                }`}
-                aria-pressed={days.includes(day)}
-              >
-                {DAY_LABELS[day]}
-              </button>
-            ))}
-          </div>
-          {errors.days && <p className="mt-1.5 text-xs text-red-500">{errors.days}</p>}
+          <span className="block text-sm font-medium text-black mb-1.5">Days of Week</span>
+          <input
+            type="text"
+            readOnly
+            value={days.length > 0 ? formatDays(days) : '—'}
+            className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-lg outline-none bg-slate-50 text-black"
+          />
+          <p className="mt-1.5 text-[11px] text-black">Start, duration, and days come from the program.</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-black mb-1.5" htmlFor="sched-notes">
@@ -299,7 +181,7 @@ export default function ScheduleForm({ initial, programId, programName, zoneId, 
           Cancel
         </button>
         <button type="submit" disabled={saving || hasConflict} className="px-5 py-2.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
-          {saving ? 'Saving…' : initial?.id ? 'Save Event' : 'Add Event'}
+          {saving ? 'Saving…' : 'Save Event'}
         </button>
       </div>
     </form>

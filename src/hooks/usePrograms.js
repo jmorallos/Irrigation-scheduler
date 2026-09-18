@@ -6,6 +6,16 @@ import { schedulesRepository } from '../db/schedulesRepository';
 import { applyProfileImageChange } from '../utils/profileImageService';
 import { sortProgramsByController } from '../db/programSort';
 import { deleteProgramCascade } from '../db/deleteProgramCascade';
+import { programScheduleEventTemplates } from '../utils/programSchedule';
+
+export async function fanOutProgramSchedules(program) {
+  const templates = programScheduleEventTemplates(program);
+  if (!program?.id || templates.length === 0) return;
+  const memberships = await zonesRepository.getByProgramId(program.id);
+  for (const membership of memberships) {
+    await schedulesRepository.replaceZoneSchedulesFromTemplates(membership.id, templates);
+  }
+}
 
 export function usePrograms() {
   const [programs, setPrograms] = useState([]);
@@ -44,7 +54,8 @@ export function usePrograms() {
       profileImageChange,
       existing?.profile_image_id ?? null,
     );
-    await programsRepository.update(id, { ...programData, profile_image_id: imageId });
+    const updated = await programsRepository.update(id, { ...programData, profile_image_id: imageId });
+    await fanOutProgramSchedules(updated);
     await load();
   }, [load]);
 

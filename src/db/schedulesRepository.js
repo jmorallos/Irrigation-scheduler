@@ -1,4 +1,5 @@
 import { openDB } from './database';
+import { planZoneScheduleUpsert } from '../utils/programSchedule';
 
 export const schedulesRepository = {
   async getAll() {
@@ -89,5 +90,35 @@ export const schedulesRepository = {
         await this.update(sorted[index].id, { cycle });
       }
     }
+  },
+
+  async replaceZoneSchedulesFromTemplates(zoneId, templates) {
+    const existing = await this.getByZoneId(zoneId);
+    const { updates, creates, deletes } = planZoneScheduleUpsert(existing, templates);
+
+    for (const row of updates) {
+      await this.update(row.id, {
+        start_time: row.start_time,
+        duration_minutes: row.duration_minutes,
+        days_of_week: row.days_of_week,
+        cycle: row.cycle,
+      });
+    }
+
+    for (const template of creates) {
+      await this.create({
+        zone_id: zoneId,
+        start_time: template.start_time,
+        duration_minutes: template.duration_minutes,
+        days_of_week: template.days_of_week,
+        cycle: template.cycle,
+        status: 'active',
+        notes: '',
+      });
+    }
+
+    for (const id of deletes) await this.delete(id);
+
+    await this.renumberCyclesForZone(zoneId);
   },
 };

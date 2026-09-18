@@ -7,6 +7,12 @@ import { savesRepository } from '../db/savesRepository';
 import { formatZoneName, getZoneNumber, getZoneShortName } from './scheduleUtils';
 import { hydrateMembershipById, loadProgramHydratedZones } from './valveRecords';
 import { attachValveToProgram, createValveCatalog } from '../hooks/useZones';
+import { programScheduleEventTemplates } from './programSchedule';
+
+/** Snapshot rows only when attach did not already fan out program start_times. */
+export function shouldRestoreSnapshotSchedules(program) {
+  return programScheduleEventTemplates(program ?? {}).length === 0;
+}
 
 function uniqueName(base, existing) {
   const names = new Set(existing.map(name => name.trim().toLowerCase()));
@@ -282,16 +288,19 @@ export async function restoreZoneSave(save, programId) {
 
   const membership = await attachValveToProgram(catalogValve.id, programId);
 
-  for (const schedule of schedules) {
-    await schedulesRepository.create({
-      zone_id: membership.id,
-      start_time: schedule.start_time,
-      duration_minutes: schedule.duration_minutes,
-      days_of_week: schedule.days_of_week ?? [],
-      status: schedule.status ?? 'active',
-      notes: schedule.notes ?? '',
-      cycle: schedule.cycle,
-    });
+  const program = await programsRepository.getById(programId);
+  if (shouldRestoreSnapshotSchedules(program)) {
+    for (const schedule of schedules) {
+      await schedulesRepository.create({
+        zone_id: membership.id,
+        start_time: schedule.start_time,
+        duration_minutes: schedule.duration_minutes,
+        days_of_week: schedule.days_of_week ?? [],
+        status: schedule.status ?? 'active',
+        notes: schedule.notes ?? '',
+        cycle: schedule.cycle,
+      });
+    }
   }
 
   const hydrated = {

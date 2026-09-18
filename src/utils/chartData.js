@@ -1,4 +1,4 @@
-import { DAY_ORDER, DAY_LABELS, getTodayKey, getDateForDayKey, formatDayDateNumber } from './dateUtils';
+import { DAY_ORDER, DAY_FULL, getTodayKey, getDateForDayKey, formatDayDateNumber } from './dateUtils';
 import { sortProgramsByController } from '../db/programSort';
 import { getProgramTheme, getZoneTheme } from './programColors';
 import { getZoneNumber, getZoneShortName } from './scheduleUtils';
@@ -30,7 +30,7 @@ export async function buildScheduleChartData({
   const programs = sortProgramsByController(await programsRepository.getAll());
   const minutesByDay = DAY_ORDER.map((day, index) => ({
     key: day,
-    label: DAY_LABELS[day],
+    label: DAY_FULL[day],
     dateNumber: formatDayDateNumber(calendarWeek[index]),
     minutes: 0,
     gallons: 0,

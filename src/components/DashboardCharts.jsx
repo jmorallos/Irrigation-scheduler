@@ -1,6 +1,7 @@
 import { maxValue } from '../utils/chartData';
 import { formatMinutes } from '../utils/formatMinutes';
 import { formatGallons, gallonLabel } from '../utils/waterUsage';
+import { formatWeekMinutesLine } from '../utils/summaryLabels';
 import ProgramBadge from './ProgramBadge';
 
 function ChartEmpty({ message }) {
@@ -62,6 +63,7 @@ function ProgramMetricChart({
   period = 'today',
   dayPhrase = 'today',
   includeGallons = false,
+  includeWeekMinutes = false,
 }) {
   if (data.length === 0) {
     return <ChartEmpty message={emptyMessage} />;
@@ -74,7 +76,9 @@ function ProgramMetricChart({
       {data.map(item => {
         const value = item[metric];
         const displayValue = metricDisplayValue(item, metric, period, dayPhrase, includeGallons);
-        const tooltipValue = metricTooltipValue(item, metric, period, dayPhrase, includeGallons);
+        const weekText = includeWeekMinutes ? formatWeekMinutesLine(item.weekMinutes) : null;
+        const dayTooltip = metricTooltipValue(item, metric, period, dayPhrase, includeGallons);
+        const tooltipValue = weekText ? `${dayTooltip} · ${weekText}` : dayTooltip;
         const tooltipLabel = item.prefix
           ? `${item.prefix} · ${item.name}`
           : item.name;
@@ -95,9 +99,12 @@ function ProgramMetricChart({
                   {item.name}
                 </span>
               </div>
-              <span className="text-xs font-mono text-navy-900 tabular-nums flex-shrink-0 text-right">
-                {displayValue}
-              </span>
+              <div className="flex-shrink-0 text-right">
+                <span className="text-xs font-mono text-navy-900 tabular-nums block">{displayValue}</span>
+                {weekText && (
+                  <span className="text-[11px] font-mono text-navy-900 tabular-nums block mt-0.5">{weekText}</span>
+                )}
+              </div>
             </div>
             <div
               className="w-full h-2 rounded-full overflow-hidden"
@@ -189,6 +196,7 @@ export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectD
   }
 
   const max = maxValue(data, 'minutes');
+  const selectable = typeof onSelectDay === 'function';
 
   return (
     <div className="min-w-0 w-full px-0.5">
@@ -202,14 +210,22 @@ export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectD
           const tooltipValue = gallonsLabel
             ? `${minutesLabel || '0 Min'} · ${gallonsLabel}`
             : (minutesLabel || '0 Min');
+          const ariaLabel = selectable
+            ? `${item.label}: ${tooltipValue}. Show ${item.label} schedule.`
+            : `${item.label}: ${tooltipValue}`;
+          const Tag = selectable ? 'button' : 'div';
           return (
-            <button
+            <Tag
               key={item.key}
-              type="button"
-              onClick={() => onSelectDay?.(item.key)}
+              {...(selectable
+                ? {
+                    type: 'button',
+                    onClick: () => onSelectDay(item.key),
+                    'aria-pressed': isSelected,
+                  }
+                : { role: 'img' })}
               className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5 rounded-sm [-webkit-tap-highlight-color:transparent]"
-              aria-pressed={isSelected}
-              aria-label={`${item.label} ${item.dateNumber ?? ''}: ${tooltipValue}. Show ${item.label} schedule.`}
+              aria-label={ariaLabel}
             >
               <ChartTooltip
                 label={item.label}
@@ -239,10 +255,10 @@ export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectD
                   }}
                 />
               </div>
-              <span className={`text-sm sm:text-base font-mono font-bold tabular-nums leading-none ${
+              <span className={`max-w-full px-0.5 text-center text-[8px] sm:text-[11px] font-semibold leading-tight ${
                 isClockToday ? 'text-brand-600' : isSelected ? 'text-navy-900' : 'text-black'
               }`}>
-                {item.dateNumber ?? ''}
+                {item.label}
               </span>
               <span
                 className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none transition-opacity duration-200 ease-out ${
@@ -256,7 +272,7 @@ export function MinutesByDayChart({ data, selectedDay, todayKeyInView, onSelectD
               >
                 {isClockToday ? 'Today' : 'Viewing'}
               </span>
-            </button>
+            </Tag>
           );
         })}
       </div>
@@ -271,6 +287,7 @@ export function ProgramTodayMinutesChart({ data, emptyMessage, dayPhrase }) {
       metric="minutes"
       emptyMessage={emptyMessage ?? 'No programs scheduled today.'}
       dayPhrase={dayPhrase}
+      includeWeekMinutes
     />
   );
 }

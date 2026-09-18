@@ -24,7 +24,6 @@ import { formatRunGallons, formatGallons, sumGallons, gallonsForRun, formatSched
 import AddValveToProgram from '../components/AddValveToProgram';
 import { valvesRepository } from '../db/valvesRepository';
 import { nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
-import { applyProfileImageChange } from '../utils/profileImageService';
 import { usePrograms } from '../hooks/usePrograms';
 import { useSaves } from '../hooks/useSaves';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
@@ -55,8 +54,7 @@ function ZoneIdentity({ zone, programName, avatarSize = 'w-10 h-10' }) {
 }
 
 function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
-  const { schedules, createSchedule, updateSchedule, deleteSchedule, toggleStatus: toggleSched } = useSchedules(zone.id);
-  const [addSched, setAddSched] = useState(false);
+  const { schedules, updateSchedule, deleteSchedule, toggleStatus: toggleSched } = useSchedules(zone.id);
   const [editSched, setEditSched] = useState(null);
   const [deleteSched, setDeleteSched] = useState(null);
   const [conflictError, setConflictError] = useState(null);
@@ -71,7 +69,6 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
   };
 
   const zoneMenuItems = [
-    { label: 'Add event', icon: Plus, onClick: () => setAddSched(true) },
     { label: 'Edit valve', icon: Pencil, onClick: onEditZone },
     { label: 'Save valve', icon: Bookmark, onClick: onSaveZone },
     { label: zone.status === 'active' ? 'Deactivate valve' : 'Activate valve', icon: Power, onClick: onToggleZone },
@@ -90,22 +87,10 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
 
   const modals = (
     <>
-      {addSched && (
-        <Modal title="Add Event" onClose={() => setAddSched(false)}>
-          <ScheduleForm
-            programId={program.id}
-            programName={program.name}
-            zoneId={zone.id}
-            onSubmit={async data => { await createSchedule(data); setAddSched(false); }}
-            onCancel={() => setAddSched(false)}
-          />
-        </Modal>
-      )}
       {editSched && (
         <Modal title="Edit Event" onClose={() => setEditSched(null)}>
           <ScheduleForm
             initial={editSched}
-            programId={program.id}
             programName={program.name}
             zoneId={zone.id}
             onSubmit={async data => { await updateSchedule(editSched.id, data); setEditSched(null); }}
@@ -125,11 +110,11 @@ function useZoneCycles(zone, { program, onEditZone, onDeleteZone, onToggleZone, 
     </>
   );
 
-  return { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError };
+  return { schedules, zoneMenuItems, scheduleMenuItems, modals, conflictError };
 }
 
 function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone }) {
-  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
+  const { schedules, zoneMenuItems, scheduleMenuItems, modals, conflictError } = useZoneCycles(zone, {
     program,
     onEditZone,
     onDeleteZone,
@@ -199,10 +184,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
         <div className="min-h-0 overflow-hidden" inert={!open} aria-hidden={!open}>
           {schedules.length === 0 ? (
             <div className={`border-t ${theme.border} px-4 py-3.5 text-sm text-black`}>
-              No events.{' '}
-              <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
-                Add one
-              </button>
+              No events. Edit the program to set start times.
             </div>
           ) : (
             <div className={`border-t ${theme.border} divide-y ${theme.border}`}>
@@ -248,7 +230,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
 }
 
 function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone, isFirstZone, zoneIndex, cellClass }) {
-  const { schedules, zoneMenuItems, scheduleMenuItems, modals, setAddSched, conflictError } = useZoneCycles(zone, {
+  const { schedules, zoneMenuItems, scheduleMenuItems, modals, conflictError } = useZoneCycles(zone, {
     program,
     onEditZone,
     onDeleteZone,
@@ -280,10 +262,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
                 </div>
               </td>
               <td colSpan={6} className="px-4 py-3 text-sm text-black">
-                No events.{' '}
-                <button type="button" onClick={() => setAddSched(true)} className="text-brand-600 hover:underline">
-                  Add one
-                </button>
+                No events. Edit the program to set start times.
               </td>
               <td className="px-4 py-3" />
             </tr>
@@ -371,15 +350,16 @@ export default function ProgramDetail() {
   const [editZone, setEditZone] = useState(null);
   const [deleteZone, setDeleteZone] = useState(null);
   const { zones, createZone, addExistingValve, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
-  const { programs: allPrograms } = usePrograms();
+  const { programs: allPrograms, updateProgram } = usePrograms();
   const { saveProgram, saveZone } = useSaves();
   const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [catalogValves, setCatalogValves] = useState([]);
+  const [scheduleRev, setScheduleRev] = useState(0);
   const { selectedDay, weekStart, todayKeyInView, isClockToday } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
-  const { items: todayItems } = useTodaySchedule(selectedDay, weekStart);
+  const { items: todayItems, reload: reloadToday } = useTodaySchedule(selectedDay, weekStart);
   const todayForProgram = todayItems.filter(i => i.program.id === programId);
 
   useEffect(() => {
@@ -403,19 +383,12 @@ export default function ProgramDetail() {
   }, [zones]);
 
   const handleUpdateProgram = async (data) => {
-    if (!programId) return;
-    const { profileImageChange, ...programData } = data;
-    const imageId = await applyProfileImageChange(
-      'program',
-      programId,
-      profileImageChange,
-      program.profile_image_id ?? null,
-    );
-    const updated = await programsRepository.update(programId, {
-      ...programData,
-      profile_image_id: imageId,
-    });
+    if (!programId || zones.length < 1) return;
+    await updateProgram(programId, data);
+    const updated = await programsRepository.getById(programId);
     setProgram(updated);
+    setScheduleRev(value => value + 1);
+    await reloadToday();
     setEditProg(false);
   };
 
@@ -635,7 +608,7 @@ export default function ProgramDetail() {
         <EmptyState
           icon={Clock}
           title="No valves yet"
-          description="Add a valve to start creating schedules."
+          description="Add at least one valve (Create New Valve or Add Existing Valve) before saving program changes."
           action={{ label: 'Add Valve', onClick: () => setAddZone(true) }}
         />
       ) : (
@@ -643,7 +616,7 @@ export default function ProgramDetail() {
           <div className="md:hidden space-y-3">
             {zones.map(zone => (
               <ZoneCard
-                key={zone.id}
+                key={`${zone.id}-${scheduleRev}`}
                 zone={zone}
                 program={program}
                 onEditZone={() => setEditZone(zone)}
@@ -675,7 +648,7 @@ export default function ProgramDetail() {
               <tbody>
                 {zones.map((zone, zoneIndex) => (
                   <ZoneTableRows
-                    key={zone.id}
+                    key={`${zone.id}-${scheduleRev}`}
                     zone={zone}
                     program={program}
                     isFirstZone={zoneIndex === 0}
@@ -701,11 +674,39 @@ export default function ProgramDetail() {
         <Modal title="Edit Program" onClose={() => setEditProg(false)}>
           <ProgramForm
             initial={program}
+            valveCount={zones.length}
             existingNames={allPrograms.filter(p => p.id !== program.id).map(p => p.name)}
             existingPrefixes={allPrograms.filter(p => p.id !== program.id).map(p => p.controller_program).filter(Boolean)}
             onSubmit={handleUpdateProgram}
             onCancel={() => setEditProg(false)}
           />
+          {zones.length < 1 && (
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <AddValveToProgram
+                catalogValves={catalogValves}
+                programValveCounts={programValveCounts}
+                showCancel={false}
+                intro="Add at least one valve before saving. Create a new valve or add an existing one."
+                onAddExisting={async valveId => {
+                  await addExistingValve(valveId);
+                }}
+                onCreateNew={({ onDone }) => (
+                  <ZoneForm
+                    suggestedNumber={suggestedNumber}
+                    existingNumbers={existingNumbers}
+                    defaultColor={theme.id}
+                    showStatus={false}
+                    onSubmit={async data => {
+                      await createZone(data);
+                      onDone();
+                    }}
+                    onCancel={onDone}
+                  />
+                )}
+                onCancel={() => setEditProg(false)}
+              />
+            </div>
+          )}
         </Modal>
       )}
 

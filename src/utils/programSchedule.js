@@ -1,4 +1,10 @@
-import { DAY_ORDER, DAY_LABELS } from './dateUtils';
+import {
+  DAY_ORDER,
+  DAY_LABELS,
+  parseClockTime,
+  parseStartTimes,
+  findStartTimeOverlap,
+} from './dateUtils';
 
 export const WATERING_MODE_WEEKDAY = 'weekday';
 export const WATERING_MODE_INTERVAL = 'interval';
@@ -6,13 +12,26 @@ export const WATERING_MODE_INTERVAL = 'interval';
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const CALENDAR_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+function uniqueTimes(times) {
+  const unique = [];
+  for (const time of times) {
+    if (!unique.includes(time)) unique.push(time);
+  }
+  return unique;
+}
+
+function normalizeDurationMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes < 1) return null;
+  return Math.round(minutes);
+}
+
 /** Defaults for programs created before interval scheduling. */
 export function normalizeProgramSchedule(program = {}) {
   const mode = program.watering_mode === WATERING_MODE_INTERVAL
     ? WATERING_MODE_INTERVAL
     : WATERING_MODE_WEEKDAY;
   const intervalDays = Number(program.interval_days);
-  const neverOn = normalizeNeverOnDays(program.never_on_days);
   return {
     watering_mode: mode,
     interval_days: mode === WATERING_MODE_INTERVAL && Number.isFinite(intervalDays) && intervalDays >= 1
@@ -20,11 +39,14 @@ export function normalizeProgramSchedule(program = {}) {
       : null,
     program_start_date: parseDateOnly(program.program_start_date),
     program_end_date: parseDateOnly(program.program_end_date),
-    never_on_days: mode === WATERING_MODE_INTERVAL ? neverOn : [],
+    never_on_days: normalizeNeverOnDays(program.never_on_days),
+    start_times: uniqueTimes(parseStartTimes(program.start_times)),
+    duration_minutes: normalizeDurationMinutes(program.duration_minutes),
+    days_of_week: normalizeDaysOfWeek(program.days_of_week),
   };
 }
 
-export function normalizeNeverOnDays(days) {
+export function normalizeDayKeys(days) {
   if (!Array.isArray(days)) return [];
   const allowed = new Set(DAY_ORDER);
   const unique = [];
@@ -32,6 +54,14 @@ export function normalizeNeverOnDays(days) {
     if (allowed.has(day) && !unique.includes(day)) unique.push(day);
   }
   return unique.sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+}
+
+export function normalizeNeverOnDays(days) {
+  return normalizeDayKeys(days);
+}
+
+export function normalizeDaysOfWeek(days) {
+  return normalizeDayKeys(days);
 }
 
 export function getDayKeyFromDate(date) {
@@ -105,10 +135,11 @@ export function effectiveIntervalDate(startDate, cycleIndex, intervalDays, never
 
 export function isWithinProgramDateRange(program, date = new Date()) {
   const { program_start_date, program_end_date } = normalizeProgramSchedule(program);
-  if (!program_start_date) return false;
-  const start = parseDateOnlyToLocalDate(program_start_date);
   const day = startOfDay(date);
-  if (day < start) return false;
+  if (program_start_date) {
+    const start = parseDateOnlyToLocalDate(program_start_date);
+    if (day < start) return false;
+  }
   if (!program_end_date) return true;
   const end = parseDateOnlyToLocalDate(program_end_date);
   return day <= end;
@@ -147,6 +178,39 @@ export function isIntervalWateringDay(program, date = new Date()) {
   return false;
 }
 
+/** True when a weekday program should water on this calendar date (never-on slides forward). */
+export function isWeekdayWateringDay(program, date = new Date(), daysOfWeek) {
+  const schedule = normalizeProgramSchedule(program);
+  if (schedule.watering_mode === WATERING_MODE_INTERVAL) return false;
+  if (!isWithinProgramDateRange(program, date)) return false;
+
+  const days = schedule.days_of_week.length > 0
+    ? schedule.days_of_week
+    : normalizeDaysOfWeek(daysOfWeek);
+  if (days.length === 0) return false;
+
+  const target = startOfDay(date);
+  const end = programEndDate(program);
+
+  for (let offset = 0; offset < 7; offset += 1) {
+    const candidate = addDays(target, -offset);
+    if (!isWithinProgramDateRange(program, candidate)) continue;
+    const key = getDayKeyFromDate(candidate);
+    if (!days.includes(key)) continue;
+    const slid = slideIntervalDate(candidate, schedule.never_on_days);
+    if (end && slid > end) continue;
+    if (slid.getTime() === target.getTime()) return true;
+  }
+
+  return false;
+}
+
+function startTimesFromFields(fields) {
+  if (fields.start_times != null) return parseStartTimes(fields.start_times);
+  if (fields.start_times_text != null) return parseStartTimes(fields.start_times_text);
+  return null;
+}
+
 export function validateProgramScheduleFields(fields) {
   const errors = {};
   const mode = fields.watering_mode === WATERING_MODE_INTERVAL
@@ -158,41 +222,83 @@ export function validateProgramScheduleFields(fields) {
     if (!Number.isFinite(intervalDays) || intervalDays < 1 || intervalDays > 365) {
       errors.interval_days = 'Enter every 1–365 days.';
     }
-    const start = parseDateOnly(fields.program_start_date);
-    if (!start) errors.program_start_date = 'Start date is required for interval watering.';
-    if (fields.program_end_mode === 'date') {
-      const end = parseDateOnly(fields.program_end_date);
-      if (!end) errors.program_end_date = 'Enter an end date or choose Never.';
-      else if (start && end < start) errors.program_end_date = 'End date must be on or after the start date.';
+  }
+
+  const start = parseDateOnly(fields.program_start_date);
+  if (!start) {
+    errors.program_start_date = mode === WATERING_MODE_INTERVAL
+      ? 'Start date is required for interval watering.'
+      : 'Start date is required.';
+  }
+  if (fields.program_end_mode === 'date') {
+    const end = parseDateOnly(fields.program_end_date);
+    if (!end) errors.program_end_date = 'Enter an end date or choose Never.';
+    else if (start && end < start) errors.program_end_date = 'End date must be on or after the start date.';
+  }
+
+  const parsedTimes = startTimesFromFields(fields);
+  if (parsedTimes) {
+    const rawParts = Array.isArray(fields.start_times)
+      ? fields.start_times
+      : String(fields.start_times ?? fields.start_times_text ?? '').split(/[\n,]+/);
+    const nonEmpty = rawParts.map(part => String(part).trim()).filter(Boolean);
+    const parsedList = nonEmpty.map(part => parseClockTime(part));
+    if (nonEmpty.length === 0 || parsedList.some(time => time == null)) {
+      errors.start_times = 'Enter at least one start time (04:00 AM, one per line).';
+    } else {
+      const duration = normalizeDurationMinutes(fields.duration_minutes);
+      if (duration && findStartTimeOverlap(parsedList, duration)) {
+        errors.start_times = 'Start times overlap. Each start plus Minutes Watered must not overlap.';
+      }
+    }
+  }
+
+  if (fields.duration_minutes != null && String(fields.duration_minutes).trim() !== '') {
+    if (normalizeDurationMinutes(fields.duration_minutes) == null) {
+      errors.duration_minutes = 'Enter minutes watered (1 or higher).';
+    }
+  }
+
+  if (mode === WATERING_MODE_WEEKDAY && fields.days_of_week != null) {
+    if (normalizeDaysOfWeek(fields.days_of_week).length < 1) {
+      errors.days_of_week = 'Select at least one day of week.';
     }
   }
 
   return errors;
 }
 
+function sharedProgramScheduleFields(fields) {
+  return {
+    program_start_date: parseDateOnly(fields.program_start_date),
+    program_end_date: fields.program_end_mode === 'date'
+      ? parseDateOnly(fields.program_end_date)
+      : null,
+    never_on_days: normalizeNeverOnDays(fields.never_on_days),
+    start_times: uniqueTimes(parseStartTimes(fields.start_times ?? fields.start_times_text)),
+    duration_minutes: normalizeDurationMinutes(fields.duration_minutes),
+    days_of_week: normalizeDaysOfWeek(fields.days_of_week),
+  };
+}
+
 export function programSchedulePayload(fields) {
   const mode = fields.watering_mode === WATERING_MODE_INTERVAL
     ? WATERING_MODE_INTERVAL
     : WATERING_MODE_WEEKDAY;
+  const shared = sharedProgramScheduleFields(fields);
 
   if (mode === WATERING_MODE_WEEKDAY) {
     return {
       watering_mode: WATERING_MODE_WEEKDAY,
       interval_days: null,
-      program_start_date: null,
-      program_end_date: null,
-      never_on_days: [],
+      ...shared,
     };
   }
 
   return {
     watering_mode: WATERING_MODE_INTERVAL,
     interval_days: Math.round(Number(fields.interval_days)),
-    program_start_date: parseDateOnly(fields.program_start_date),
-    program_end_date: fields.program_end_mode === 'date'
-      ? parseDateOnly(fields.program_end_date)
-      : null,
-    never_on_days: normalizeNeverOnDays(fields.never_on_days),
+    ...shared,
   };
 }
 
@@ -216,7 +322,7 @@ export function formatNeverOnSummary(program) {
 
 export function formatProgramDateRange(program) {
   const schedule = normalizeProgramSchedule(program);
-  if (schedule.watering_mode !== WATERING_MODE_INTERVAL || !schedule.program_start_date) return null;
+  if (!schedule.program_start_date) return null;
 
   const startLabel = formatDisplayDate(schedule.program_start_date);
   if (!schedule.program_end_date) {
@@ -244,7 +350,58 @@ export function initialProgramScheduleFields(program) {
     program_end_mode: schedule.program_end_date ? 'date' : 'never',
     program_end_date: schedule.program_end_date ?? '',
     never_on_days: schedule.never_on_days ?? [],
+    start_times: schedule.start_times ?? [],
+    duration_minutes: schedule.duration_minutes ?? 15,
+    days_of_week: schedule.days_of_week ?? [],
   };
+}
+
+/** One derived event per program start time (same minutes and days on each). */
+export function programScheduleEventTemplates(program = {}) {
+  const schedule = normalizeProgramSchedule(program);
+  if (schedule.start_times.length === 0 || schedule.duration_minutes == null) return [];
+  return schedule.start_times.map((start_time, index) => ({
+    start_time,
+    duration_minutes: schedule.duration_minutes,
+    days_of_week: [...schedule.days_of_week],
+    cycle: index + 1,
+  }));
+}
+
+/**
+ * Match existing zone rows to program templates: same start time first,
+ * then leftover rows in start-time order. Notes/status stay on the reused row.
+ */
+export function planZoneScheduleUpsert(existingRows = [], templates = []) {
+  const unused = [...existingRows].sort((a, b) =>
+    String(a.start_time ?? '').localeCompare(String(b.start_time ?? '')),
+  );
+  const updates = [];
+  const creates = [];
+
+  for (const template of templates) {
+    let index = unused.findIndex(row => row.start_time === template.start_time);
+    if (index < 0 && unused.length > 0) index = 0;
+    if (index >= 0) {
+      const row = unused.splice(index, 1)[0];
+      updates.push({
+        id: row.id,
+        start_time: template.start_time,
+        duration_minutes: template.duration_minutes,
+        days_of_week: [...template.days_of_week],
+        cycle: template.cycle,
+      });
+    } else {
+      creates.push({
+        start_time: template.start_time,
+        duration_minutes: template.duration_minutes,
+        days_of_week: [...template.days_of_week],
+        cycle: template.cycle,
+      });
+    }
+  }
+
+  return { updates, creates, deletes: unused.map(row => row.id) };
 }
 
 export { DAY_ORDER, DAY_LABELS };

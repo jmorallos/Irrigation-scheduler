@@ -1,27 +1,33 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
 import { useMainSchedule } from '../hooks/useMainSchedule';
-import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDaysCompact, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
+import { DAY_ORDER, DAY_LABELS, formatTime, formatTime24, formatDays, getEndTime, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
-import { soakMinutesFromHours, withDailyRuntimeOnce, scheduleTableTotals } from '../utils/scheduleStats';
+import { soakMinutesFromHours, scheduleTableTotals } from '../utils/scheduleStats';
 import { formatGallonsNumber, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
 import { effectiveScheduleDays, isIntervalProgram } from '../utils/wateringCalendar';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
+import { buildScheduleChartData } from '../utils/chartData';
+import { programsRepository } from '../db/programsRepository';
+import { zonesRepository } from '../db/zonesRepository';
+import { schedulesRepository } from '../db/schedulesRepository';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
+import { MinutesByDayChart } from '../components/DashboardCharts';
 import { useSelectedDay } from '../context/SelectedDayContext';
 import WeekNav from '../components/WeekNav';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
 
-const TH_MAIN =
-  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900';
+const TH_BASE =
+  'sticky z-20 px-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap bg-navy-900 select-none cursor-pointer [-webkit-tap-highlight-color:transparent]';
 
-const TH_SORT =
-  `${TH_MAIN} select-none cursor-pointer [-webkit-tap-highlight-color:transparent]`;
+const TH_TOP = `${TH_BASE} top-0 pt-2.5 pb-0.5`;
+const TH_BOT = `${TH_BASE} top-7 pt-0.5 pb-2.5`;
+const TH_SPAN = `${TH_BASE} top-0 py-3 align-middle`;
 
 function programSortKey(row) {
   return `${(row.program.controller_program ?? '').toUpperCase()}\0${(row.program.name ?? '').toLowerCase()}`;
@@ -55,8 +61,11 @@ function compareNullableNumber(a, b) {
 
 function compareRows(a, b, key) {
   switch (key) {
-    case 'program':
+    case 'programPrefix':
       return programSortKey(a).localeCompare(programSortKey(b));
+    case 'programName':
+      return `${(a.program.name ?? '').toLowerCase()}\0${programSortKey(a)}`
+        .localeCompare(`${(b.program.name ?? '').toLowerCase()}\0${programSortKey(b)}`);
     case 'valveNumber':
       return compareNullableNumber(
         a.zoneNumber == null ? null : Number(a.zoneNumber),
@@ -87,11 +96,6 @@ function compareRows(a, b, key) {
       return compareNullableNumber(
         a.soakHours == null ? null : soakMinutesFromHours(a.soakHours),
         b.soakHours == null ? null : soakMinutesFromHours(b.soakHours),
-      );
-    case 'dailyRuntime':
-      return compareNullableNumber(
-        a.dailyRuntime == null ? null : Number(a.dailyRuntime),
-        b.dailyRuntime == null ? null : Number(b.dailyRuntime),
       );
     case 'days':
       return daysSortKey(a).localeCompare(daysSortKey(b));
@@ -124,19 +128,41 @@ export default function WeeklySchedule() {
   const { rows, loading: tableLoading } = useMainSchedule();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  const loading = weekLoading || tableLoading;
+  const [minutesByDay, setMinutesByDay] = useState([]);
+  const [chartLoading, setChartLoading] = useState(true);
+  const weekStartMs = weekStart instanceof Date ? weekStart.getTime() : Number(weekStart);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setChartLoading(true);
+      try {
+        const charts = await buildScheduleChartData({
+          programsRepository,
+          zonesRepository,
+          schedulesRepository,
+          referenceDate: new Date(weekStartMs),
+        });
+        if (!cancelled) setMinutesByDay(charts.minutesByDay);
+      } catch {
+        if (!cancelled) setMinutesByDay([]);
+      } finally {
+        if (!cancelled) setChartLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [weekStartMs]);
+
+  const loading = weekLoading || tableLoading || chartLoading;
 
   const displayRows = useMemo(() => {
-    let list = rows;
-    if (sort.key) {
-      const sorted = [...rows].sort((a, b) => {
-        let cmp = compareRows(a, b, sort.key);
-        if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
-        return sort.dir === 'desc' ? -cmp : cmp;
-      });
-      list = sorted;
-    }
-    return withDailyRuntimeOnce(list);
+    if (!sort.key) return rows;
+    return [...rows].sort((a, b) => {
+      let cmp = compareRows(a, b, sort.key);
+      if (cmp === 0) cmp = a.schedule.start_time.localeCompare(b.schedule.start_time);
+      return sort.dir === 'desc' ? -cmp : cmp;
+    });
   }, [rows, sort]);
 
   const totals = useMemo(() => scheduleTableTotals(displayRows), [displayRows]);
@@ -188,45 +214,69 @@ export default function WeeklySchedule() {
               />
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
+              <div className="p-5">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
+                  Minutes by Day
+                </h2>
+                <MinutesByDayChart
+                  data={minutesByDay}
+                  selectedDay={selectedDay}
+                  todayKeyInView={todayKeyInView}
+                />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
               <div className="table-h-scroll">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
                   <tr className="text-white">
-                    <th onClick={() => toggleSort('program')} className={TH_SORT}>
-                      Program{sortMark(sort, 'program')}
-                    </th>
-                    <th onClick={() => toggleSort('valveNumber')} className={TH_SORT}>
-                      Valve #{sortMark(sort, 'valveNumber')}
-                    </th>
-                    <th onClick={() => toggleSort('zoneName')} className={TH_SORT}>
-                      Valve Name{sortMark(sort, 'zoneName')}
-                    </th>
-                    <th onClick={() => toggleSort('start')} className={TH_SORT}>
-                      Start{sortMark(sort, 'start')}
-                    </th>
-                    <th onClick={() => toggleSort('end')} className={TH_SORT}>
-                      End{sortMark(sort, 'end')}
-                    </th>
-                    <th onClick={() => toggleSort('duration')} className={TH_SORT}>
-                      Duration (Min){sortMark(sort, 'duration')}
-                    </th>
-                    <th onClick={() => toggleSort('gallons')} className={TH_SORT}>
-                      Gallons{sortMark(sort, 'gallons')}
-                    </th>
-                    <th onClick={() => toggleSort('weekGallons')} className={TH_SORT}>
-                      Gal / Week{sortMark(sort, 'weekGallons')}
-                    </th>
-                    <th onClick={() => toggleSort('soak')} className={TH_SORT}>
-                      Soak (Min){sortMark(sort, 'soak')}
-                    </th>
-                    <th onClick={() => toggleSort('dailyRuntime')} className={TH_SORT}>
-                      Daily runtime (Min){sortMark(sort, 'dailyRuntime')}
-                    </th>
-                    <th onClick={() => toggleSort('days')} className={TH_SORT}>
+                    <th onClick={() => toggleSort('programPrefix')} className={TH_TOP}>Prgm</th>
+                    <th onClick={() => toggleSort('programName')} className={TH_TOP}>Prgm</th>
+                    <th onClick={() => toggleSort('days')} rowSpan={2} className={TH_SPAN}>
                       Days{sortMark(sort, 'days')}
                     </th>
-                    <th onClick={() => toggleSort('notes')} className={TH_SORT}>
+                    <th onClick={() => toggleSort('valveNumber')} className={TH_TOP}>Valve</th>
+                    <th onClick={() => toggleSort('zoneName')} className={TH_TOP}>Valve</th>
+                    <th onClick={() => toggleSort('start')} className={TH_TOP}>Start</th>
+                    <th onClick={() => toggleSort('end')} className={TH_TOP}>End</th>
+                    <th onClick={() => toggleSort('duration')} className={TH_TOP}>Min</th>
+                    <th onClick={() => toggleSort('soak')} className={TH_TOP}>Daily</th>
+                    <th onClick={() => toggleSort('gallons')} className={TH_TOP}>Gallons</th>
+                    <th onClick={() => toggleSort('weekGallons')} className={TH_TOP}>Gallons</th>
+                    <th onClick={() => toggleSort('notes')} rowSpan={2} className={TH_SPAN}>
                       Notes{sortMark(sort, 'notes')}
+                    </th>
+                  </tr>
+                  <tr className="text-white">
+                    <th onClick={() => toggleSort('programPrefix')} className={TH_BOT}>
+                      Prefix{sortMark(sort, 'programPrefix')}
+                    </th>
+                    <th onClick={() => toggleSort('programName')} className={TH_BOT}>
+                      Name{sortMark(sort, 'programName')}
+                    </th>
+                    <th onClick={() => toggleSort('valveNumber')} className={TH_BOT}>
+                      #{sortMark(sort, 'valveNumber')}
+                    </th>
+                    <th onClick={() => toggleSort('zoneName')} className={TH_BOT}>
+                      Name{sortMark(sort, 'zoneName')}
+                    </th>
+                    <th onClick={() => toggleSort('start')} className={TH_BOT}>
+                      Time{sortMark(sort, 'start')}
+                    </th>
+                    <th onClick={() => toggleSort('end')} className={TH_BOT}>
+                      Time{sortMark(sort, 'end')}
+                    </th>
+                    <th onClick={() => toggleSort('duration')} className={TH_BOT}>
+                      Run{sortMark(sort, 'duration')}
+                    </th>
+                    <th onClick={() => toggleSort('soak')} className={TH_BOT}>
+                      Soak Min{sortMark(sort, 'soak')}
+                    </th>
+                    <th onClick={() => toggleSort('gallons')} className={TH_BOT}>
+                      Day{sortMark(sort, 'gallons')}
+                    </th>
+                    <th onClick={() => toggleSort('weekGallons')} className={TH_BOT}>
+                      Week{sortMark(sort, 'weekGallons')}
                     </th>
                   </tr>
                 </thead>
@@ -247,6 +297,22 @@ export default function WeeklySchedule() {
                           <ProgramBadge code={row.program.controller_program} color={row.program.color} size="sm" />
                         </Link>
                       </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left text-navy-900">
+                        <Link
+                          to={`/programs/${row.program.id}`}
+                          className="hover:opacity-80"
+                          title={row.program.name || row.program.controller_program}
+                        >
+                          {row.program.name || '—'}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
+                        {formatDays(
+                          isIntervalProgram(row.program)
+                            ? effectiveScheduleDays(row.program, row.schedule)
+                            : (row.schedule.days_of_week ?? []),
+                        )}
+                      </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {row.zoneNumber ?? '—'}
                       </td>
@@ -263,23 +329,13 @@ export default function WeeklySchedule() {
                         {row.schedule.duration_minutes}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
+                        {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {formatGallonsNumber(scheduleRowGallons(row.zone, row.schedule)) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
                         {formatGallonsNumber(scheduleRowWeekGallons(row.zone, row.schedule, row.program)) ?? '—'}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {row.soakHours == null ? '—' : soakMinutesFromHours(row.soakHours)}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {row.showDailyRuntime && row.dailyRuntime != null ? row.dailyRuntime : '—'}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-navy-900">
-                        {formatDaysCompact(
-                          isIntervalProgram(row.program)
-                            ? effectiveScheduleDays(row.program, row.schedule)
-                            : row.schedule.days_of_week,
-                        )}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left text-black">
                         {row.schedule.notes || '—'}
@@ -290,23 +346,20 @@ export default function WeeklySchedule() {
                 {displayRows.length > 0 && (
                   <tfoot>
                     <tr className="border-t-2 border-navy-900 bg-slate-50">
-                      <td className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-navy-900" colSpan={5}>
+                      <td className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-navy-900" colSpan={7}>
                         Total
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {totals.durationTotal}
                       </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-black">—</td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {formatGallonsNumber(totals.gallonsTotal) ?? '—'}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
                         {formatGallonsNumber(totals.weekGallonsTotal) ?? '—'}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono text-black">—</td>
-                      <td className="px-3 py-3 whitespace-nowrap text-left font-mono font-semibold text-navy-900">
-                        {totals.dailyRuntimeTotal}
-                      </td>
-                      <td className="px-3 py-3" colSpan={2} />
+                      <td className="px-3 py-3" />
                     </tr>
                   </tfoot>
                 )}

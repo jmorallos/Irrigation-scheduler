@@ -15,30 +15,68 @@ import ActionMenu from '../components/ActionMenu';
 import { getZoneDisplayName, getZoneShortName } from '../utils/scheduleUtils';
 import { groupValvesCatalog, nextValveNumber, takenValveNumbers, programsForMemberships } from '../utils/zoneIdentity';
 import { getZoneTheme } from '../utils/programColors';
-import { formatLastRun, formatNextRun, groupSchedulesByZoneId } from '../utils/valveRuns';
-import { useColumnAlign } from '../hooks/useColumnAlign';
-
-const ZONES_ALIGN = {
-  number: 'left',
-  name: 'left',
-  color: 'left',
-  program: 'left',
-  lastRun: 'left',
-  nextRun: 'left',
-};
+import { computeLatestLastWater, formatRunAt, formatRunTime, groupSchedulesByZoneId } from '../utils/valveRuns';
 
 const TH_ZONES =
-  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none cursor-pointer [-webkit-tap-highlight-color:transparent]';
+
+function compareNullableNumber(a, b) {
+  const aNull = a == null || Number.isNaN(a);
+  const bNull = b == null || Number.isNaN(b);
+  if (aNull && bNull) return 0;
+  if (aNull) return 1;
+  if (bNull) return -1;
+  return a - b;
+}
+
+function compareNullableText(a, b) {
+  const aEmpty = a == null || a === '';
+  const bEmpty = b == null || b === '';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  return String(a).localeCompare(String(b));
+}
+
+function compareRows(a, b, key) {
+  switch (key) {
+    case 'number':
+      return compareNullableNumber(
+        a.number == null ? null : Number(a.number),
+        b.number == null ? null : Number(b.number),
+      );
+    case 'name':
+      return compareNullableText(a.nameKey, b.nameKey);
+    case 'program':
+      return compareNullableText(a.programKey, b.programKey);
+    case 'lastWater':
+      return compareNullableText(
+        a.lastWater ? `${a.lastWater.date}T${a.lastWater.startTime ?? ''}` : null,
+        b.lastWater ? `${b.lastWater.date}T${b.lastWater.startTime ?? ''}` : null,
+      );
+    case 'time':
+      return compareNullableText(a.lastWater?.startTime, b.lastWater?.startTime);
+    case 'minutes':
+      return compareNullableNumber(a.lastWater?.durationMinutes, b.lastWater?.durationMinutes);
+    default:
+      return 0;
+  }
+}
+
+function sortMark(sort, key) {
+  if (sort.key !== key) return '';
+  return sort.dir === 'asc' ? ' ↑' : ' ↓';
+}
 
 export default function Zones() {
   const navigate = useNavigate();
   const { valves, memberships, schedules, loading, error, reload, createValve, updateValve, deleteValve } = useAllZones();
   const { programs } = usePrograms();
-  const { cycle, cellClass, flexClass } = useColumnAlign('zones-align', ZONES_ALIGN);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
 
   const programsById = useMemo(
     () => new Map(programs.map(program => [program.id, program])),
@@ -49,11 +87,53 @@ export default function Zones() {
   const suggestedNumber = useMemo(() => nextValveNumber(valves), [valves]);
   const schedulesByMembershipId = useMemo(() => groupSchedulesByZoneId(schedules), [schedules]);
 
+  const rows = useMemo(() => {
+    const list = groups.map((group) => {
+      const valve = group.valve;
+      const displayName = getZoneDisplayName(valve);
+      const shortName = getZoneShortName(valve) || displayName;
+      const memberPrograms = programsForMemberships(group.memberships, programsById);
+      const programNames = memberPrograms.map(program => program.name);
+      const lastWater = computeLatestLastWater({
+        memberships: group.memberships,
+        programsById,
+        schedulesByMembershipId,
+      });
+      return {
+        group,
+        valve,
+        displayName,
+        shortName,
+        memberPrograms,
+        programNames,
+        firstProgram: memberPrograms[0] ?? null,
+        lastWater,
+        number: group.number,
+        nameKey: shortName.toLowerCase(),
+        programKey: programNames.join(', ').toLowerCase(),
+      };
+    });
+    if (!sort.key) return list;
+    return [...list].sort((a, b) => {
+      let cmp = compareRows(a, b, sort.key);
+      if (cmp === 0) cmp = compareNullableNumber(Number(a.number), Number(b.number));
+      return sort.dir === 'desc' ? -cmp : cmp;
+    });
+  }, [groups, programsById, schedulesByMembershipId, sort]);
+
+  const toggleSort = (key) => {
+    setSort(prev => (
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' }
+    ));
+  };
+
   if (loading) return <div className="py-16 text-center text-sm text-black">Loading valves…</div>;
   if (error) return <PageError message={`Could not load valves: ${error}`} onRetry={reload} />;
 
   return (
-    <div className="min-w-0 w-full overflow-x-hidden">
+    <div className="min-w-0 w-full">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Valves</h1>
@@ -86,24 +166,31 @@ export default function Zones() {
               <thead>
                 <tr className="text-white">
                   <th className="sticky top-0 z-20 w-[4.5rem] min-w-[4.5rem] p-0 bg-navy-900" aria-hidden="true"></th>
-                  <th onClick={() => cycle('number')} className={TH_ZONES}>Valve #</th>
-                  <th onClick={() => cycle('name')} className={TH_ZONES}>Valve Name</th>
-                  <th onClick={() => cycle('color')} className={`${TH_ZONES} hidden sm:table-cell`}>Color</th>
-                  <th onClick={() => cycle('program')} className={TH_ZONES}>Programs</th>
-                  <th onClick={() => cycle('lastRun')} className={TH_ZONES}>Last Run</th>
-                  <th onClick={() => cycle('nextRun')} className={TH_ZONES}>Next Run</th>
+                  <th onClick={() => toggleSort('number')} className={TH_ZONES}>
+                    Valve #{sortMark(sort, 'number')}
+                  </th>
+                  <th onClick={() => toggleSort('name')} className={TH_ZONES}>
+                    Valve Name{sortMark(sort, 'name')}
+                  </th>
+                  <th onClick={() => toggleSort('program')} className={TH_ZONES}>
+                    Program{sortMark(sort, 'program')}
+                  </th>
+                  <th onClick={() => toggleSort('lastWater')} className={TH_ZONES}>
+                    Last Water{sortMark(sort, 'lastWater')}
+                  </th>
+                  <th onClick={() => toggleSort('time')} className={TH_ZONES}>
+                    Time{sortMark(sort, 'time')}
+                  </th>
+                  <th onClick={() => toggleSort('minutes')} className={TH_ZONES}>
+                    Minutes{sortMark(sort, 'minutes')}
+                  </th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => {
-                  const valve = group.valve;
+                {rows.map((row) => {
+                  const { group, valve, displayName, shortName, memberPrograms, programNames, firstProgram, lastWater } = row;
                   const theme = getZoneTheme(valve, null);
-                  const displayName = getZoneDisplayName(valve);
-                  const shortName = getZoneShortName(valve) || displayName;
-                  const memberPrograms = programsForMemberships(group.memberships, programsById);
-                  const programNames = memberPrograms.map(program => program.name);
-                  const firstProgram = memberPrograms[0] ?? null;
 
                   return (
                     <tr
@@ -140,22 +227,14 @@ export default function Zones() {
                           </div>
                         )}
                       </td>
-                      <td className={`px-4 py-4 font-mono font-semibold text-navy-900 ${cellClass('number')}`}>
-                        {group.number}
+                      <td className="px-4 py-4 font-mono font-semibold text-navy-900 text-left">
+                        {group.number ?? '—'}
                       </td>
-                      <td className={`px-4 py-4 text-navy-900 font-medium ${cellClass('name')}`}>
-                        {shortName}
+                      <td className="px-4 py-4 whitespace-nowrap text-navy-900 font-medium text-left">
+                        {shortName || '—'}
                       </td>
-                      <td className={`px-4 py-4 hidden sm:table-cell ${cellClass('color')}`}>
-                        <span
-                          className="inline-block w-5 h-5 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: theme.badgeHex }}
-                          title={theme.label}
-                          aria-label={theme.label}
-                        />
-                      </td>
-                      <td className={`px-4 py-4 ${cellClass('program')}`}>
-                        <div className={`flex items-center gap-2 min-w-0 ${flexClass('program')}`}>
+                      <td className="px-4 py-4 whitespace-nowrap text-left">
+                        <div className="flex items-center justify-start gap-2">
                           {memberPrograms.length > 0 && (
                             <div className="flex items-center gap-1 flex-shrink-0">
                               {memberPrograms.map(program => (
@@ -168,19 +247,17 @@ export default function Zones() {
                               ))}
                             </div>
                           )}
-                          <span className="truncate text-black">{programNames.join(', ') || '—'}</span>
+                          <span className="whitespace-nowrap text-black">{programNames.join(', ') || '—'}</span>
                         </div>
                       </td>
-                      <td className={`px-4 py-4 whitespace-nowrap text-sm text-black ${cellClass('lastRun')}`}>
-                        {formatLastRun(valve) ?? '—'}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-black text-left">
+                        {lastWater ? formatRunAt(lastWater.date, null) : '—'}
                       </td>
-                      <td className={`px-4 py-4 whitespace-nowrap text-sm text-black ${cellClass('nextRun')}`}>
-                        {formatNextRun({
-                          valve,
-                          memberships: group.memberships,
-                          programsById,
-                          schedulesByMembershipId,
-                        }) ?? '—'}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-black text-left">
+                        {lastWater?.startTime ? formatRunTime(lastWater.startTime) : '—'}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-black text-left font-mono">
+                        {lastWater?.durationMinutes != null ? lastWater.durationMinutes : '—'}
                       </td>
                       <td className="px-4 py-4 text-right">
                         <ActionMenu
