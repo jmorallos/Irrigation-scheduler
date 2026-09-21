@@ -93,7 +93,7 @@ export default function Zones() {
       const displayName = getZoneDisplayName(valve);
       const shortName = getZoneShortName(valve) || displayName;
       const memberPrograms = programsForMemberships(group.memberships, programsById);
-      const programNames = memberPrograms.map(program => program.name);
+      const programPrefixes = memberPrograms.map(program => program.controller_program).filter(Boolean);
       const lastWater = computeLatestLastWater({
         memberships: group.memberships,
         programsById,
@@ -105,12 +105,11 @@ export default function Zones() {
         displayName,
         shortName,
         memberPrograms,
-        programNames,
         firstProgram: memberPrograms[0] ?? null,
         lastWater,
         number: group.number,
         nameKey: shortName.toLowerCase(),
-        programKey: programNames.join(', ').toLowerCase(),
+        programKey: programPrefixes.join(', ').toLowerCase(),
       };
     });
     if (!sort.key) return list;
@@ -189,7 +188,7 @@ export default function Zones() {
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const { group, valve, displayName, shortName, memberPrograms, programNames, firstProgram, lastWater } = row;
+                  const { group, valve, displayName, shortName, memberPrograms, firstProgram, lastWater } = row;
                   const theme = getZoneTheme(valve, null);
 
                   return (
@@ -234,21 +233,20 @@ export default function Zones() {
                         {shortName || '—'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-left">
-                        <div className="flex items-center justify-start gap-2">
-                          {memberPrograms.length > 0 && (
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {memberPrograms.map(program => (
-                                <ProgramBadge
-                                  key={program.id}
-                                  code={program.controller_program}
-                                  color={program.color}
-                                  size="sm"
-                                />
-                              ))}
-                            </div>
-                          )}
-                          <span className="whitespace-nowrap text-black">{programNames.join(', ') || '—'}</span>
-                        </div>
+                        {memberPrograms.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            {memberPrograms.map(program => (
+                              <ProgramBadge
+                                key={program.id}
+                                code={program.controller_program}
+                                color={program.color}
+                                size="sm"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-black">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-black text-left">
                         {lastWater ? formatRunAt(lastWater.date, null) : '—'}
