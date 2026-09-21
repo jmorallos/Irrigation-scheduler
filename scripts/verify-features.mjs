@@ -70,6 +70,7 @@ import {
   buildProgramListSummary,
   formatCycleListItem,
   formatCycleWindow,
+  formatListStamp,
   formatValveWindow,
   formatWeekdaysHyphen,
 } from '../src/utils/programListSummary.js';
@@ -1213,6 +1214,8 @@ assert(formatCycleWindow('04:00', 105) === '4:00-5:45 AM', 'cycle window compact
 assert(formatCycleWindow('08:30', 60) === '8:30-9:30 AM', 'cycle window hour later');
 assert(formatCycleListItem(0, '04:00', 105) === 'Event 1 - 4:00-5:45 AM', 'event item numbered from 1');
 assert(formatValveWindow('04:00', 105) === '4:00-5:45 AM, 105 min', 'valve window includes minutes');
+assert(formatListStamp('2026-09-11', '10:00') === 'Fri, Sep 11, 10:00 AM', 'list stamp date and time');
+assert(formatListStamp('2026-09-11', null) === 'Fri, Sep 11', 'list stamp date only');
 assert(formatWeekdaysHyphen(['sat', 'mon', 'wed', 'fri']) === 'Mon, Wed, Fri, Sat', 'weekdays comma ordered');
 assert(formatWeekdaysHyphen([]) === '—', 'empty weekdays dash');
 const listFrom = new Date(2026, 8, 3);
@@ -1252,6 +1255,9 @@ assert(
   weekdaySummary.valveWindowsLabel === '1: 4:00-5:45 AM, 105 min; 10:00-10:45 AM, 45 min',
   'valve windows time range and minutes',
 );
+assert(weekdaySummary.valveWindowRows.length === 2, 'valve window rows are one per start');
+assert(weekdaySummary.valveWindowRows[0].minutes === 105, 'first valve window minutes');
+assert(weekdaySummary.progTotalMinutes === 150, 'prog total minutes number');
 assert(weekdaySummary.valvesLabel === '1, 5', 'valve numbers sorted');
 assert(weekdaySummary.startLabel.includes('Aug 31'), 'weekday start date when persisted');
 assert(weekdaySummary.endLabel === 'Never', 'weekday end is Never');

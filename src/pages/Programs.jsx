@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Eye, Power, List, Bookmark } from 'lucide-react';
 import { useProgramCatalog, usePrograms } from '../hooks/usePrograms';
@@ -31,50 +31,47 @@ async function resolveCreatedProgramId(name) {
   return matches[0]?.id ?? null;
 }
 
-function SummaryLine({ label, value }) {
-  return (
-    <p className="whitespace-nowrap">
-      <span className="font-semibold text-navy-900">{label}:</span>{' '}
-      <span>{value}</span>
-    </p>
-  );
-}
-
-function ProgramScheduleSummary({ summary }) {
-  if (!summary) return null;
-  const valveWindows = summary.valveWindows ?? [];
-  return (
-    <div className="mt-1.5 space-y-0.5 text-sm text-black">
-      <SummaryLine label="Minutes" value={summary.minutesLabel} />
-      <SummaryLine label="Last Water" value={summary.lastWaterLabel} />
-      <SummaryLine label="Next Water" value={summary.nextWaterLabel} />
-      <SummaryLine label="Days" value={summary.daysLabel} />
-      {valveWindows.length === 0 ? (
-        <SummaryLine label="Valves" value="—" />
-      ) : (
-        valveWindows.map((window, index) => (
-          <SummaryLine
-            key={`${window.valveNumber}-${index}`}
-            label={String(window.valveNumber)}
-            value={window.label}
-          />
-        ))
-      )}
-      <SummaryLine label="Start Date" value={summary.startLabel} />
-      <SummaryLine label="End Date" value={summary.endLabel} />
-      <SummaryLine label="Prog Total" value={summary.progTotalLabel} />
-    </div>
-  );
+function programDetailRows(summary) {
+  if (!summary) return [];
+  const rows = [
+    { key: 'last', label: 'Last Water', value: summary.lastWaterLabel },
+    { key: 'next', label: 'Next Water', value: summary.nextWaterLabel },
+    { key: 'days', label: 'Days', value: summary.daysLabel },
+  ];
+  const windows = summary.valveWindowRows ?? [];
+  if (windows.length === 0) {
+    rows.push({ key: 'valves', label: 'Valves', value: '—' });
+  } else {
+    windows.forEach((window, index) => {
+      rows.push({
+        key: `valve-${window.valveNumber}-${index}`,
+        label: `Valve ${window.valveNumber}`,
+        value: window.timeRangeLabel,
+        minutes: window.minutes,
+      });
+    });
+  }
+  rows.push({ key: 'start', label: 'Start Date', value: summary.startLabel });
+  rows.push({ key: 'end', label: 'End Date', value: summary.endLabel });
+  const totalMinutes = Number(summary.progTotalMinutes) || 0;
+  rows.push({
+    key: 'total',
+    label: 'Prog Total',
+    value: '',
+    minutes: totalMinutes > 0 ? totalMinutes : null,
+  });
+  return rows;
 }
 
 const PROGRAMS_ALIGN = {
-  letter: 'left',
+  prefix: 'left',
   name: 'left',
+  minutes: 'right',
   status: 'left',
 };
 
 const TH_PROGRAMS =
-  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
 
 export default function Programs() {
   const navigate = useNavigate();
@@ -236,79 +233,107 @@ export default function Programs() {
 
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
             <div className="table-h-scroll">
-            <table className="w-full text-sm border-separate border-spacing-0">
+            <table className="w-full text-sm border-collapse table-fixed">
+              <colgroup>
+                <col className="w-36" />
+                <col className="w-14" />
+                <col className="w-52" />
+                <col className="w-20" />
+                <col className="w-24" />
+                <col className="w-14" />
+                <col />
+              </colgroup>
               <thead>
                 <tr className="text-white">
-                  <th onClick={() => cycle('letter')} className={`${TH_PROGRAMS} w-10`} aria-label="Controller program"></th>
-                  <th onClick={() => cycle('name')} className={TH_PROGRAMS}>Program Name</th>
+                  <th className={TH_PROGRAMS} aria-label="Program photo"></th>
+                  <th onClick={() => cycle('prefix')} className={TH_PROGRAMS}>
+                    <span className="block leading-4">Prog</span>
+                    <span className="block leading-4">Prefix</span>
+                  </th>
+                  <th onClick={() => cycle('name')} className={TH_PROGRAMS}>
+                    <span className="block leading-4">Program</span>
+                    <span className="block leading-4">Name</span>
+                  </th>
+                  <th onClick={() => cycle('minutes')} className={TH_PROGRAMS}>Minutes</th>
                   <th onClick={() => cycle('status')} className={TH_PROGRAMS}>Status</th>
-                  <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-14 bg-navy-900"></th>
+                  <th className={TH_PROGRAMS}></th>
+                  <th className={TH_PROGRAMS} aria-hidden="true"></th>
                 </tr>
               </thead>
               <tbody>
                 {programs.map((program) => {
                   const theme = getProgramTheme(program);
                   const summary = summaries.get(program.id);
+                  const detailRows = programDetailRows(summary);
+                  const menuSpan = 1 + detailRows.length;
+                  const openProgram = () => navigate(`/programs/${program.id}`, { state: { program } });
+                  const rowClass = `cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`;
+                  const rowStyle = { backgroundColor: theme.rowHex };
                   return (
+                  <Fragment key={program.id}>
                   <tr
-                    key={program.id}
                     role="link"
                     tabIndex={0}
-                    onClick={() => navigate(`/programs/${program.id}`, { state: { program } })}
+                    onClick={openProgram}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigate(`/programs/${program.id}`, { state: { program } });
+                        openProgram();
                       }
                     }}
-                    className={`border-b ${theme.border} last:border-0 cursor-pointer transition-colors duration-200 ease-in-out ${theme.row} ${theme.hover}`}
-                    style={{ backgroundColor: theme.rowHex, borderColor: theme.borderHex }}
+                    className={rowClass}
+                    style={rowStyle}
                   >
-                    <td className={`px-4 py-4 align-top ${cellClass('letter')}`}>
-                      <ProgramBadge code={program.controller_program} color={program.color} size="md" />
-                    </td>
-                    <td className={`px-4 py-4 ${cellClass('name')}`}>
-                      <div className={`flex items-start gap-3 min-w-0 ${flexClass('name')}`}>
-                        {program.profile_image_id ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPhotoPreview({
-                                profileImageId: program.profile_image_id,
-                                name: program.name,
-                              });
-                            }}
-                            className="w-10 h-10 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
-                            aria-label={`View photo of ${program.name}`}
-                          >
-                            <ProgramLogo
-                              name={program.name}
-                              profileImageId={program.profile_image_id}
-                              size="fill"
-                              square
-                            />
-                          </button>
-                        ) : (
-                          <div className="w-10 h-10 flex-shrink-0">
-                            <ProgramLogo
-                              name={program.name}
-                              profileImageId={program.profile_image_id}
-                              size="fill"
-                              square
-                            />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-semibold text-navy-900 truncate">{program.name}</p>
-                          <ProgramScheduleSummary summary={summary} />
+                    <td className="px-3 pt-4 pb-2 align-top" style={rowStyle}>
+                      {program.profile_image_id ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPhotoPreview({
+                              profileImageId: program.profile_image_id,
+                              name: program.name,
+                            });
+                          }}
+                          className="w-16 h-16 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                          aria-label={`View photo of ${program.name}`}
+                        >
+                          <ProgramLogo
+                            name={program.name}
+                            profileImageId={program.profile_image_id}
+                            size="fill"
+                            square
+                          />
+                        </button>
+                      ) : (
+                        <div className="w-16 h-16 flex-shrink-0">
+                          <ProgramLogo
+                            name={program.name}
+                            profileImageId={program.profile_image_id}
+                            size="fill"
+                            square
+                          />
                         </div>
+                      )}
+                    </td>
+                    <td className={`px-3 pt-4 pb-2 align-top ${cellClass('prefix')}`} style={rowStyle}>
+                      <div className={`flex ${flexClass('prefix')}`}>
+                        <ProgramBadge code={program.controller_program} color={program.color} size="lg" />
                       </div>
                     </td>
-                    <td className={`px-4 py-4 align-top ${cellClass('status')}`}>
+                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('name')}`} style={rowStyle}>
+                      <p className="font-semibold text-navy-900 whitespace-nowrap">{program.name}</p>
+                    </td>
+                    <td className={`px-3 pt-4 pb-2 align-top tabular-nums ${cellClass('minutes')}`} style={rowStyle}></td>
+                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('status')}`} style={rowStyle}>
                       <Badge status={program.status} size="sm" />
                     </td>
-                    <td className="px-4 py-4 text-right align-top" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      rowSpan={menuSpan}
+                      className="px-3 py-4 text-right align-top"
+                      style={rowStyle}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <ActionMenu
                         items={[
                           { label: 'View', icon: Eye, to: `/programs/${program.id}` },
@@ -323,7 +348,36 @@ export default function Programs() {
                         ]}
                       />
                     </td>
+                    <td rowSpan={menuSpan} style={rowStyle} aria-hidden="true"></td>
                   </tr>
+                  {detailRows.map((row, index) => {
+                    const isLast = index === detailRows.length - 1;
+                    const pad = isLast ? 'pb-4' : '';
+                    return (
+                      <tr
+                        key={row.key}
+                        onClick={openProgram}
+                        className={`${rowClass} ${isLast ? `border-b ${theme.border}` : ''}`}
+                        style={{ ...rowStyle, borderColor: theme.borderHex }}
+                      >
+                        <td className={`px-3 py-0.5 whitespace-nowrap align-top ${pad}`} style={rowStyle}>
+                          <span className="font-semibold text-navy-900">{row.label}:</span>
+                        </td>
+                        <td
+                          colSpan={2}
+                          className={`px-3 py-0.5 whitespace-nowrap align-top ${pad} ${cellClass('name')}`}
+                          style={rowStyle}
+                        >
+                          {row.value}
+                        </td>
+                        <td className={`px-3 py-0.5 whitespace-nowrap tabular-nums align-top ${pad} ${cellClass('minutes')}`} style={rowStyle}>
+                          {row.minutes != null ? row.minutes : ''}
+                        </td>
+                        <td className={pad} style={rowStyle}></td>
+                      </tr>
+                    );
+                  })}
+                  </Fragment>
                   );
                 })}
               </tbody>
