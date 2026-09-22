@@ -18,6 +18,10 @@
   --color-surface-alt: #eef2f9;
 }
 
+html {
+  font-size: 18px;
+}
+
 html, body, #root {
   min-height: 100vh;
   max-width: 100%;
