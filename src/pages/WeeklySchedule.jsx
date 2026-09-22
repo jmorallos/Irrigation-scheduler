@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays } from 'lucide-react';
 import { useWeeklySchedule } from '../hooks/useWeeklySchedule';
@@ -9,13 +9,8 @@ import { soakMinutesFromHours, scheduleTableTotals } from '../utils/scheduleStat
 import { formatGallonsNumber, scheduleRowGallons, scheduleRowWeekGallons } from '../utils/waterUsage';
 import { effectiveScheduleDays, isIntervalProgram } from '../utils/wateringCalendar';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
-import { buildScheduleChartData } from '../utils/chartData';
-import { programsRepository } from '../db/programsRepository';
-import { zonesRepository } from '../db/zonesRepository';
-import { schedulesRepository } from '../db/schedulesRepository';
 import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
-import { MinutesByDayChart } from '../components/DashboardCharts';
 import { useSelectedDay } from '../context/SelectedDayContext';
 import WeekNav from '../components/WeekNav';
 
@@ -128,33 +123,8 @@ export default function WeeklySchedule() {
   const { rows, loading: tableLoading } = useMainSchedule();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  const [minutesByDay, setMinutesByDay] = useState([]);
-  const [chartLoading, setChartLoading] = useState(true);
-  const weekStartMs = weekStart instanceof Date ? weekStart.getTime() : Number(weekStart);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setChartLoading(true);
-      try {
-        const charts = await buildScheduleChartData({
-          programsRepository,
-          zonesRepository,
-          schedulesRepository,
-          referenceDate: new Date(weekStartMs),
-        });
-        if (!cancelled) setMinutesByDay(charts.minutesByDay);
-      } catch {
-        if (!cancelled) setMinutesByDay([]);
-      } finally {
-        if (!cancelled) setChartLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [weekStartMs]);
-
-  const loading = weekLoading || tableLoading || chartLoading;
+  const loading = weekLoading || tableLoading;
 
   const displayRows = useMemo(() => {
     if (!sort.key) return rows;
@@ -212,18 +182,6 @@ export default function WeeklySchedule() {
                 onToday={goToCurrentWeek}
                 showToday={!viewingCurrentWeek || !isClockToday}
               />
-            </div>
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
-              <div className="p-5">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-black mb-4">
-                  Minutes by Day
-                </h2>
-                <MinutesByDayChart
-                  data={minutesByDay}
-                  selectedDay={selectedDay}
-                  todayKeyInView={todayKeyInView}
-                />
-              </div>
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
               <div className="table-h-scroll">

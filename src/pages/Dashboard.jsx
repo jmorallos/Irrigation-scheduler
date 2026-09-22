@@ -6,7 +6,7 @@ import { zonesRepository } from '../db/zonesRepository';
 import { schedulesRepository } from '../db/schedulesRepository';
 import { useTodaySchedule } from '../hooks/useTodaySchedule';
 import { buildScheduleChartData } from '../utils/chartData';
-import { ProgramTodayMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
+import { MinutesByDayChart, ProgramTodayMinutesChart, ZoneMinutesChart, ProgramWaterChart, ZoneWaterChart } from '../components/DashboardCharts';
 import PageError from '../components/PageError';
 import { formatTimeRange, dayScopeLabel, formatClockTodayLine } from '../utils/dateUtils';
 import { formatMinutes } from '../utils/formatMinutes';
@@ -29,6 +29,7 @@ import WeekNav from '../components/WeekNav';
 export default function Dashboard() {
   const {
     selectedDay,
+    setSelectedDay,
     weekStart,
     shiftWeek,
     goToCurrentWeek,
@@ -140,6 +141,24 @@ export default function Dashboard() {
             showToday={!viewingCurrentWeek || !isClockToday}
           />
         </div>
+      </div>
+
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
+        <div className="px-5 py-3.5 bg-navy-900">
+          <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Day</h2>
+        </div>
+        {chartsLoading ? (
+          <div className="p-8 text-center text-sm text-black">Loading charts…</div>
+        ) : (
+          <div className="p-5">
+            <MinutesByDayChart
+              data={chartData.minutesByDay}
+              selectedDay={selectedDay}
+              todayKeyInView={todayKeyInView}
+              onSelectDay={setSelectedDay}
+            />
+          </div>
+        )}
       </div>
 
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
