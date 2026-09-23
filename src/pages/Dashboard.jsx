@@ -22,21 +22,15 @@ import {
   overviewSectionTitle,
   summaryHeaderDate,
   datedSummaryTitle,
-  summaryWeekNavLabel,
 } from '../utils/summaryLabels';
-import WeekNav from '../components/WeekNav';
 
 export default function Dashboard() {
   const {
     selectedDay,
     setSelectedDay,
     weekStart,
-    shiftWeek,
-    goToCurrentWeek,
-    weekRangeLabel,
     todayKeyInView,
     isClockToday,
-    viewingCurrentWeek,
   } = useSelectedDay();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
   const headerDate = summaryHeaderDate(selectedDay, weekStart);
@@ -131,18 +125,6 @@ export default function Dashboard() {
 
       {!displayError && (
       <>
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-5 py-3.5 bg-navy-900">
-          <WeekNav
-            label={summaryWeekNavLabel(headerDate, weekRangeLabel)}
-            onPrev={() => shiftWeek(-1)}
-            onNext={() => shiftWeek(1)}
-            onToday={goToCurrentWeek}
-            showToday={!viewingCurrentWeek || !isClockToday}
-          />
-        </div>
-      </div>
-
       <div className={`bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6 ${dayPanelsClass}`}>
         <div className="px-5 py-3.5 bg-navy-900">
           <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Minutes by Day</h2>

@@ -13,6 +13,7 @@ import ProgramBadge from '../components/ProgramBadge';
 import EmptyState from '../components/EmptyState';
 import { useSelectedDay } from '../context/SelectedDayContext';
 import WeekNav from '../components/WeekNav';
+import { summaryHeaderDate, summaryWeekNavLabel } from '../utils/summaryLabels';
 
 const ZONE_COL =
   'sticky left-0 z-20 w-32 min-w-32 max-w-32 sm:w-44 sm:min-w-44 sm:max-w-44 px-3 sm:px-4';
@@ -112,6 +113,9 @@ export default function WeeklySchedule() {
     setSelectedDay,
     weekStart,
     shiftWeek,
+    shiftDay,
+    goToDate,
+    viewDate,
     goToCurrentWeek,
     weekRangeLabel,
     weekDateNumbers,
@@ -122,6 +126,7 @@ export default function WeeklySchedule() {
   const { groups, loading: weekLoading } = useWeeklySchedule(weekStart);
   const { rows, loading: tableLoading } = useMainSchedule();
   const scope = dayScopeLabel(selectedDay, todayKeyInView ?? selectedDay, weekStart);
+  const headerDate = summaryHeaderDate(selectedDay, weekStart);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
 
   const loading = weekLoading || tableLoading;
@@ -174,14 +179,20 @@ export default function WeeklySchedule() {
                 </p>
               )}
             </div>
-            <div className="bg-navy-900 rounded-lg px-4 py-3 mb-4">
-              <WeekNav
-                label={weekRangeLabel}
-                onPrev={() => shiftWeek(-1)}
-                onNext={() => shiftWeek(1)}
-                onToday={goToCurrentWeek}
-                showToday={!viewingCurrentWeek || !isClockToday}
-              />
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-4">
+              <div className="px-5 py-3.5 bg-navy-900">
+                <WeekNav
+                  label={summaryWeekNavLabel(headerDate, weekRangeLabel)}
+                  viewDate={viewDate}
+                  onPrevWeek={() => shiftWeek(-1)}
+                  onNextWeek={() => shiftWeek(1)}
+                  onPrevDay={() => shiftDay(-1)}
+                  onNextDay={() => shiftDay(1)}
+                  onPickDate={goToDate}
+                  onToday={goToCurrentWeek}
+                  showToday={!viewingCurrentWeek || !isClockToday}
+                />
+              </div>
             </div>
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-8">
               <div className="table-h-scroll">

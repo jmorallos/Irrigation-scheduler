@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import {
   DAY_ORDER,
   getTodayKey,
   startOfWeekMonday,
+  startOfDay,
   addWeeks,
   getDateForDayKey,
   weekDatesFrom,
@@ -14,6 +15,11 @@ import {
 
 const SelectedDayContext = createContext(null);
 
+function selectedDayForWeek(weekStart, clockDate = new Date()) {
+  if (isSameWeekMonday(weekStart, clockDate)) return getTodayKey(clockDate);
+  return 'mon';
+}
+
 export function SelectedDayProvider({ children }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(new Date()));
   const [selectedDay, setSelectedDayState] = useState(() => {
@@ -24,6 +30,10 @@ export function SelectedDayProvider({ children }) {
     }
     return getTodayKey();
   });
+  const weekStartRef = useRef(weekStart);
+  const selectedDayRef = useRef(selectedDay);
+  weekStartRef.current = weekStart;
+  selectedDayRef.current = selectedDay;
 
   const setSelectedDay = useCallback((day) => {
     if (!DAY_ORDER.includes(day)) return;
@@ -31,7 +41,24 @@ export function SelectedDayProvider({ children }) {
   }, []);
 
   const shiftWeek = useCallback((delta) => {
-    setWeekStart(prev => addWeeks(prev, delta));
+    const next = addWeeks(weekStartRef.current, delta);
+    setWeekStart(next);
+    setSelectedDayState(selectedDayForWeek(next));
+  }, []);
+
+  const shiftDay = useCallback((delta) => {
+    const current = getDateForDayKey(selectedDayRef.current, weekStartRef.current);
+    const next = startOfDay(current);
+    next.setDate(next.getDate() + (Number(delta) || 0));
+    setWeekStart(startOfWeekMonday(next));
+    setSelectedDayState(getTodayKey(next));
+  }, []);
+
+  const goToDate = useCallback((date) => {
+    if (!date || Number.isNaN(date.getTime())) return;
+    const day = startOfDay(date);
+    setWeekStart(startOfWeekMonday(day));
+    setSelectedDayState(getTodayKey(day));
   }, []);
 
   const goToCurrentWeek = useCallback(() => {
@@ -52,6 +79,8 @@ export function SelectedDayProvider({ children }) {
       setSelectedDay,
       weekStart,
       shiftWeek,
+      shiftDay,
+      goToDate,
       goToCurrentWeek,
       viewDate,
       weekDates,
@@ -62,7 +91,7 @@ export function SelectedDayProvider({ children }) {
       isClockToday: isSameCalendarDay(viewDate, clockDate),
       viewingCurrentWeek,
     };
-  }, [selectedDay, setSelectedDay, weekStart, shiftWeek, goToCurrentWeek]);
+  }, [selectedDay, setSelectedDay, weekStart, shiftWeek, shiftDay, goToDate, goToCurrentWeek]);
 
   return (
     <SelectedDayContext.Provider value={value}>
