@@ -224,15 +224,15 @@ export default function Programs() {
 
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
             <div className="table-h-scroll">
-            <table className="w-full text-sm border-collapse table-fixed">
+            <table className="w-full text-sm border-collapse">
               <colgroup>
-                <col className="w-36" />
-                <col className="w-14" />
-                <col className="w-52" />
-                <col className="w-20" />
-                <col className="w-24" />
-                <col className="w-14" />
-                <col />
+                <col className="w-px" />
+                <col className="w-px" />
+                <col className="w-px" />
+                <col className="w-px" />
+                <col className="w-px" />
+                <col className="w-px" />
+                <col className="w-full" />
               </colgroup>
               <thead>
                 <tr className="text-white">
@@ -307,16 +307,16 @@ export default function Programs() {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left whitespace-nowrap" style={rowStyle}>
                       <div className="flex items-center">
                         <ProgramBadge code={program.controller_program} color={program.color} size="lg" />
                       </div>
                     </td>
-                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left whitespace-nowrap" style={rowStyle}>
                       <p className="font-semibold text-navy-900 leading-none whitespace-nowrap">{program.name}</p>
                     </td>
-                    <td className="px-3 pt-4 pb-2 align-top tabular-nums text-left" style={rowStyle}></td>
-                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-top tabular-nums text-left whitespace-nowrap" style={rowStyle}></td>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left whitespace-nowrap" style={rowStyle}>
                       <Badge status={program.status} size="sm" />
                     </td>
                     <td
