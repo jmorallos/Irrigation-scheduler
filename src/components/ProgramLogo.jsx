@@ -21,7 +21,7 @@ export default function ProgramLogo({ name, profileImageId, size = 'md', square 
       <img
         src={url}
         alt=""
-        className={`${sizeClass} ${radius} object-cover flex-shrink-0 ${border} ${loading ? 'opacity-70' : ''}`}
+        className={`${sizeClass} ${radius} object-cover block flex-shrink-0 ${border} ${loading ? 'opacity-70' : ''}`}
       />
     );
   }

@@ -284,7 +284,7 @@ export default function Programs() {
                     className={rowClass}
                     style={rowStyle}
                   >
-                    <td className="px-3 pt-4 pb-2 align-top" style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-middle" style={rowStyle}>
                       {program.profile_image_id ? (
                         <button
                           type="button"
@@ -295,7 +295,7 @@ export default function Programs() {
                               name: program.name,
                             });
                           }}
-                          className="w-16 h-16 flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                          className="flex items-center justify-center w-16 h-16 leading-none flex-shrink-0 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                           aria-label={`View photo of ${program.name}`}
                         >
                           <ProgramLogo
@@ -306,7 +306,7 @@ export default function Programs() {
                           />
                         </button>
                       ) : (
-                        <div className="w-16 h-16 flex-shrink-0">
+                        <div className="flex items-center justify-center w-16 h-16 leading-none flex-shrink-0">
                           <ProgramLogo
                             name={program.name}
                             profileImageId={program.profile_image_id}
@@ -316,13 +316,13 @@ export default function Programs() {
                         </div>
                       )}
                     </td>
-                    <td className={`px-3 pt-4 pb-2 align-top ${cellClass('prefix')}`} style={rowStyle}>
-                      <div className={`flex ${flexClass('prefix')}`}>
+                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('prefix')}`} style={rowStyle}>
+                      <div className={`flex items-center ${flexClass('prefix')}`}>
                         <ProgramBadge code={program.controller_program} color={program.color} size="lg" />
                       </div>
                     </td>
                     <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('name')}`} style={rowStyle}>
-                      <p className="font-semibold text-navy-900 whitespace-nowrap">{program.name}</p>
+                      <p className="font-semibold text-navy-900 leading-none whitespace-nowrap">{program.name}</p>
                     </td>
                     <td className={`px-3 pt-4 pb-2 align-top tabular-nums ${cellClass('minutes')}`} style={rowStyle}></td>
                     <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('status')}`} style={rowStyle}>
