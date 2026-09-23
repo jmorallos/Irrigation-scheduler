@@ -20,7 +20,6 @@ import EmptyState from '../components/EmptyState';
 import PageError from '../components/PageError';
 import ActionMenu from '../components/ActionMenu';
 import { useSaves } from '../hooks/useSaves';
-import { useColumnAlign } from '../hooks/useColumnAlign';
 import { programListSummariesById } from '../utils/programListSummary';
 import { nextValveNumber, takenValveNumbers } from '../utils/zoneIdentity';
 
@@ -63,22 +62,14 @@ function programDetailRows(summary) {
   return rows;
 }
 
-const PROGRAMS_ALIGN = {
-  prefix: 'left',
-  name: 'left',
-  minutes: 'right',
-  status: 'left',
-};
-
 const TH_PROGRAMS =
-  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+  'sticky top-0 z-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900';
 
 export default function Programs() {
   const navigate = useNavigate();
   const { programs, loading, error, reload, createProgram, updateProgram, deleteProgram, toggleStatus } = usePrograms();
   const { memberships, valves, schedules, reload: reloadCatalog } = useProgramCatalog();
   const { saveProgram } = useSaves();
-  const { cycle, cellClass, flexClass } = useColumnAlign('programs-align', PROGRAMS_ALIGN);
   const [showCreate, setShowCreate] = useState(false);
   const [createDraft, setCreateDraft] = useState(null);
   const [createError, setCreateError] = useState(null);
@@ -246,16 +237,16 @@ export default function Programs() {
               <thead>
                 <tr className="text-white">
                   <th className={TH_PROGRAMS} aria-label="Program photo"></th>
-                  <th onClick={() => cycle('prefix')} className={TH_PROGRAMS}>
+                  <th className={TH_PROGRAMS}>
                     <span className="block leading-4">Prog</span>
                     <span className="block leading-4">Prefix</span>
                   </th>
-                  <th onClick={() => cycle('name')} className={TH_PROGRAMS}>
+                  <th className={TH_PROGRAMS}>
                     <span className="block leading-4">Program</span>
                     <span className="block leading-4">Name</span>
                   </th>
-                  <th onClick={() => cycle('minutes')} className={TH_PROGRAMS}>Minutes</th>
-                  <th onClick={() => cycle('status')} className={TH_PROGRAMS}>Status</th>
+                  <th className={TH_PROGRAMS}>Minutes</th>
+                  <th className={TH_PROGRAMS}>Status</th>
                   <th className={TH_PROGRAMS}></th>
                   <th className={TH_PROGRAMS} aria-hidden="true"></th>
                 </tr>
@@ -316,16 +307,16 @@ export default function Programs() {
                         </div>
                       )}
                     </td>
-                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('prefix')}`} style={rowStyle}>
-                      <div className={`flex items-center ${flexClass('prefix')}`}>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
+                      <div className="flex items-center">
                         <ProgramBadge code={program.controller_program} color={program.color} size="lg" />
                       </div>
                     </td>
-                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('name')}`} style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
                       <p className="font-semibold text-navy-900 leading-none whitespace-nowrap">{program.name}</p>
                     </td>
-                    <td className={`px-3 pt-4 pb-2 align-top tabular-nums ${cellClass('minutes')}`} style={rowStyle}></td>
-                    <td className={`px-3 pt-4 pb-2 align-middle ${cellClass('status')}`} style={rowStyle}>
+                    <td className="px-3 pt-4 pb-2 align-top tabular-nums text-left" style={rowStyle}></td>
+                    <td className="px-3 pt-4 pb-2 align-middle text-left" style={rowStyle}>
                       <Badge status={program.status} size="sm" />
                     </td>
                     <td
@@ -365,12 +356,12 @@ export default function Programs() {
                         </td>
                         <td
                           colSpan={2}
-                          className={`px-3 py-0.5 whitespace-nowrap align-top ${pad} ${cellClass('name')}`}
+                          className={`px-3 py-0.5 whitespace-nowrap align-top text-left ${pad}`}
                           style={rowStyle}
                         >
                           {row.value}
                         </td>
-                        <td className={`px-3 py-0.5 whitespace-nowrap tabular-nums align-top ${pad} ${cellClass('minutes')}`} style={rowStyle}>
+                        <td className={`px-3 py-0.5 whitespace-nowrap tabular-nums align-top text-left ${pad}`} style={rowStyle}>
                           {row.minutes != null ? row.minutes : ''}
                         </td>
                         <td className={pad} style={rowStyle}></td>

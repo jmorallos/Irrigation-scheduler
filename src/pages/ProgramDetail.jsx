@@ -28,7 +28,6 @@ import { usePrograms } from '../hooks/usePrograms';
 import { useSaves } from '../hooks/useSaves';
 import { getProgramTheme, getZoneTheme } from '../utils/programColors';
 import ProgramBadge from '../components/ProgramBadge';
-import { useColumnAlign } from '../hooks/useColumnAlign';
 import { useSelectedDay } from '../context/SelectedDayContext';
 import {
   WATERING_MODE_INTERVAL,
@@ -229,7 +228,7 @@ function ZoneCard({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSav
   );
 }
 
-function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone, isFirstZone, zoneIndex, cellClass }) {
+function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, onSaveZone, isFirstZone, zoneIndex }) {
   const { schedules, zoneMenuItems, scheduleMenuItems, modals, conflictError } = useZoneCycles(zone, {
     program,
     onEditZone,
@@ -255,7 +254,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
         if (schedule.empty) {
           return (
             <tr key={schedule.id} className={`${rowBorder} ${rowBg}`} style={{ backgroundColor: rowHex, borderColor: theme.borderHex }}>
-              <td className={`px-4 py-3 align-middle ${cellClass('zone')}`}>
+              <td className="px-4 py-3 align-middle text-left">
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
                   <ActionMenu items={zoneMenuItems} label="Valve actions" />
@@ -275,7 +274,7 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
             className={`${rowBorder} ${rowBg} ${schedule.status === 'inactive' ? 'opacity-60' : ''}`}
             style={{ backgroundColor: rowHex, borderColor: theme.borderHex }}
           >
-            <td className={`px-4 py-3 align-middle ${cellClass('zone')}`}>
+            <td className="px-4 py-3 align-middle text-left">
               {index === 0 ? (
                 <div className="flex items-center justify-between gap-2">
                   <ZoneIdentity zone={zone} programName={programName} avatarSize="w-10 h-10" />
@@ -283,26 +282,26 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
                 </div>
               ) : null}
             </td>
-            <td className={`px-4 py-3 whitespace-nowrap ${cellClass('cycle')}`}>
+            <td className="px-4 py-3 whitespace-nowrap text-left">
               <span className="text-sm font-semibold uppercase tracking-wide text-black">
                 {formatCycleLabel(schedule.cycle)}
               </span>
             </td>
-            <td className={`px-4 py-3 whitespace-nowrap ${cellClass('start')}`}>
+            <td className="px-4 py-3 whitespace-nowrap text-left">
               <span className="font-mono text-base font-semibold text-navy-900">{formatTime(schedule.start_time)}</span>
             </td>
-            <td className={`px-4 py-3 whitespace-nowrap ${cellClass('end')}`}>
+            <td className="px-4 py-3 whitespace-nowrap text-left">
               <span className="font-mono text-base text-black">{formatTime(getEndTime(schedule.start_time, schedule.duration_minutes))}</span>
             </td>
-            <td className={`px-4 py-3 whitespace-nowrap ${cellClass('duration')}`}>
+            <td className="px-4 py-3 whitespace-nowrap text-left">
               <span className="font-mono text-sm text-black">{formatDuration(schedule.duration_minutes)}</span>
             </td>
-            <td className={`px-4 py-3 ${cellClass('days')}`}>
+            <td className="px-4 py-3 text-left">
               <span className="text-sm text-black">
                 {isIntervalProgram(program) ? formatIntervalSummary(program) : formatDays(schedule.days_of_week)}
               </span>
             </td>
-            <td className={`px-4 py-3 ${cellClass('notes')}`}>
+            <td className="px-4 py-3 text-left">
               <span className="text-sm text-black">{schedule.notes || '—'}</span>
             </td>
             <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -325,18 +324,8 @@ function ZoneTableRows({ zone, program, onEditZone, onDeleteZone, onToggleZone, 
   );
 }
 
-const DETAIL_ALIGN = {
-  zone: 'left',
-  cycle: 'left',
-  start: 'left',
-  end: 'left',
-  duration: 'left',
-  days: 'left',
-  notes: 'left',
-};
-
 const TH_DETAIL =
-  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900 select-none [-webkit-tap-highlight-color:transparent]';
+  'sticky top-0 z-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider bg-navy-900';
 
 export default function ProgramDetail() {
   const { programId } = useParams();
@@ -352,7 +341,6 @@ export default function ProgramDetail() {
   const { zones, createZone, addExistingValve, updateZone, deleteZone: removeZone, toggleStatus: toggleZone } = useZones(programId);
   const { programs: allPrograms, updateProgram } = usePrograms();
   const { saveProgram, saveZone } = useSaves();
-  const { cycle, cellClass } = useColumnAlign('program-detail-align', DETAIL_ALIGN);
   const [savedNotice, setSavedNotice] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [catalogValves, setCatalogValves] = useState([]);
@@ -635,13 +623,13 @@ export default function ProgramDetail() {
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="text-white">
-                  <th onClick={() => cycle('zone')} className={TH_DETAIL}>Valve</th>
-                  <th onClick={() => cycle('cycle')} className={TH_DETAIL}>Event</th>
-                  <th onClick={() => cycle('start')} className={TH_DETAIL}>Start</th>
-                  <th onClick={() => cycle('end')} className={TH_DETAIL}>End</th>
-                  <th onClick={() => cycle('duration')} className={TH_DETAIL}>Duration</th>
-                  <th onClick={() => cycle('days')} className={TH_DETAIL}>Days</th>
-                  <th onClick={() => cycle('notes')} className={TH_DETAIL}>Notes</th>
+                  <th className={TH_DETAIL}>Valve</th>
+                  <th className={TH_DETAIL}>Event</th>
+                  <th className={TH_DETAIL}>Start</th>
+                  <th className={TH_DETAIL}>End</th>
+                  <th className={TH_DETAIL}>Duration</th>
+                  <th className={TH_DETAIL}>Days</th>
+                  <th className={TH_DETAIL}>Notes</th>
                   <th className="sticky top-0 z-20 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider w-12 bg-navy-900" />
                 </tr>
               </thead>
@@ -656,7 +644,6 @@ export default function ProgramDetail() {
                     onEditZone={() => setEditZone(zone)}
                     onDeleteZone={() => setDeleteZone(zone)}
                     onToggleZone={() => toggleZone(zone.id, zone.status)}
-                    cellClass={cellClass}
                     onSaveZone={async () => {
                       await saveZone(zone.id);
                       showSaved(`Saved "${zone.name}" with its events.`);
